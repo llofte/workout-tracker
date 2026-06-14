@@ -4,6 +4,7 @@ import HomeScreen from './screens/HomeScreen'
 import LogScreen from './screens/LogScreen'
 import MovementsScreen from './screens/MovementsScreen'
 import CalcScreen from './screens/CalcScreen'
+import { useSessions } from './hooks/useSession'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -13,10 +14,12 @@ export default function App() {
   const [editingSession, setEditingSession] = useState(null)
   const [logMinimized, setLogMinimized] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
+  const { sessions, refetch } = useSessions()
 
   const logOpen = logging || !!editingSession
 
   const closeLog = () => {
+    refetch()
     setLogging(false)
     setEditingSession(null)
     setLogMinimized(false)
@@ -40,7 +43,7 @@ export default function App() {
   return (
     <div style={{ backgroundColor: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
-        {activeTab === 'home' && <HomeScreen onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
+        {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
         {activeTab === 'calc' && <CalcScreen />}
       </main>

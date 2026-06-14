@@ -21,5 +21,5 @@ export function useSessions() {
     return () => { supabase.removeChannel(channel) }
   }, [])
 
-  return sessions
+  return { sessions, refetch: fetchSessions }
 }

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { useSessions } from '../hooks/useSession'
 import SessionDetailScreen from './SessionDetailScreen'
 
 function formatDate(dateStr) {
@@ -510,8 +509,7 @@ function AskClaude({ sessions }) {
 
 const RECENT_LIMIT = 7
 
-export default function HomeScreen({ onLogWorkout, onEdit }) {
-  const sessions = useSessions()
+export default function HomeScreen({ sessions, onLogWorkout, onEdit }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const [viewAll, setViewAll] = useState(false)
   const { thisWeek, weekStreak } = computeStats(sessions)
