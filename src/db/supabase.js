@@ -33,6 +33,21 @@ export function sessionToRow(session) {
   }
 }
 
+export async function migrateFromDexie() {
+  if (localStorage.getItem('dexie_migrated')) return
+  try {
+    const { db } = await import('./db')
+    const localSessions = await db.sessions.toArray()
+    const realSessions = localSessions.filter(s => s.notes !== 'test')
+    if (!realSessions.length) { localStorage.setItem('dexie_migrated', '1'); return }
+    const rows = realSessions.map(s => sessionToRow({ ...s, id: crypto.randomUUID() }))
+    const { error } = await supabase.from('sessions').insert(rows)
+    if (!error) localStorage.setItem('dexie_migrated', '1')
+  } catch (e) {
+    console.error('Dexie migration failed:', e)
+  }
+}
+
 export async function seedSupabaseIfEmpty() {
   const { count } = await supabase
     .from('movements')

@@ -2,8 +2,9 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
-import { seedSupabaseIfEmpty } from './db/supabase.js'
+import { seedSupabaseIfEmpty, migrateFromDexie } from './db/supabase.js'
 
+migrateFromDexie()
 seedSupabaseIfEmpty()
 
 if ('serviceWorker' in navigator) {
