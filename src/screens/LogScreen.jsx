@@ -695,8 +695,11 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
 Strength rules:
 - If no strength, set "strengthBlock" to null
 - type: "Traditional" for regular sets, "OTM" for every-minute-on-the-minute
-- For OTM: set "duration" (total minutes as string) and "interval" (every X min as string)
-- Pre-generate set rows from the rep scheme (e.g. "5x5" → 5 sets with reps "5"; "3-3-3-3" → 4 sets)
+- For OTM: "interval" = how many minutes between each set (standard OTM = "1"). "duration" = total workout minutes as string.
+- CRITICAL: "x2" or "×2" after OTM means 2 REPS per set — NOT a 2-minute interval. "12 min OTM x2 Power Snatch" = 12 sets of 2 reps with interval "1".
+- "E2MOM" or "every 2 min" means interval "2" (set every 2 minutes). This is completely different from "x2" reps.
+- For OTM, pre-generate sets: total sets = duration ÷ interval. E.g. 12 min OTM interval=1 → 12 sets; 12 min E2MOM interval=2 → 6 sets.
+- For Traditional: pre-generate set rows from the rep scheme (e.g. "5x5" → 5 sets with reps "5"; "3-3-3-3" → 4 sets)
 - Leave weight as empty string ""; num must be an integer (1, 2, 3…); reps must be a string
 - Common abbreviations: BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch
 
@@ -705,11 +708,21 @@ Metcon rules:
 - reps must be a string: "10", "21-15-9", "max", etc.
 - For AMRAP: duration in minutes in first segment "duration", set "rounds" to ""
 - For For Time: number of rounds in "rounds", set "duration" to ""
-- For OTM/EMOM: set "duration" (total min) and "interval" (every X min); each move gets minuteAssignment "1", "2", etc.
 - For Tabata: set "rounds" (default "8"), tabataWork (sec), tabataRest (sec)
 - Multi-segment: add extra segments with restBeforeMin/restBeforeSec set
 - Buy-in/buy-out: movements done once before/after the main piece
-- Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed`
+- Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed
+
+OTM/EMOM metcon — TWO distinct patterns, handle carefully:
+PATTERN A — Rotating OTM (each minute is a different movement):
+  "12 min OTM: Min 1 x8 Burpee Box Jump, Min 2 x5 DL" means every minute you do ONE movement, alternating.
+  → interval="1", each move gets minuteAssignment "1", "2", etc. to show which minute it occupies.
+  → Athlete does 6 rounds of each movement over 12 minutes.
+PATTERN B — Grouped OTM (all movements happen together every X minutes):
+  "E2MOM: 5 DL + 8 Burpee Box Jump" means both movements happen within the same 2-minute window.
+  → interval="2" (or however many minutes the window is), all moves get minuteAssignment "" (no assignment).
+The key signal: if the board says "Min 1", "Min 2" etc., it is PATTERN A (rotating, interval="1").
+If it says "E2MOM" or "every 2 min" with no per-minute labels, it is PATTERN B.`
   }
 
   function buildGeneratePrompt(request) {
