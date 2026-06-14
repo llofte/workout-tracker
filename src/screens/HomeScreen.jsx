@@ -25,9 +25,20 @@ function deriveTitle(session) {
   }
 
   if (session.metconBlock) {
-    const { format, duration, rounds } = session.metconBlock
+    const { format, duration, rounds, segments } = session.metconBlock
     let label = format || 'Metcon'
-    if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
+    if (segments?.length > 1) {
+      const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
+      const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
+      const total = Math.round(totalWorkMin + totalRestMin)
+      const firstDur = segments[0]?.duration
+      const allSame = firstDur && segments.every(s => s.duration === firstDur)
+      if (allSame) {
+        label = `${firstDur} min ${format} ×${segments.length}`
+      } else {
+        label = `${total} min Metcon`
+      }
+    } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
     else if (format === 'OTM' && duration) label = `${duration} min OTM`
     else if (format === 'For Time' && rounds) label = `${rounds} Rounds For Time`
     parts.push(label)

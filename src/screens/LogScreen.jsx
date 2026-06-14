@@ -764,6 +764,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
 }
 
 Rules:
+- CRITICAL — Total time must exactly match the requested duration. Total time = sum of all segment work periods + sum of all rest periods between segments. Example: user asks for 30 min, you use 3 segments with 3-min rests between them → rest time = 6 min → work time = 24 min → each segment = 8 min. Do the math before outputting.
 - Weight fields: leave as empty string "" for ALL barbell/dumbbell/kettlebell movements — do NOT suggest weights.
 - Exception: bodyweight movements (Pull-Up, Chest-to-Bar, Toes to Bar, Handstand Push-Up, Muscle-Up, Ring Dip, Dip, Burpee, Burpee Box Jump Over, Box Jump, Double Under, Push-Up, Air Squat, Sit-Up, Rope Climb, Running, Row, Ski Erg, Assault Bike, Handstand Walk) get weight "0".
 - reps must be a string: "10", "21-15-9", "max", etc.
@@ -842,7 +843,17 @@ Rules:
     if (hasMetcon) {
       const seg = metconSegments[0]
       let label = metconFormat
-      if (metconFormat === 'AMRAP' && seg?.duration) {
+      if (metconSegments.length > 1) {
+        const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
+        const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)
+        const total = Math.round(totalWorkMin + totalRestMin)
+        const allSame = metconSegments.every(s => s.duration === seg?.duration)
+        if (allSame && seg?.duration) {
+          label = `${seg.duration} min ${metconFormat} ×${metconSegments.length}`
+        } else {
+          label = `${total} min Metcon`
+        }
+      } else if (metconFormat === 'AMRAP' && seg?.duration) {
         label = `${seg.duration} min AMRAP`
       } else if (metconFormat === 'OTM' && seg?.duration) {
         label = `${seg.duration} min OTM`
