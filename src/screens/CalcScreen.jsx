@@ -71,7 +71,7 @@ const sectionLabel = {
 
 export default function CalcScreen() {
   const [mode, setMode] = useState('build')
-  const [barbellWeight, setBarbellWeight] = useState(45)
+  const [barbellWeight, setBarbellWeight] = useState(33.07)
   const [loadedPlates, setLoadedPlates] = useState([])
   const [targetInput, setTargetInput] = useState('')
 
