@@ -1412,10 +1412,19 @@ Rules:
                           </>
                         ) : (
                           <>
-                            <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
-                            <input placeholder="lbs" value={move.weight} onChange={e => updateSegMove(si, mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input placeholder="—" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                              <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input placeholder="—" value={move.weight} onChange={e => updateSegMove(si, mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                              <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>lbs</span>
+                            </div>
                             {metconFormat === 'OTM' && (
-                              <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateSegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <input placeholder="—" value={move.minuteAssignment} onChange={e => updateSegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>min #</span>
+                              </div>
                             )}
                           </>
                         )}
