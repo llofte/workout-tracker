@@ -430,9 +430,17 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
 
   const [hasMetcon, setHasMetcon] = useState(s ? !!s.metconBlock : true)
   const [metconFormat, setMetconFormat] = useState(s?.metconBlock?.format ?? 'AMRAP')
-  const [metconSegments, setMetconSegments] = useState(() =>
-    s?.metconBlock?.segments?.length ? s.metconBlock.segments.map(restoreSegment) : [newMetconSegment(false)]
-  )
+  const [metconSegments, setMetconSegments] = useState(() => {
+    if (s?.metconBlock?.segments?.length) return s.metconBlock.segments.map(restoreSegment)
+    if (s?.metconBlock?.movements?.length) return [{
+      restBeforeMin: '', restBeforeSec: '',
+      duration: s.metconBlock.duration?.toString() ?? '',
+      rounds: s.metconBlock.rounds?.toString() ?? '',
+      interval: '1', tabataWork: '20', tabataRest: '10',
+      moves: s.metconBlock.movements.map(restoreMetconMove),
+    }]
+    return [newMetconSegment(false)]
+  })
   const [metconScore, setMetconScore] = useState(s?.metconBlock?.score ?? '')
   const [hasBuyIn, setHasBuyIn] = useState(!!(s?.metconBlock?.buyIn?.length))
   const [buyInMoves, setBuyInMoves] = useState(() =>
