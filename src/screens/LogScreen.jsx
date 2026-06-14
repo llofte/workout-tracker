@@ -2,6 +2,9 @@ import { useState, useRef, useEffect } from 'react'
 import { db } from '../db/db'
 import { useMovements } from '../hooks/useMovements'
 
+const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
+  import.meta.env.VITE_ANTHROPIC_API_KEY !== 'your_key_here'
+
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '' } }
@@ -228,6 +231,8 @@ function SuggestButton({ name, sets }) {
     }
   }, [name])
 
+  if (!hasApiKey) return null
+
   async function suggest() {
     if (!name?.trim() || loading) return
     setLoading(true)
@@ -450,6 +455,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   async function handlePhotoSelect(file) {
     if (!file) return
     setPhotoFile(file)
+    if (!hasApiKey) { setStep(2); return }
     setPhotoLoading(true)
     setPhotoError('')
     try {
@@ -751,6 +757,7 @@ Rules:
 
   async function generateWorkout() {
     if (!generatePrompt.trim()) return
+    if (!hasApiKey) { setGenerateError('API key required — skip to enter manually.'); return }
     setGenerating(true)
     setGenerateError('')
     try {
@@ -1022,42 +1029,46 @@ Rules:
           )}
         </div>
 
-        {/* Ask Claude divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px' }}>
-          <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-          <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: 'inherit' }}>or ask Claude</span>
-          <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-        </div>
+        {hasApiKey && (
+          <>
+            {/* Ask Claude divider */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px' }}>
+              <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+              <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: 'inherit' }}>or ask Claude</span>
+              <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+            </div>
 
-        {/* Generate section */}
-        <div style={{ padding: '0 20px' }}>
-          <textarea
-            placeholder='"15-min metcon with barbell and row"'
-            value={generatePrompt}
-            onChange={e => setGeneratePrompt(e.target.value)}
-            rows={2}
-            style={{ ...inputBase, resize: 'none', lineHeight: 1.5, marginBottom: 10 }}
-          />
-          {generateError && (
-            <p style={{ color: '#e05c4b', fontSize: 13, margin: '0 0 10px', fontFamily: 'inherit' }}>{generateError}</p>
-          )}
-          <button
-            onClick={generateWorkout}
-            disabled={generating || !generatePrompt.trim()}
-            style={{
-              width: '100%',
-              backgroundColor: generating || !generatePrompt.trim() ? 'rgba(255,255,255,0.04)' : 'rgba(245,240,232,0.1)',
-              color: generating || !generatePrompt.trim() ? 'rgba(245,240,232,0.25)' : '#f5f0e8',
-              border: '1px solid rgba(245,240,232,0.12)',
-              borderRadius: 14, padding: '15px 24px',
-              fontSize: 15, fontWeight: 600,
-              cursor: generating || !generatePrompt.trim() ? 'default' : 'pointer',
-              fontFamily: 'inherit', letterSpacing: -0.1,
-            }}
-          >
-            {generating ? 'Generating…' : 'Generate Workout'}
-          </button>
-        </div>
+            {/* Generate section */}
+            <div style={{ padding: '0 20px' }}>
+              <textarea
+                placeholder='"15-min metcon with barbell and row"'
+                value={generatePrompt}
+                onChange={e => setGeneratePrompt(e.target.value)}
+                rows={2}
+                style={{ ...inputBase, resize: 'none', lineHeight: 1.5, marginBottom: 10 }}
+              />
+              {generateError && (
+                <p style={{ color: '#e05c4b', fontSize: 13, margin: '0 0 10px', fontFamily: 'inherit' }}>{generateError}</p>
+              )}
+              <button
+                onClick={generateWorkout}
+                disabled={generating || !generatePrompt.trim()}
+                style={{
+                  width: '100%',
+                  backgroundColor: generating || !generatePrompt.trim() ? 'rgba(255,255,255,0.04)' : 'rgba(245,240,232,0.1)',
+                  color: generating || !generatePrompt.trim() ? 'rgba(245,240,232,0.25)' : '#f5f0e8',
+                  border: '1px solid rgba(245,240,232,0.12)',
+                  borderRadius: 14, padding: '15px 24px',
+                  fontSize: 15, fontWeight: 600,
+                  cursor: generating || !generatePrompt.trim() ? 'default' : 'pointer',
+                  fontFamily: 'inherit', letterSpacing: -0.1,
+                }}
+              >
+                {generating ? 'Generating…' : 'Generate Workout'}
+              </button>
+            </div>
+          </>
+        )}
 
         <button onClick={() => setStep(2)} style={{ alignSelf: 'center', marginTop: 20, background: 'none', border: 'none', color: 'rgba(245,240,232,0.5)', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: '8px 0', textDecoration: 'underline', textDecorationColor: 'rgba(245,240,232,0.25)', textUnderlineOffset: 3 }}>
           Skip — enter manually

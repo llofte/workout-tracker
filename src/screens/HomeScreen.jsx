@@ -195,6 +195,7 @@ function groupByMonth(sessions) {
 }
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+const hasApiKey = !!API_KEY && API_KEY !== 'your_key_here'
 
 function getMondayOf(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')
@@ -430,6 +431,14 @@ function AskClaude({ sessions }) {
   }
 
   const hasResponse = response || error
+
+  if (!hasApiKey) return (
+    <div style={{ margin: '8px 20px 0', backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 16px' }}>
+      <p style={{ color: 'rgba(245,240,232,0.3)', fontSize: 14, margin: 0, fontFamily: 'inherit' }}>
+        Ask Claude requires an API key — add one to enable AI features.
+      </p>
+    </div>
+  )
 
   return (
     <div style={{ margin: '8px 20px 0', backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px' }}>
