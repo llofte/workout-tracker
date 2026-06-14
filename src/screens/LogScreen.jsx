@@ -7,8 +7,8 @@ const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
 
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
-function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '' } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '' } }
+function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', dumbbellCount: null } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', dumbbellCount: null } }
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
   return {
@@ -39,6 +39,7 @@ function restoreStrengthMove(m) {
       : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
     ) ?? [newWorkingSet(1)],
     notes: m.notes || '',
+    dumbbellCount: m.dumbbellCount ?? null,
   }
 }
 
@@ -47,13 +48,14 @@ function restoreMetconMove(m) {
     const t = m.restSeconds || 0
     return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: true,
       restMin: t >= 60 ? String(Math.floor(t / 60)) : '',
-      restSec: t % 60 ? String(t % 60) : '', notes: '' }
+      restSec: t % 60 ? String(t % 60) : '', notes: '', dumbbellCount: null }
   }
   return {
     name: m.name || '', reps: m.reps?.toString() ?? '',
     weight: m.weight?.toString() ?? '',
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
+    dumbbellCount: m.dumbbellCount ?? null,
   }
 }
 
@@ -82,14 +84,16 @@ async function detectPRs(sessionId, date, strengthBlock) {
     if (!record) { updatedMovements.push(move); continue }
 
     const prs = [...(record.prs ?? [])]
+    const dbMultiplier = move.dumbbellCount ?? 1
     let movePR = false
     const updatedSets = move.sets.map(set => {
       if (set.notation === 'warmup' || set.weight == null || set.reps == null) return set
+      const totalLoad = set.weight * dbMultiplier
       const best = prs
         .filter(p => p.reps === set.reps)
         .reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
-      if (!best || set.weight > best.weight) {
-        prs.push({ date, reps: set.reps, weight: set.weight, weightUnit: 'lbs', sessionId })
+      if (!best || totalLoad > best.weight) {
+        prs.push({ date, reps: set.reps, weight: totalLoad, weightUnit: 'lbs', sessionId })
         movePR = true
         anyPR = true
         return { ...set, isPR: true }
@@ -327,6 +331,30 @@ function SuggestButton({ name, sets }) {
         </div>
       )}
     </>
+  )
+}
+
+// ─── DB Toggle ────────────────────────────────────────────────────────
+function DbToggle({ value, onChange }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+      {[1, 2].map(n => (
+        <button
+          key={n}
+          onClick={() => onChange(value === n ? null : n)}
+          style={{
+            backgroundColor: value === n ? 'rgba(245,240,232,0.13)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${value === n ? 'rgba(245,240,232,0.28)' : 'transparent'}`,
+            borderRadius: 8, padding: '5px 11px',
+            fontSize: 12, fontWeight: 600, letterSpacing: 0.2,
+            color: value === n ? '#f5f0e8' : 'rgba(245,240,232,0.3)',
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}
+        >
+          {n} DB
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -881,6 +909,7 @@ Rules:
             : strengthType,
           movements: strengthMoves.map(m => ({
             name: m.name,
+            dumbbellCount: m.dumbbellCount ?? null,
             sets: m.sets.map((s, idx) => ({
               setNumber: idx + 1,
               reps: s.reps !== '' ? Number(s.reps) : null,
@@ -929,6 +958,7 @@ Rules:
               reps: m.reps || null,
               weight: m.weight !== '' ? Number(m.weight) : null,
               weightUnit: 'lbs',
+              dumbbellCount: m.dumbbellCount ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
             }),
@@ -1204,6 +1234,7 @@ Rules:
                   <button onClick={() => removeStrengthMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
                 </div>
                 <SuggestButton name={move.name} sets={move.sets} />
+                <DbToggle value={move.dumbbellCount} onChange={v => updateStrengthMove(mi, 'dumbbellCount', v)} />
                 <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
                   <span style={{ width: 28, flexShrink: 0 }} />
                   <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
@@ -1399,6 +1430,7 @@ Rules:
                       )}
                     </div>
                     <div>
+                      {!move.isRest && <DbToggle value={move.dumbbellCount} onChange={v => updateSegMove(si, mi, 'dumbbellCount', v)} />}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {move.isRest ? (
                           <>
