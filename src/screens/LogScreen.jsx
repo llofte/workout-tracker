@@ -178,22 +178,28 @@ function LibrarySheet({ onSelect, onClose }) {
 
 // ─── Set Row ──────────────────────────────────────────────────────────
 function SetRow({ set, onChange, onDelete }) {
+  const dimColor = set.isWarmup ? 'rgba(245,240,232,0.22)' : 'rgba(245,240,232,0.3)'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6, paddingBottom: 6, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
       <span style={{ width: 28, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: set.isWarmup ? 'rgba(245,240,232,0.28)' : 'rgba(245,240,232,0.45)' }}>
         {set.num}
       </span>
-      <input
-        type="number" inputMode="numeric" placeholder="reps" value={set.reps}
-        onChange={e => onChange('reps', e.target.value)}
-        style={{ flex: 1, minWidth: 0, backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
-      />
-      <input
-        type="number" inputMode="decimal" placeholder="lbs" value={set.weight}
-        onChange={e => onChange('weight', e.target.value)}
-        style={{ flex: 1.6, minWidth: 0, backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
-      />
-      <span style={{ fontSize: 12, color: 'rgba(245,240,232,0.35)', fontFamily: 'inherit', flexShrink: 0 }}>lbs</span>
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <input
+          type="number" inputMode="numeric" placeholder="—" value={set.reps}
+          onChange={e => onChange('reps', e.target.value)}
+          style={{ width: '100%', backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+        />
+        <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: dimColor, fontFamily: 'inherit' }}>reps</span>
+      </div>
+      <div style={{ flex: 1.6, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <input
+          type="number" inputMode="decimal" placeholder="—" value={set.weight}
+          onChange={e => onChange('weight', e.target.value)}
+          style={{ width: '100%', backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+        />
+        <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: dimColor, fontFamily: 'inherit' }}>lbs</span>
+      </div>
       <button onClick={onDelete} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.5)" strokeWidth="2.5" strokeLinecap="round">
           <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
