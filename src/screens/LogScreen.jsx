@@ -704,7 +704,8 @@ Strength rules:
 - Common abbreviations: BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch
 
 Metcon rules:
-- Leave all weight fields as empty string "" — the athlete fills those in
+- Weight fields: leave as empty string "" for ALL barbell/dumbbell/kettlebell movements — do NOT guess weights.
+- Exception: bodyweight movements (Pull-Up, Chest-to-Bar, Toes to Bar, Handstand Push-Up, Muscle-Up, Ring Dip, Dip, Burpee, Burpee Box Jump Over, Box Jump, Double Under, Push-Up, Air Squat, Sit-Up, Rope Climb, Running, Row, Ski Erg, Assault Bike, Handstand Walk) get weight "0".
 - reps must be a string: "10", "21-15-9", "max", etc.
 - For AMRAP: duration in minutes in first segment "duration", set "rounds" to ""
 - For For Time: number of rounds in "rounds", set "duration" to ""
@@ -757,7 +758,8 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
 }
 
 Rules:
-- Leave all weight fields as empty string ""
+- Weight fields: leave as empty string "" for ALL barbell/dumbbell/kettlebell movements — do NOT suggest weights.
+- Exception: bodyweight movements (Pull-Up, Chest-to-Bar, Toes to Bar, Handstand Push-Up, Muscle-Up, Ring Dip, Dip, Burpee, Burpee Box Jump Over, Box Jump, Double Under, Push-Up, Air Squat, Sit-Up, Rope Climb, Running, Row, Ski Erg, Assault Bike, Handstand Walk) get weight "0".
 - reps must be a string: "10", "21-15-9", "max", etc.
 - For AMRAP: put duration in minutes in first segment "duration", set "rounds" to ""
 - For For Time: put number of rounds in "rounds", set "duration" to ""
