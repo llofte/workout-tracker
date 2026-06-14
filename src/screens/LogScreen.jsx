@@ -1,0 +1,1610 @@
+import { useState, useRef, useEffect } from 'react'
+import { db } from '../db/db'
+import { useMovements } from '../hooks/useMovements'
+
+function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
+function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
+function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '' } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '' } }
+function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
+function newMetconSegment(withRest) {
+  return {
+    restBeforeMin: withRest ? '2' : '',
+    restBeforeSec: withRest ? '0' : '',
+    duration: '',
+    rounds: '',
+    interval: '1',
+    tabataWork: '20',
+    tabataRest: '10',
+    moves: [newMetconMove()],
+  }
+}
+
+function parseStrengthStructure(structure) {
+  if (!structure || structure === 'Traditional') return { type: 'Traditional', duration: '', interval: '1' }
+  const m = structure.match(/^(\d+) min OTM every (\d+) min/)
+  if (m) return { type: 'OTM', duration: m[1], interval: m[2] }
+  return { type: 'Traditional', duration: '', interval: '1' }
+}
+
+function restoreStrengthMove(m) {
+  let wn = 0, wkn = 0
+  return {
+    name: m.name || '',
+    sets: m.sets?.map(s => s.notation === 'warmup'
+      ? { num: `W${++wn}`, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: true }
+      : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
+    ) ?? [newWorkingSet(1)],
+    notes: m.notes || '',
+  }
+}
+
+function restoreMetconMove(m) {
+  if (m.isRest) {
+    const t = m.restSeconds || 0
+    return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: true,
+      restMin: t >= 60 ? String(Math.floor(t / 60)) : '',
+      restSec: t % 60 ? String(t % 60) : '', notes: '' }
+  }
+  return {
+    name: m.name || '', reps: m.reps?.toString() ?? '',
+    weight: m.weight?.toString() ?? '',
+    minuteAssignment: m.minuteAssignment?.toString() ?? '',
+    isRest: false, restMin: '', restSec: '', notes: m.notes || '',
+  }
+}
+
+function restoreSegment(seg) {
+  const rb = seg.restBefore || 0
+  return {
+    restBeforeMin: rb ? String(Math.floor(rb / 60)) : '',
+    restBeforeSec: rb ? String(rb % 60) : '',
+    duration: seg.duration?.toString() ?? '',
+    rounds: seg.rounds?.toString() ?? '',
+    interval: seg.interval?.toString() ?? '1',
+    tabataWork: seg.work?.toString() ?? '20',
+    tabataRest: seg.rest?.toString() ?? '10',
+    moves: seg.movements?.length ? seg.movements.map(restoreMetconMove) : [newMetconMove()],
+  }
+}
+
+async function detectPRs(sessionId, date, strengthBlock) {
+  if (!strengthBlock?.movements?.length) return null
+  let anyPR = false
+  const updatedMovements = []
+
+  for (const move of strengthBlock.movements) {
+    if (!move.name) { updatedMovements.push(move); continue }
+    const record = await db.movements.where('name').equals(move.name).first()
+    if (!record) { updatedMovements.push(move); continue }
+
+    const prs = [...(record.prs ?? [])]
+    let movePR = false
+    const updatedSets = move.sets.map(set => {
+      if (set.notation === 'warmup' || set.weight == null || set.reps == null) return set
+      const best = prs
+        .filter(p => p.reps === set.reps)
+        .reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
+      if (!best || set.weight > best.weight) {
+        prs.push({ date, reps: set.reps, weight: set.weight, weightUnit: 'lbs', sessionId })
+        movePR = true
+        anyPR = true
+        return { ...set, isPR: true }
+      }
+      return set
+    })
+
+    if (movePR) await db.movements.update(record.id, { prs })
+    updatedMovements.push({ ...move, sets: updatedSets })
+  }
+
+  return anyPR ? { ...strengthBlock, movements: updatedMovements } : null
+}
+
+const FORMATS = ['AMRAP', 'For Time', 'OTM', 'Tabata', 'Other']
+
+function isLadder(val) {
+  if (!val || typeof val !== 'string') return false
+  const parts = val.trim().replace(/\s+/g, '').split(/[,\-]/)
+  return parts.length >= 2 && parts.every(p => /^\d+$/.test(p) && Number(p) > 0)
+}
+function parseLadder(val) {
+  return val.trim().replace(/\s+/g, '').split(/[,\-]/).map(Number)
+}
+
+const inputBase = {
+  backgroundColor: 'rgba(255,255,255,0.07)',
+  border: 'none', borderRadius: 10, padding: '11px 14px',
+  fontSize: 16, color: '#f5f0e8', fontFamily: 'inherit',
+  outline: 'none', width: '100%', boxSizing: 'border-box', display: 'block',
+}
+
+const labelStyle = {
+  color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: 0.5, margin: '0 0 6px', fontFamily: 'inherit',
+}
+
+// ─── Library Sheet ────────────────────────────────────────────────────
+function LibrarySheet({ onSelect, onClose }) {
+  const movements = useMovements()
+  const [query, setQuery] = useState('')
+  const filtered = (movements ?? []).filter(m =>
+    m.name.toLowerCase().includes(query.toLowerCase())
+  )
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200 }} />
+      <div style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        backgroundColor: '#1c1c1e', borderRadius: '20px 20px 0 0', zIndex: 201,
+        maxHeight: '75vh', display: 'flex', flexDirection: 'column',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 0' }}>
+          <div style={{ width: 36, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
+        </div>
+        <div style={{ padding: '12px 20px 0' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ color: '#f5f0e8', fontSize: 17, fontWeight: 600, fontFamily: 'inherit' }}>Movement Library</span>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(245,240,232,0.55)', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          </div>
+          <input
+            type="search" placeholder="Search..." value={query}
+            onChange={e => setQuery(e.target.value)} autoFocus
+            style={{ ...inputBase, backgroundColor: '#2c2c2e' }}
+          />
+        </div>
+        <div style={{ overflowY: 'auto', flex: 1, paddingTop: 8 }}>
+          {filtered.map(m => (
+            <button key={m.id} onClick={() => onSelect(m.name)} style={{
+              width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 20px', backgroundColor: 'transparent', border: 'none',
+              borderBottom: '0.5px solid rgba(255,255,255,0.07)', cursor: 'pointer', textAlign: 'left',
+            }}>
+              <span style={{ color: '#f5f0e8', fontSize: 16, fontFamily: 'inherit' }}>{m.name}</span>
+              {m.prs?.length > 0 && (
+                <span style={{ backgroundColor: 'rgba(192,57,43,0.2)', color: '#e05c4b', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}>PR</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+// ─── Set Row ──────────────────────────────────────────────────────────
+function SetRow({ set, onChange, onDelete }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, paddingBottom: 8, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+      <span style={{ width: 28, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: set.isWarmup ? 'rgba(245,240,232,0.28)' : 'rgba(245,240,232,0.45)' }}>
+        {set.num}
+      </span>
+      <input
+        type="number" inputMode="numeric" placeholder="reps" value={set.reps}
+        onChange={e => onChange('reps', e.target.value)}
+        style={{ flex: 1, minWidth: 0, backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
+      />
+      <input
+        type="number" inputMode="decimal" placeholder="lbs" value={set.weight}
+        onChange={e => onChange('weight', e.target.value)}
+        style={{ flex: 1.6, minWidth: 0, backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }}
+      />
+      <span style={{ fontSize: 12, color: 'rgba(245,240,232,0.35)', fontFamily: 'inherit', flexShrink: 0 }}>lbs</span>
+      <button onClick={onDelete} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.5)" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+// ─── Suggest Button ───────────────────────────────────────────────────
+function buildSuggestPrompt(movementName, targetDesc, history) {
+  const histLine = history.length
+    ? history.map(h => `${h.date}: ${h.sets.join(', ')}`).join('\n')
+    : 'No previous history logged for this movement.'
+  return `You're a strength coach recommending a weight for Leanna's next exercise.
+
+Movement: ${movementName}
+Today's plan: ${targetDesc}
+
+Recent history (newest first):
+${histLine}
+
+Give a specific weight recommendation and one brief sentence of reasoning. Be direct and concrete. Plain text only — no markdown, no bullet points. Example: "Start at 95 lbs — you hit that for 5×5 last session and it moved well."`
+}
+
+function SuggestButton({ name, sets }) {
+  const [loading, setLoading] = useState(false)
+  const [suggestion, setSuggestion] = useState(null)
+  const prevName = useRef(name)
+
+  useEffect(() => {
+    if (prevName.current !== name) {
+      setSuggestion(null)
+      prevName.current = name
+    }
+  }, [name])
+
+  async function suggest() {
+    if (!name?.trim() || loading) return
+    setLoading(true)
+    setSuggestion(null)
+    try {
+      const trimmed = name.trim().toLowerCase()
+      const sessions = await db.sessions.orderBy('date').reverse().toArray()
+      const history = []
+      for (const session of sessions) {
+        const moves = session.strengthBlock?.movements ?? []
+        const match = moves.find(m => m.name?.trim().toLowerCase() === trimmed)
+        if (match) {
+          const working = (match.sets ?? []).filter(s => !s.isWarmup && s.weight && s.reps)
+          if (working.length) {
+            const dateStr = new Date(session.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+            history.push({ date: dateStr, sets: working.map(s => `${s.reps}×${s.weight} lbs`) })
+          }
+        }
+        if (history.length >= 6) break
+      }
+      const working = sets.filter(s => !s.isWarmup && s.reps)
+      const repCounts = [...new Set(working.map(s => s.reps).filter(Boolean))]
+      const targetDesc = repCounts.length
+        ? `${working.length} sets of ${repCounts.join('/')} reps`
+        : `${working.length || sets.length} working sets`
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 120,
+          messages: [{ role: 'user', content: buildSuggestPrompt(name.trim(), targetDesc, history) }],
+        }),
+      })
+      const data = await res.json()
+      setSuggestion(data.content[0].text.trim())
+    } catch {
+      setSuggestion("Couldn't get a suggestion — check your connection.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <>
+      {!suggestion && (
+        <button
+          onClick={suggest}
+          disabled={loading || !name?.trim()}
+          style={{
+            background: 'none', border: 'none', padding: '0 0 8px 2px',
+            cursor: loading || !name?.trim() ? 'default' : 'pointer',
+            color: !name?.trim() ? 'rgba(245,240,232,0.2)' : loading ? 'rgba(245,240,232,0.35)' : 'rgba(245,240,232,0.5)',
+            fontSize: 12, fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
+          }}
+        >
+          {loading ? (
+            <>
+              <style>{`@keyframes sg-spin { to { transform: rotate(360deg) } }`}</style>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid rgba(245,240,232,0.15)', borderTopColor: 'rgba(245,240,232,0.55)', animation: 'sg-spin 0.7s linear infinite', flexShrink: 0 }} />
+              Thinking…
+            </>
+          ) : (
+            <>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" />
+              </svg>
+              Suggest weight
+            </>
+          )}
+        </button>
+      )}
+      {suggestion && (
+        <div style={{ backgroundColor: 'rgba(245,240,232,0.06)', borderRadius: 10, padding: '10px 12px', marginBottom: 10, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <p style={{ color: 'rgba(245,240,232,0.78)', fontSize: 13, margin: 0, lineHeight: 1.5, fontFamily: 'inherit', flex: 1 }}>{suggestion}</p>
+          <button onClick={() => setSuggestion(null)} style={{ background: 'none', border: 'none', color: 'rgba(245,240,232,0.3)', cursor: 'pointer', padding: 0, flexShrink: 0, lineHeight: 0, marginTop: 1 }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+      )}
+    </>
+  )
+}
+
+// ─── Drag Handle ──────────────────────────────────────────────────────
+function DragHandle({ onMinimize, onDragProgress, onDragEnd }) {
+  const ref = useRef(null)
+  const startY = useRef(null)
+  const currentDrag = useRef(0)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+
+    function onStart(e) {
+      startY.current = e.touches[0].clientY
+      currentDrag.current = 0
+    }
+    function onMove(e) {
+      if (startY.current === null) return
+      const dy = e.touches[0].clientY - startY.current
+      if (dy > 0) {
+        e.preventDefault()
+        currentDrag.current = dy
+        onDragProgress?.(dy)
+      }
+    }
+    function onEnd() {
+      const dy = currentDrag.current
+      if (dy > 80) {
+        onMinimize?.()
+      } else {
+        onDragEnd?.(dy)
+      }
+      startY.current = null
+      currentDrag.current = 0
+    }
+
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd, { passive: true })
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+    }
+  }, [onMinimize, onDragProgress, onDragEnd])
+
+  return (
+    <div
+      ref={ref}
+      style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '10px 0 4px', touchAction: 'none', cursor: 'grab' }}
+    >
+      <div style={{ width: 36, height: 4, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 2 }} />
+    </div>
+  )
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────
+export default function LogScreen({ onSave, onClose, initialSession, onMinimize, onDragProgress, onDragEnd }) {
+  const s = initialSession
+  const initSt = s?.strengthBlock ? parseStrengthStructure(s.strengthBlock.structure) : null
+
+  const [step, setStep] = useState(s ? 2 : 1)
+
+  const [hasStrength, setHasStrength] = useState(s ? !!s.strengthBlock : true)
+  const [strengthType, setStrengthType] = useState(initSt?.type ?? 'Traditional')
+  const [strengthDuration, setStrengthDuration] = useState(initSt?.duration ?? '')
+  const [strengthInterval, setStrengthInterval] = useState(initSt?.interval ?? '1')
+  const [strengthMoves, setStrengthMoves] = useState(() =>
+    s?.strengthBlock?.movements?.length ? s.strengthBlock.movements.map(restoreStrengthMove) : [newStrengthMove()]
+  )
+
+  const [hasMetcon, setHasMetcon] = useState(s ? !!s.metconBlock : true)
+  const [metconFormat, setMetconFormat] = useState(s?.metconBlock?.format ?? 'AMRAP')
+  const [metconSegments, setMetconSegments] = useState(() =>
+    s?.metconBlock?.segments?.length ? s.metconBlock.segments.map(restoreSegment) : [newMetconSegment(false)]
+  )
+  const [metconScore, setMetconScore] = useState(s?.metconBlock?.score ?? '')
+  const [hasBuyIn, setHasBuyIn] = useState(!!(s?.metconBlock?.buyIn?.length))
+  const [buyInMoves, setBuyInMoves] = useState(() =>
+    s?.metconBlock?.buyIn?.length ? s.metconBlock.buyIn.map(restoreMetconMove) : [newMetconMove()]
+  )
+  const [hasBuyOut, setHasBuyOut] = useState(!!(s?.metconBlock?.buyOut?.length))
+  const [buyOutMoves, setBuyOutMoves] = useState(() =>
+    s?.metconBlock?.buyOut?.length ? s.metconBlock.buyOut.map(restoreMetconMove) : [newMetconMove()]
+  )
+
+  const [hasAccessory, setHasAccessory] = useState(s ? !!s.accessoryBlock : false)
+  const [accessoryType, setAccessoryType] = useState(s?.accessoryBlock?.type ?? 'Traditional')
+  const [accessoryTraditionalMoves, setAccessoryTraditionalMoves] = useState(() =>
+    s?.accessoryBlock?.type === 'Traditional' && s.accessoryBlock.movements?.length
+      ? s.accessoryBlock.movements.map(restoreStrengthMove) : [newStrengthMove()]
+  )
+  const [accessoryTabataMoves, setAccessoryTabataMoves] = useState(() =>
+    s?.accessoryBlock?.type === 'Tabata' && s.accessoryBlock.movements?.length
+      ? s.accessoryBlock.movements.map(m => ({ name: m.name || '', rounds: m.rounds?.toString() ?? '8', reps: m.reps?.toString() ?? '', weight: m.weight?.toString() ?? '', notes: m.notes || '' }))
+      : [newTabataMove()]
+  )
+  const [accessoryTabataWork, setAccessoryTabataWork] = useState(
+    s?.accessoryBlock?.type === 'Tabata' ? (s.accessoryBlock.movements?.[0]?.work?.toString() ?? '20') : '20'
+  )
+  const [accessoryTabataRest, setAccessoryTabataRest] = useState(
+    s?.accessoryBlock?.type === 'Tabata' ? (s.accessoryBlock.movements?.[0]?.rest?.toString() ?? '10') : '10'
+  )
+
+  const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
+  const [saving, setSaving] = useState(false)
+  const [pickerTarget, setPickerTarget] = useState(null)
+
+  const [generatePrompt, setGeneratePrompt] = useState('')
+  const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState('')
+
+  const [photoFile, setPhotoFile] = useState(null)
+  const [photoLoading, setPhotoLoading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [showPR, setShowPR] = useState(false)
+  const prParticles = useRef(null)
+  if (!prParticles.current) {
+    prParticles.current = Array.from({ length: 20 }, () => ({
+      left: 5 + Math.random() * 90,
+      top: 15 + Math.random() * 70,
+      size: 3 + Math.random() * 7,
+      opacity: 0.2 + Math.random() * 0.6,
+      duration: 0.7 + Math.random() * 1.0,
+      delay: Math.random() * 0.5,
+    }))
+  }
+  const cameraInputRef = useRef(null)
+  const libraryInputRef = useRef(null)
+
+  async function handlePhotoSelect(file) {
+    if (!file) return
+    setPhotoFile(file)
+    setPhotoLoading(true)
+    setPhotoError('')
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = e => resolve(e.target.result.split(',')[1])
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: [
+            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } },
+            { type: 'text', text: buildPhotoPrompt() },
+          ]}],
+        }),
+      })
+      const data = await res.json()
+      const raw = data.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+      const result = JSON.parse(raw)
+
+      if (result.strengthBlock) {
+        setHasStrength(true)
+        setStrengthType(result.strengthBlock.type || 'Traditional')
+        setStrengthDuration(result.strengthBlock.duration != null ? String(result.strengthBlock.duration) : '')
+        setStrengthInterval(result.strengthBlock.interval != null ? String(result.strengthBlock.interval) : '1')
+        if (result.strengthBlock.movements?.length) setStrengthMoves(result.strengthBlock.movements)
+      } else {
+        setHasStrength(false)
+      }
+
+      if (result.hasMetcon === false) {
+        setHasMetcon(false)
+      } else {
+        setHasMetcon(true)
+        if (result.metconFormat) setMetconFormat(result.metconFormat)
+        if (result.metconSegments?.length) setMetconSegments(result.metconSegments)
+        setHasBuyIn(!!result.hasBuyIn)
+        if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves)
+        setHasBuyOut(!!result.hasBuyOut)
+        if (result.hasBuyOut && result.buyOutMoves?.length) setBuyOutMoves(result.buyOutMoves)
+      }
+
+      setStep(2)
+    } catch (err) {
+      console.error(err)
+      setPhotoError("Couldn't read the whiteboard — try again or enter manually.")
+    } finally {
+      setPhotoLoading(false)
+    }
+  }
+
+  function openPicker(block, index, segIndex) {
+    setPickerTarget({ block, index, segIndex })
+  }
+
+  function handlePickMovement(name) {
+    const { block, index, segIndex } = pickerTarget
+    if (block === 'strength') {
+      setStrengthMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    } else if (block === 'metcon') {
+      setMetconSegments(prev => prev.map((seg, si) => {
+        if (si !== segIndex) return seg
+        return { ...seg, moves: seg.moves.map((m, mi) => mi === index ? { ...m, name } : m) }
+      }))
+    } else if (block === 'buyIn') {
+      setBuyInMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    } else if (block === 'buyOut') {
+      setBuyOutMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    } else if (block === 'accessoryTraditional') {
+      setAccessoryTraditionalMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    } else if (block === 'accessoryTabata') {
+      setAccessoryTabataMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    }
+    setPickerTarget(null)
+  }
+
+  // ── strength helpers ──
+  function updateStrengthMove(i, field, val) {
+    setStrengthMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  }
+  function addStrengthMove() { setStrengthMoves(prev => [...prev, newStrengthMove()]) }
+  function removeStrengthMove(i) { setStrengthMoves(prev => prev.filter((_, j) => j !== i)) }
+  function addWorkingSet(mi) {
+    setStrengthMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      const n = m.sets.filter(s => !s.isWarmup).length
+      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+    }))
+  }
+  function addWarmupSet(mi) {
+    setStrengthMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      const wn = m.sets.filter(s => s.isWarmup).length
+      const warm = m.sets.filter(s => s.isWarmup)
+      const work = m.sets.filter(s => !s.isWarmup)
+      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+    }))
+  }
+  function updateSet(mi, si, field, val) {
+    setStrengthMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      return { ...m, sets: m.sets.map((s, j) => j === si ? { ...s, [field]: val } : s) }
+    }))
+  }
+  function deleteSet(mi, si) {
+    setStrengthMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      return { ...m, sets: m.sets.filter((_, j) => j !== si) }
+    }))
+  }
+
+  // ── buy in / buy out helpers ──
+  function updateBuyInMove(i, field, val) {
+    setBuyInMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  }
+  function addBuyInMove() { setBuyInMoves(prev => [...prev, newMetconMove()]) }
+  function removeBuyInMove(i) { setBuyInMoves(prev => prev.filter((_, j) => j !== i)) }
+  function updateBuyOutMove(i, field, val) {
+    setBuyOutMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  }
+  function addBuyOutMove() { setBuyOutMoves(prev => [...prev, newMetconMove()]) }
+  function removeBuyOutMove(i) { setBuyOutMoves(prev => prev.filter((_, j) => j !== i)) }
+
+  // ── metcon segment helpers ──
+  function updateSegField(si, field, val) {
+    setMetconSegments(prev => prev.map((s, i) => i === si ? { ...s, [field]: val } : s))
+  }
+  function updateSegMove(si, mi, field, val) {
+    setMetconSegments(prev => prev.map((s, i) => {
+      if (i !== si) return s
+      return { ...s, moves: s.moves.map((m, j) => j === mi ? { ...m, [field]: val } : m) }
+    }))
+  }
+  function addSegMove(si) {
+    setMetconSegments(prev => prev.map((s, i) =>
+      i === si ? { ...s, moves: [...s.moves, newMetconMove()] } : s
+    ))
+  }
+  function removeSegMove(si, mi) {
+    setMetconSegments(prev => prev.map((s, i) => {
+      if (i !== si) return s
+      return { ...s, moves: s.moves.filter((_, j) => j !== mi) }
+    }))
+  }
+  function addMetconSegment(withRest = true) {
+    setMetconSegments(prev => [...prev, newMetconSegment(withRest)])
+  }
+  function removeMetconSegment(si) {
+    setMetconSegments(prev => prev.filter((_, i) => i !== si))
+  }
+
+  // ── accessory traditional helpers ──
+  function updateAccessoryTradMove(i, field, val) {
+    setAccessoryTraditionalMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  }
+  function addAccessoryTradMove() { setAccessoryTraditionalMoves(prev => [...prev, newStrengthMove()]) }
+  function removeAccessoryTradMove(i) { setAccessoryTraditionalMoves(prev => prev.filter((_, j) => j !== i)) }
+  function addAccessoryTradWorkingSet(mi) {
+    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      const n = m.sets.filter(s => !s.isWarmup).length
+      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+    }))
+  }
+  function addAccessoryTradWarmupSet(mi) {
+    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      const wn = m.sets.filter(s => s.isWarmup).length
+      const warm = m.sets.filter(s => s.isWarmup)
+      const work = m.sets.filter(s => !s.isWarmup)
+      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+    }))
+  }
+  function updateAccessoryTradSet(mi, si, field, val) {
+    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      return { ...m, sets: m.sets.map((s, j) => j === si ? { ...s, [field]: val } : s) }
+    }))
+  }
+  function deleteAccessoryTradSet(mi, si) {
+    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
+      if (i !== mi) return m
+      return { ...m, sets: m.sets.filter((_, j) => j !== si) }
+    }))
+  }
+
+  // ── accessory tabata helpers ──
+  function updateAccessoryTabataMove(i, field, val) {
+    setAccessoryTabataMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  }
+  function addAccessoryTabataMove() { setAccessoryTabataMoves(prev => [...prev, newTabataMove()]) }
+  function removeAccessoryTabataMove(i) { setAccessoryTabataMoves(prev => prev.filter((_, j) => j !== i)) }
+
+  function buildPhotoPrompt() {
+    return `You are parsing a CrossFit/BB WOD whiteboard photo for a workout tracker. Extract the workout exactly as written on the board.
+
+Return ONLY a valid JSON object — no markdown fences, no explanation. Use this exact structure:
+
+{
+  "strengthBlock": {
+    "type": "Traditional",
+    "duration": "",
+    "interval": "1",
+    "movements": [
+      { "name": "Back Squat", "sets": [
+        { "num": 1, "reps": "5", "weight": "", "isWarmup": false },
+        { "num": 2, "reps": "5", "weight": "", "isWarmup": false }
+      ], "notes": "" }
+    ]
+  },
+  "hasMetcon": true,
+  "metconFormat": "AMRAP",
+  "metconSegments": [
+    {
+      "restBeforeMin": "", "restBeforeSec": "",
+      "duration": "15", "rounds": "", "interval": "1",
+      "tabataWork": "20", "tabataRest": "10",
+      "moves": [
+        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
+      ]
+    }
+  ],
+  "hasBuyIn": false, "buyInMoves": [],
+  "hasBuyOut": false, "buyOutMoves": []
+}
+
+Strength rules:
+- If no strength, set "strengthBlock" to null
+- type: "Traditional" for regular sets, "OTM" for every-minute-on-the-minute
+- For OTM: set "duration" (total minutes as string) and "interval" (every X min as string)
+- Pre-generate set rows from the rep scheme (e.g. "5x5" → 5 sets with reps "5"; "3-3-3-3" → 4 sets)
+- Leave weight as empty string ""; num must be an integer (1, 2, 3…); reps must be a string
+- Common abbreviations: BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch
+
+Metcon rules:
+- Leave all weight fields as empty string "" — the athlete fills those in
+- reps must be a string: "10", "21-15-9", "max", etc.
+- For AMRAP: duration in minutes in first segment "duration", set "rounds" to ""
+- For For Time: number of rounds in "rounds", set "duration" to ""
+- For OTM/EMOM: set "duration" (total min) and "interval" (every X min); each move gets minuteAssignment "1", "2", etc.
+- For Tabata: set "rounds" (default "8"), tabataWork (sec), tabataRest (sec)
+- Multi-segment: add extra segments with restBeforeMin/restBeforeSec set
+- Buy-in/buy-out: movements done once before/after the main piece
+- Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed`
+  }
+
+  function buildGeneratePrompt(request) {
+    return `You are a CrossFit/BB WOD programming assistant creating a workout for Leanna, an intermediate barbell + conditioning athlete at a gym in Los Gatos, CA.
+
+Request: "${request}"
+
+Return ONLY a valid JSON object — no markdown fences, no explanation. Use this exact structure:
+
+{
+  "strengthBlock": null,
+  "hasMetcon": true,
+  "metconFormat": "AMRAP",
+  "metconSegments": [
+    {
+      "restBeforeMin": "",
+      "restBeforeSec": "",
+      "duration": "15",
+      "rounds": "",
+      "interval": "1",
+      "tabataWork": "20",
+      "tabataRest": "10",
+      "moves": [
+        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
+      ]
+    }
+  ],
+  "hasBuyIn": false,
+  "buyInMoves": [],
+  "hasBuyOut": false,
+  "buyOutMoves": []
+}
+
+Rules:
+- Leave all weight fields as empty string ""
+- reps must be a string: "10", "21-15-9", "max", etc.
+- For AMRAP: put duration in minutes in first segment "duration", set "rounds" to ""
+- For For Time: put number of rounds in "rounds", set "duration" to ""
+- For OTM: set "duration" (total min) and "interval" (every X min); each move gets "minuteAssignment" "1", "2", etc.
+- For Tabata: set "rounds" (default "8"), "tabataWork" (sec), "tabataRest" (sec)
+- Multi-segment workouts: add extra segments with "restBeforeMin"/"restBeforeSec" set
+- If the request is only for a metcon, set strengthBlock to null
+- Common movements to use: Thruster, Power Snatch, Deadlift, Pull-Up, Box Jump, KB Swing, Row, Burpee, Toes to Bar, Wall Ball, Double Under, Clean, Push Press`
+  }
+
+  async function generateWorkout() {
+    if (!generatePrompt.trim()) return
+    setGenerating(true)
+    setGenerateError('')
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: buildGeneratePrompt(generatePrompt.trim()) }],
+        }),
+      })
+      const data = await res.json()
+      const raw = data.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
+      const result = JSON.parse(raw)
+
+      if (result.strengthBlock) {
+        setHasStrength(true)
+        setStrengthType(result.strengthBlock.type || 'Traditional')
+        setStrengthDuration(result.strengthBlock.duration != null ? String(result.strengthBlock.duration) : '')
+        setStrengthInterval(result.strengthBlock.interval != null ? String(result.strengthBlock.interval) : '1')
+        if (result.strengthBlock.movements?.length) setStrengthMoves(result.strengthBlock.movements)
+      } else {
+        setHasStrength(false)
+      }
+
+      if (result.hasMetcon === false) {
+        setHasMetcon(false)
+      } else {
+        setHasMetcon(true)
+        if (result.metconFormat) setMetconFormat(result.metconFormat)
+        if (result.metconSegments?.length) setMetconSegments(result.metconSegments)
+        setHasBuyIn(!!result.hasBuyIn)
+        if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves)
+        setHasBuyOut(!!result.hasBuyOut)
+        if (result.hasBuyOut && result.buyOutMoves?.length) setBuyOutMoves(result.buyOutMoves)
+      }
+
+      setStep(2)
+    } catch (err) {
+      console.error(err)
+      setGenerateError("Couldn't generate a workout — try again.")
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  function generateSessionTitle() {
+    const parts = []
+
+    if (hasStrength) {
+      const names = strengthMoves.map(m => m.name.trim()).filter(Boolean).slice(0, 2)
+      if (names.length) parts.push(names.join(' + '))
+    }
+
+    if (hasMetcon) {
+      const seg = metconSegments[0]
+      let label = metconFormat
+      if (metconFormat === 'AMRAP' && seg?.duration) {
+        label = `${seg.duration} min AMRAP`
+      } else if (metconFormat === 'OTM' && seg?.duration) {
+        label = `${seg.duration} min OTM`
+      } else if (metconFormat === 'For Time' && seg?.rounds) {
+        label = `${seg.rounds} Rounds For Time`
+      }
+      parts.push(label)
+    }
+
+    return parts.join(' / ') || 'BB WOD'
+  }
+
+  async function handleLog() {
+    setSaving(true)
+    try {
+      const firstSeg = metconSegments[0]
+      const sessionData = {
+        title: generateSessionTitle(),
+        date: initialSession?.date ?? new Date().toISOString().split('T')[0],
+        program: 'BB WOD',
+        strengthBlock: hasStrength ? {
+          title: strengthMoves[0]?.name || '',
+          structure: strengthType === 'OTM'
+            ? `${strengthDuration} min OTM every ${strengthInterval} min`
+            : strengthType,
+          movements: strengthMoves.map(m => ({
+            name: m.name,
+            sets: m.sets.map((s, idx) => ({
+              setNumber: idx + 1,
+              reps: s.reps !== '' ? Number(s.reps) : null,
+              weight: s.weight !== '' ? Number(s.weight) : null,
+              weightUnit: 'lbs',
+              isFailure: false, isPR: false,
+              notation: s.isWarmup ? 'warmup' : null,
+            })),
+            notes: m.notes || '',
+          })),
+          notes: '',
+        } : null,
+        metconBlock: hasMetcon ? {
+          format: metconFormat,
+          // top-level fields from first segment for HomeScreen display
+          duration: metconFormat !== 'For Time' && metconFormat !== 'Tabata' && firstSeg.duration !== '' ? Number(firstSeg.duration) : null,
+          rounds: (metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && firstSeg.rounds !== '' ? Number(firstSeg.rounds) : null,
+          score: metconScore || null,
+          buyIn: hasBuyIn ? buyInMoves.map(m => m.isRest ? {
+            isRest: true,
+            restSeconds: (m.restMin !== '' ? Number(m.restMin) * 60 : 0) + (m.restSec !== '' ? Number(m.restSec) : 0),
+          } : {
+            name: m.name, reps: m.reps || null,
+            weight: m.weight !== '' ? Number(m.weight) : null, weightUnit: 'lbs',
+          }) : null,
+          buyOut: hasBuyOut ? buyOutMoves.map(m => m.isRest ? {
+            isRest: true,
+            restSeconds: (m.restMin !== '' ? Number(m.restMin) * 60 : 0) + (m.restSec !== '' ? Number(m.restSec) : 0),
+          } : {
+            name: m.name, reps: m.reps || null,
+            weight: m.weight !== '' ? Number(m.weight) : null, weightUnit: 'lbs',
+          }) : null,
+          segments: metconSegments.map(seg => ({
+            restBefore: (seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (Number(seg.restBeforeMin || 0) * 60 + Number(seg.restBeforeSec || 0)) : null,
+            duration: metconFormat !== 'For Time' && metconFormat !== 'Tabata' && seg.duration !== '' ? Number(seg.duration) : null,
+            rounds: (metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && seg.rounds !== '' ? Number(seg.rounds) : null,
+            interval: metconFormat === 'OTM' && seg.interval !== '' ? Number(seg.interval) : null,
+            work: metconFormat === 'Tabata' ? (seg.tabataWork !== '' ? Number(seg.tabataWork) : 20) : null,
+            rest: metconFormat === 'Tabata' ? (seg.tabataRest !== '' ? Number(seg.tabataRest) : 10) : null,
+            movements: seg.moves.map(m => m.isRest ? {
+              isRest: true,
+              restSeconds: (m.restMin !== '' ? Number(m.restMin) * 60 : 0) + (m.restSec !== '' ? Number(m.restSec) : 0),
+              minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+            } : {
+              name: m.name,
+              reps: m.reps || null,
+              weight: m.weight !== '' ? Number(m.weight) : null,
+              weightUnit: 'lbs',
+              minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+              notes: m.notes || null,
+            }),
+          })),
+        } : null,
+        accessoryBlock: hasAccessory ? {
+          type: accessoryType,
+          movements: accessoryType === 'Traditional'
+            ? accessoryTraditionalMoves.map(m => ({
+                name: m.name,
+                sets: m.sets.map((s, idx) => ({
+                  setNumber: idx + 1,
+                  reps: s.reps !== '' ? Number(s.reps) : null,
+                  weight: s.weight !== '' ? Number(s.weight) : null,
+                  weightUnit: 'lbs',
+                  notation: s.isWarmup ? 'warmup' : null,
+                })),
+                notes: m.notes || '',
+              }))
+            : accessoryTabataMoves.map(m => ({
+                name: m.name,
+                rounds: m.rounds !== '' ? Number(m.rounds) : 8,
+                reps: m.reps || null,
+                weight: m.weight !== '' ? Number(m.weight) : null,
+                weightUnit: 'lbs',
+                work: accessoryTabataWork !== '' ? Number(accessoryTabataWork) : 20,
+                rest: accessoryTabataRest !== '' ? Number(accessoryTabataRest) : 10,
+                notes: m.notes || null,
+              })),
+        } : null,
+        notes: sessionNotes,
+        whiteboardPhotoUrl: null,
+      }
+
+      let savedId
+      if (initialSession?.id) {
+        await db.sessions.update(initialSession.id, sessionData)
+        savedId = initialSession.id
+      } else {
+        savedId = await db.sessions.add({ ...sessionData, createdAt: Date.now() })
+      }
+
+      // PR detection on new sessions only
+      let gotPR = false
+      if (!initialSession?.id && sessionData.strengthBlock) {
+        const updatedBlock = await detectPRs(savedId, sessionData.date, sessionData.strengthBlock)
+        if (updatedBlock) {
+          await db.sessions.update(savedId, { strengthBlock: updatedBlock })
+          gotPR = true
+        }
+      }
+
+      const allNames = [
+        ...(hasStrength ? strengthMoves.map(m => m.name.trim()) : []),
+        ...(hasMetcon ? metconSegments.flatMap(s => s.moves.filter(m => !m.isRest).map(m => m.name.trim())) : []),
+        ...(hasMetcon && hasBuyIn ? buyInMoves.filter(m => !m.isRest).map(m => m.name.trim()) : []),
+        ...(hasMetcon && hasBuyOut ? buyOutMoves.filter(m => !m.isRest).map(m => m.name.trim()) : []),
+        ...(hasAccessory && accessoryType === 'Traditional' ? accessoryTraditionalMoves.map(m => m.name.trim()) : []),
+        ...(hasAccessory && accessoryType === 'Tabata' ? accessoryTabataMoves.map(m => m.name.trim()) : []),
+      ].filter(Boolean)
+      for (const name of allNames) {
+        const exists = await db.movements.where('name').equals(name).count()
+        if (!exists) await db.movements.add({ name, aliases: [], category: 'other', prs: [] })
+      }
+
+      if (gotPR) {
+        setShowPR(true)
+        setTimeout(() => { setShowPR(false); onSave?.() }, 2200)
+      } else {
+        onSave?.()
+      }
+    } catch (err) {
+      console.error(err)
+      setSaving(false)
+    }
+  }
+
+  // ─── Step 1 ───────────────────────────────────────────────────────
+  if (step === 1) {
+    return (
+      <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 40, display: 'flex', flexDirection: 'column' }}>
+        <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
+        <div style={{ padding: '12px 20px 24px' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 12 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+            Back
+          </button>
+          <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px' }}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </p>
+          <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: 'inherit' }}>New Session</h1>
+        </div>
+
+        {/* hidden file inputs */}
+        <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => handlePhotoSelect(e.target.files?.[0])} />
+        <input ref={libraryInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handlePhotoSelect(e.target.files?.[0])} />
+
+        <div style={{ margin: '0 20px', backgroundColor: '#1c1c1e', borderRadius: 20, padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, border: `1px ${photoLoading ? 'solid rgba(245,240,232,0.08)' : 'dashed rgba(245,240,232,0.15)'}` }}>
+          {photoLoading ? (
+            <>
+              <style>{`@keyframes log-spin { to { transform: rotate(360deg) } }`}</style>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid rgba(245,240,232,0.1)', borderTopColor: 'rgba(245,240,232,0.7)', animation: 'log-spin 0.8s linear infinite' }} />
+              <p style={{ color: '#f5f0e8', fontSize: 17, fontWeight: 600, margin: 0, fontFamily: 'inherit' }}>Reading whiteboard…</p>
+              <p style={{ color: 'rgba(245,240,232,0.45)', fontSize: 14, margin: 0, textAlign: 'center', lineHeight: 1.4, fontFamily: 'inherit' }}>
+                Claude is parsing your photo
+              </p>
+            </>
+          ) : (
+            <>
+              <div style={{ width: 72, height: 72, backgroundColor: 'rgba(245,240,232,0.08)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.7)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </div>
+              <p style={{ color: '#f5f0e8', fontSize: 17, fontWeight: 600, margin: 0, fontFamily: 'inherit' }}>Capture Whiteboard</p>
+              <p style={{ color: 'rgba(245,240,232,0.45)', fontSize: 14, margin: 0, textAlign: 'center', lineHeight: 1.4, fontFamily: 'inherit' }}>
+                Point your camera at the WOD whiteboard — Claude will parse it for you.
+              </p>
+              <button onClick={() => cameraInputRef.current?.click()} style={{ marginTop: 4, backgroundColor: '#f5f0e8', color: '#0a0a0a', border: 'none', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+                Open Camera
+              </button>
+              <button onClick={() => libraryInputRef.current?.click()} style={{ backgroundColor: 'transparent', color: 'rgba(245,240,232,0.6)', border: '1px solid rgba(245,240,232,0.18)', borderRadius: 12, padding: '13px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+                Choose from Library
+              </button>
+              {photoError && (
+                <p style={{ color: '#e05c4b', fontSize: 13, margin: '4px 0 0', textAlign: 'center', fontFamily: 'inherit' }}>{photoError}</p>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* Ask Claude divider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 20px 16px' }}>
+          <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+          <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: 'inherit' }}>or ask Claude</span>
+          <div style={{ flex: 1, height: 1, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+        </div>
+
+        {/* Generate section */}
+        <div style={{ padding: '0 20px' }}>
+          <textarea
+            placeholder='"15-min metcon with barbell and row"'
+            value={generatePrompt}
+            onChange={e => setGeneratePrompt(e.target.value)}
+            rows={2}
+            style={{ ...inputBase, resize: 'none', lineHeight: 1.5, marginBottom: 10 }}
+          />
+          {generateError && (
+            <p style={{ color: '#e05c4b', fontSize: 13, margin: '0 0 10px', fontFamily: 'inherit' }}>{generateError}</p>
+          )}
+          <button
+            onClick={generateWorkout}
+            disabled={generating || !generatePrompt.trim()}
+            style={{
+              width: '100%',
+              backgroundColor: generating || !generatePrompt.trim() ? 'rgba(255,255,255,0.04)' : 'rgba(245,240,232,0.1)',
+              color: generating || !generatePrompt.trim() ? 'rgba(245,240,232,0.25)' : '#f5f0e8',
+              border: '1px solid rgba(245,240,232,0.12)',
+              borderRadius: 14, padding: '15px 24px',
+              fontSize: 15, fontWeight: 600,
+              cursor: generating || !generatePrompt.trim() ? 'default' : 'pointer',
+              fontFamily: 'inherit', letterSpacing: -0.1,
+            }}
+          >
+            {generating ? 'Generating…' : 'Generate Workout'}
+          </button>
+        </div>
+
+        <button onClick={() => setStep(2)} style={{ alignSelf: 'center', marginTop: 20, background: 'none', border: 'none', color: 'rgba(245,240,232,0.5)', fontSize: 15, cursor: 'pointer', fontFamily: 'inherit', padding: '8px 0', textDecoration: 'underline', textDecorationColor: 'rgba(245,240,232,0.25)', textUnderlineOffset: 3 }}>
+          Skip — enter manually
+        </button>
+      </div>
+    )
+  }
+
+  // ─── Step 2: Editor ───────────────────────────────────────────────
+  return (
+    <>
+      {showPR && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, backgroundColor: 'rgba(10,10,10,0.92)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', animation: 'pr-overlay 2.2s ease forwards' }}>
+          <style>{`
+            @keyframes pr-overlay { 0%{opacity:0} 15%{opacity:1} 75%{opacity:1} 100%{opacity:0} }
+            @keyframes pr-pop { 0%{transform:scale(0.4);opacity:0} 55%{transform:scale(1.08)} 75%{transform:scale(0.97)} 100%{transform:scale(1);opacity:1} }
+            @keyframes chalk-up { 0%{transform:translateY(0) scale(1);opacity:1} 100%{transform:translateY(-100px) scale(0.2);opacity:0} }
+          `}</style>
+          {prParticles.current.map((p, i) => (
+            <div key={i} style={{ position: 'absolute', left: `${p.left}%`, top: `${p.top}%`, width: p.size, height: p.size, borderRadius: '50%', backgroundColor: `rgba(245,240,232,${p.opacity})`, animation: `chalk-up ${p.duration}s ${p.delay}s ease-out forwards` }} />
+          ))}
+          <div style={{ animation: 'pr-pop 0.6s cubic-bezier(0.34,1.56,0.64,1) 0.15s both', textAlign: 'center' }}>
+            <div style={{ width: 96, height: 96, borderRadius: '50%', backgroundColor: 'rgba(192,57,43,0.18)', border: '2px solid rgba(192,57,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+              <span style={{ color: '#e05c4b', fontSize: 30, fontWeight: 900, fontFamily: 'inherit', letterSpacing: -1 }}>PR</span>
+            </div>
+            <p style={{ color: '#f5f0e8', fontSize: 30, fontWeight: 800, margin: '0 0 8px', letterSpacing: -0.8, fontFamily: 'inherit' }}>New Personal Record</p>
+            <p style={{ color: 'rgba(245,240,232,0.45)', fontSize: 15, margin: 0, fontFamily: 'inherit' }}>Logged and saved</p>
+          </div>
+        </div>
+      )}
+      {pickerTarget && <LibrarySheet onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />}
+
+      <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 100 }}>
+        <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
+
+        {/* Header */}
+        <div style={{ padding: '12px 20px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <button onClick={() => setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              Back
+            </button>
+            {onMinimize && (
+              <button onClick={onMinimize} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.38)', padding: 4, lineHeight: 0 }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+            )}
+          </div>
+          <h1 style={{ color: '#f5f0e8', fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: 0, fontFamily: 'inherit' }}>
+            {initialSession
+              ? new Date(initialSession.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+              : new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          </h1>
+        </div>
+
+        {/* ── STRENGTH ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 20px 12px' }}>
+          <span style={{ color: '#f5f0e8', fontSize: 18, fontWeight: 700, letterSpacing: -0.3, fontFamily: 'inherit' }}>Strength</span>
+          <button onClick={() => setHasStrength(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>
+            {hasStrength ? 'Remove' : 'Add'}
+          </button>
+        </div>
+
+        {hasStrength && (
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ display: 'flex', gap: 6, marginBottom: strengthType === 'OTM' ? 12 : 0 }}>
+                {['Traditional', 'OTM'].map(type => (
+                  <button key={type} onClick={() => setStrengthType(type)} style={{ flexShrink: 0, backgroundColor: strengthType === type ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: strengthType === type ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: strengthType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                    {type}
+                  </button>
+                ))}
+              </div>
+              {strengthType === 'OTM' && (
+                <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={labelStyle}>Duration (min)</p>
+                    <input placeholder="12" value={strengthDuration} onChange={e => setStrengthDuration(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={labelStyle}>Every (min)</p>
+                    <input placeholder="1" value={strengthInterval} onChange={e => setStrengthInterval(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {strengthMoves.map((move, mi) => (
+              <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10 }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                  <input
+                    placeholder={`Movement ${mi + 1}…`} value={move.name}
+                    onChange={e => updateStrengthMove(mi, 'name', e.target.value)}
+                    style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                  />
+                  <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                    Library
+                  </button>
+                  <button onClick={() => removeStrengthMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                </div>
+                <SuggestButton name={move.name} sets={move.sets} />
+                <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
+                  <span style={{ width: 28, flexShrink: 0 }} />
+                  <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
+                  <span style={{ flex: 1.6, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>WEIGHT</span>
+                  <span style={{ width: 26, flexShrink: 0 }} /><span style={{ width: 26, flexShrink: 0 }} />
+                </div>
+                {move.sets.map((set, si) => (
+                  <SetRow key={si} set={set} onChange={(f, v) => updateSet(mi, si, f, v)} onDelete={() => deleteSet(mi, si)} />
+                ))}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button onClick={() => addWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
+                  <button onClick={() => addWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
+                </div>
+              </div>
+            ))}
+            <button onClick={addStrengthMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
+              + Add Movement
+            </button>
+          </div>
+        )}
+
+        {/* ── METCON ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
+          <span style={{ color: '#f5f0e8', fontSize: 18, fontWeight: 700, letterSpacing: -0.3, fontFamily: 'inherit' }}>Metcon</span>
+          <button onClick={() => setHasMetcon(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>
+            {hasMetcon ? 'Remove' : 'Add'}
+          </button>
+        </div>
+
+        {hasMetcon && (
+          <div style={{ padding: '0 20px' }}>
+            {/* Buy In */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: hasBuyIn ? 10 : 14 }}>
+              <span style={{ color: 'rgba(245,240,232,0.55)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: 'inherit' }}>Buy In</span>
+              <button onClick={() => setHasBuyIn(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>
+                {hasBuyIn ? 'Remove' : 'Add'}
+              </button>
+            </div>
+            {hasBuyIn && (
+              <>
+                {buyInMoves.map((move, mi) => (
+                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      {move.isRest ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                        </div>
+                      ) : (
+                        <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyInMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
+                      )}
+                      {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                      <button onClick={() => updateBuyInMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
+                      {buyInMoves.length > 1 && <button onClick={() => removeBuyInMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {move.isRest ? (
+                        <>
+                          <input placeholder="0" value={move.restMin} onChange={e => updateBuyInMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
+                          <input placeholder="30" value={move.restSec} onChange={e => updateBuyInMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
+                        </>
+                      ) : (
+                        <>
+                          <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateBuyInMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="lbs" value={move.weight} onChange={e => updateBuyInMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                        </>
+                      )}
+                    </div>
+                    {!move.isRest && isLadder(move.reps) && (
+                      <div style={{ marginTop: 8 }}>
+                        <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit', letterSpacing: 0.3 }}>
+                          {parseLadder(move.reps).join(' → ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <button onClick={addBuyInMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 16 }}>
+                  + Add Movement
+                </button>
+              </>
+            )}
+
+            {/* Format pills — shared across all segments */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
+              {FORMATS.map(fmt => (
+                <button key={fmt} onClick={() => setMetconFormat(fmt)} style={{ flexShrink: 0, backgroundColor: metconFormat === fmt ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: metconFormat === fmt ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: metconFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {fmt}
+                </button>
+              ))}
+            </div>
+
+            {/* Segments */}
+            {metconSegments.map((seg, si) => (
+              <div key={si}>
+                {/* Divider before segments 2+ */}
+                {si > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px' }}>
+                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                    {(seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '7px 12px' }}>
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'inherit' }}>Rest</span>
+                        <input
+                          value={seg.restBeforeMin}
+                          onChange={e => updateSegField(si, 'restBeforeMin', e.target.value)}
+                          type="number" inputMode="numeric" placeholder="2"
+                          style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
+                        />
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
+                        <input
+                          value={seg.restBeforeSec}
+                          onChange={e => updateSegField(si, 'restBeforeSec', e.target.value)}
+                          type="number" inputMode="numeric" placeholder="0"
+                          style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
+                        />
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
+                      </div>
+                    ) : (
+                      <div style={{ flexShrink: 0 }} />
+                    )}
+                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                    <button onClick={() => removeMetconSegment(si)} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff6b5e" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* Per-segment fields */}
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                  {metconFormat !== 'For Time' && metconFormat !== 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Duration (min)</p>
+                      <input placeholder="20" value={seg.duration} onChange={e => updateSegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {(metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Rounds</p>
+                      <input placeholder={metconFormat === 'Tabata' ? '8' : '4'} value={seg.rounds} onChange={e => updateSegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {metconFormat === 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Work (sec)</p>
+                      <input placeholder="20" value={seg.tabataWork} onChange={e => updateSegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {metconFormat === 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Rest (sec)</p>
+                      <input placeholder="10" value={seg.tabataRest} onChange={e => updateSegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {metconFormat === 'OTM' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Every (min)</p>
+                      <input placeholder="1" value={seg.interval} onChange={e => updateSegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Movements */}
+                {seg.moves.map((move, mi) => (
+                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      {move.isRest ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                        </div>
+                      ) : (
+                        <input
+                          placeholder={`Movement ${mi + 1}…`} value={move.name}
+                          onChange={e => updateSegMove(si, mi, 'name', e.target.value)}
+                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                      )}
+                      {!move.isRest && (
+                        <button onClick={() => openPicker('metcon', mi, si)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                          Library
+                        </button>
+                      )}
+                      <button
+                        onClick={() => updateSegMove(si, mi, 'isRest', !move.isRest)}
+                        style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
+                      >
+                        Rest
+                      </button>
+                      {seg.moves.length > 1 && (
+                        <button onClick={() => removeSegMove(si, mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                      )}
+                    </div>
+                    <div>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        {move.isRest ? (
+                          <>
+                            <input placeholder="0" value={move.restMin} onChange={e => updateSegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
+                            <input placeholder="30" value={move.restSec} onChange={e => updateSegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
+                            {metconFormat === 'OTM' && (
+                              <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateSegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', marginLeft: 'auto' }} />
+                            )}
+                          </>
+                        ) : (
+                          <>
+                            <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <input placeholder="lbs" value={move.weight} onChange={e => updateSegMove(si, mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            {metconFormat === 'OTM' && (
+                              <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateSegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {!move.isRest && isLadder(move.reps) && (
+                        <div style={{ marginTop: 8 }}>
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit', letterSpacing: 0.3 }}>
+                            {parseLadder(move.reps).join(' → ')}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                <button onClick={() => addSegMove(si)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  + Add Movement
+                </button>
+              </div>
+            ))}
+
+            {/* Add segment buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                onClick={() => addMetconSegment(false)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                + Segment
+              </button>
+              <button
+                onClick={() => addMetconSegment(true)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                + Rest + Segment
+              </button>
+            </div>
+
+            {/* Score — single field for the whole metcon */}
+            <div style={{ marginTop: 16 }}>
+              <p style={labelStyle}>
+                {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : metconFormat === 'For Time' ? 'Time (MM:SS)' : 'Score'}
+              </p>
+              <input
+                placeholder={metconFormat === 'AMRAP' ? '12 rounds + 5 reps' : metconFormat === 'For Time' ? '14:32' : ''}
+                value={metconScore} onChange={e => setMetconScore(e.target.value)} style={inputBase}
+              />
+            </div>
+
+            {/* Buy Out */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 16, marginBottom: hasBuyOut ? 10 : 0 }}>
+              <span style={{ color: 'rgba(245,240,232,0.55)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: 'inherit' }}>Buy Out</span>
+              <button onClick={() => setHasBuyOut(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>
+                {hasBuyOut ? 'Remove' : 'Add'}
+              </button>
+            </div>
+            {hasBuyOut && (
+              <>
+                {buyOutMoves.map((move, mi) => (
+                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      {move.isRest ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                        </div>
+                      ) : (
+                        <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyOutMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
+                      )}
+                      {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                      <button onClick={() => updateBuyOutMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
+                      {buyOutMoves.length > 1 && <button onClick={() => removeBuyOutMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {move.isRest ? (
+                        <>
+                          <input placeholder="0" value={move.restMin} onChange={e => updateBuyOutMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
+                          <input placeholder="30" value={move.restSec} onChange={e => updateBuyOutMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
+                        </>
+                      ) : (
+                        <>
+                          <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateBuyOutMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="lbs" value={move.weight} onChange={e => updateBuyOutMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                        </>
+                      )}
+                    </div>
+                    {!move.isRest && isLadder(move.reps) && (
+                      <div style={{ marginTop: 8 }}>
+                        <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit', letterSpacing: 0.3 }}>
+                          {parseLadder(move.reps).join(' → ')}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <button onClick={addBuyOutMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
+                  + Add Movement
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── ACCESSORY ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
+          <span style={{ color: '#f5f0e8', fontSize: 18, fontWeight: 700, letterSpacing: -0.3, fontFamily: 'inherit' }}>Accessory</span>
+          <button onClick={() => setHasAccessory(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>
+            {hasAccessory ? 'Remove' : 'Add'}
+          </button>
+        </div>
+
+        {hasAccessory && (
+          <div style={{ padding: '0 20px' }}>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+              {['Traditional', 'Tabata'].map(type => (
+                <button key={type} onClick={() => setAccessoryType(type)} style={{ flexShrink: 0, backgroundColor: accessoryType === type ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: accessoryType === type ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: accessoryType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {type}
+                </button>
+              ))}
+            </div>
+
+            {accessoryType === 'Traditional' && (
+              <>
+                {accessoryTraditionalMoves.map((move, mi) => (
+                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                      <input
+                        placeholder={`Movement ${mi + 1}…`} value={move.name}
+                        onChange={e => updateAccessoryTradMove(mi, 'name', e.target.value)}
+                        style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                      />
+                      <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                        Library
+                      </button>
+                      {accessoryTraditionalMoves.length > 1 && (
+                        <button onClick={() => removeAccessoryTradMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
+                      <span style={{ width: 28, flexShrink: 0 }} />
+                      <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
+                      <span style={{ flex: 1.6, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>WEIGHT</span>
+                      <span style={{ width: 26, flexShrink: 0 }} /><span style={{ width: 26, flexShrink: 0 }} />
+                    </div>
+                    {move.sets.map((set, si) => (
+                      <SetRow key={si} set={set} onChange={(f, v) => updateAccessoryTradSet(mi, si, f, v)} onDelete={() => deleteAccessoryTradSet(mi, si)} />
+                    ))}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                      <button onClick={() => addAccessoryTradWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
+                      <button onClick={() => addAccessoryTradWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addAccessoryTradMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
+                  + Add Movement
+                </button>
+              </>
+            )}
+
+            {accessoryType === 'Tabata' && (
+              <>
+                <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                  <div style={{ flex: 1 }}>
+                    <p style={labelStyle}>Work (sec)</p>
+                    <input placeholder="20" value={accessoryTabataWork} onChange={e => setAccessoryTabataWork(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={labelStyle}>Rest (sec)</p>
+                    <input placeholder="10" value={accessoryTabataRest} onChange={e => setAccessoryTabataRest(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                  </div>
+                </div>
+                {accessoryTabataMoves.map((move, mi) => (
+                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                      <input
+                        placeholder={`Movement ${mi + 1}…`} value={move.name}
+                        onChange={e => updateAccessoryTabataMove(mi, 'name', e.target.value)}
+                        style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                      />
+                      <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                        Library
+                      </button>
+                      {accessoryTabataMoves.length > 1 && (
+                        <button onClick={() => removeAccessoryTabataMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <p style={labelStyle}>Rounds</p>
+                        <input placeholder="8" value={move.rounds} onChange={e => updateAccessoryTabataMove(mi, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={labelStyle}>Reps / 20s</p>
+                        <input placeholder="15" value={move.reps} onChange={e => updateAccessoryTabataMove(mi, 'reps', e.target.value)} style={inputBase} />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={labelStyle}>Weight (lbs)</p>
+                        <input placeholder="35" value={move.weight} onChange={e => updateAccessoryTabataMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={inputBase} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={addAccessoryTabataMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
+                  + Add Movement
+                </button>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* ── NOTES ── */}
+        <div style={{ padding: '20px 20px 0' }}>
+          <p style={labelStyle}>Notes</p>
+          <textarea placeholder="How did it feel? Any mods?" value={sessionNotes} onChange={e => setSessionNotes(e.target.value)} rows={3} style={{ ...inputBase, resize: 'none', lineHeight: 1.5 }} />
+        </div>
+
+      </div>
+
+      {/* ── LOG BUTTON (sticky footer) ── */}
+      <div style={{
+        position: 'sticky', bottom: 0,
+        backgroundColor: '#0a0a0a',
+        padding: '12px 20px calc(env(safe-area-inset-bottom) + 16px)',
+        borderTop: '0.5px solid rgba(255,255,255,0.06)',
+      }}>
+        <button
+          onClick={handleLog} disabled={saving}
+          style={{ width: '100%', backgroundColor: saving ? 'rgba(245,240,232,0.5)' : '#f5f0e8', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '18px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
+        >
+          {saving ? (initialSession ? 'Saving…' : 'Logging…') : (initialSession ? 'Save Changes' : 'Log Workout')}
+        </button>
+      </div>
+    </>
+  )
+}
