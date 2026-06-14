@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { db } from '../db/db'
+import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 
 function formatReps(moveName, reps) {
@@ -336,7 +336,7 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
-    await db.sessions.delete(session.id)
+    await supabase.from('sessions').delete().eq('id', session.id)
     onBack()
   }
 

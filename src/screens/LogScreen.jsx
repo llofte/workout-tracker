@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
-import { db } from '../db/db'
+import { v4 as uuidv4 } from 'uuid'
+import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 
 const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
@@ -80,7 +81,7 @@ async function detectPRs(sessionId, date, strengthBlock) {
 
   for (const move of strengthBlock.movements) {
     if (!move.name) { updatedMovements.push(move); continue }
-    const record = await db.movements.where('name').equals(move.name).first()
+    const { data: record } = await supabase.from('movements').select('*').eq('name', move.name).maybeSingle()
     if (!record) { updatedMovements.push(move); continue }
 
     const prs = [...(record.prs ?? [])]
@@ -101,7 +102,7 @@ async function detectPRs(sessionId, date, strengthBlock) {
       return set
     })
 
-    if (movePR) await db.movements.update(record.id, { prs })
+    if (movePR) await supabase.from('movements').update({ prs }).eq('id', record.id)
     updatedMovements.push({ ...move, sets: updatedSets })
   }
 
@@ -249,10 +250,10 @@ function SuggestButton({ name, sets }) {
     setSuggestion(null)
     try {
       const trimmed = name.trim().toLowerCase()
-      const sessions = await db.sessions.orderBy('date').reverse().toArray()
+      const { data: sessions } = await supabase.from('sessions').select('date, strength_block').order('date', { ascending: false }).limit(20)
       const history = []
-      for (const session of sessions) {
-        const moves = session.strengthBlock?.movements ?? []
+      for (const session of (sessions ?? [])) {
+        const moves = (session.strength_block ?? session.strengthBlock)?.movements ?? []
         const match = moves.find(m => m.name?.trim().toLowerCase() === trimmed)
         if (match) {
           const working = (match.sets ?? []).filter(s => !s.isWarmup && s.weight && s.reps)
@@ -993,20 +994,21 @@ Rules:
         whiteboardPhotoUrl: null,
       }
 
-      let savedId
+      const sessionId = initialSession?.id ?? uuidv4()
+      const fullSession = { ...sessionData, id: sessionId }
       if (initialSession?.id) {
-        await db.sessions.update(initialSession.id, sessionData)
-        savedId = initialSession.id
+        await supabase.from('sessions').update(sessionToRow(fullSession)).eq('id', sessionId)
       } else {
-        savedId = await db.sessions.add({ ...sessionData, createdAt: Date.now() })
+        await supabase.from('sessions').insert(sessionToRow(fullSession))
       }
+      const savedId = sessionId
 
       // PR detection on new sessions only
       let gotPR = false
       if (!initialSession?.id && sessionData.strengthBlock) {
         const updatedBlock = await detectPRs(savedId, sessionData.date, sessionData.strengthBlock)
         if (updatedBlock) {
-          await db.sessions.update(savedId, { strengthBlock: updatedBlock })
+          await supabase.from('sessions').update({ strength_block: updatedBlock }).eq('id', savedId)
           gotPR = true
         }
       }
@@ -1020,8 +1022,8 @@ Rules:
         ...(hasAccessory && accessoryType === 'Tabata' ? accessoryTabataMoves.map(m => m.name.trim()) : []),
       ].filter(Boolean)
       for (const name of allNames) {
-        const exists = await db.movements.where('name').equals(name).count()
-        if (!exists) await db.movements.add({ name, aliases: [], category: 'other', prs: [] })
+        const { count } = await supabase.from('movements').select('*', { count: 'exact', head: true }).eq('name', name)
+        if (!count) await supabase.from('movements').insert({ id: crypto.randomUUID(), name, aliases: [], category: 'other', prs: [] })
       }
 
       if (gotPR) {
