@@ -9,6 +9,10 @@ import { useSessions } from './hooks/useSession'
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 export default function App() {
+  const rootHeight = window.navigator.standalone === true
+    ? window.screen.height + 'px'
+    : '100dvh'
+
   const [activeTab, setActiveTab] = useState('home')
   const [logging, setLogging] = useState(false)
   const [editingSession, setEditingSession] = useState(null)
@@ -41,7 +45,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ backgroundColor: '#242422', height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: rootHeight, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
@@ -77,7 +81,7 @@ export default function App() {
               onClick={restoreLog}
               style={{
                 position: 'fixed',
-                bottom: 'calc(env(safe-area-inset-bottom) + 58px)',
+                bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 34px) + 58px)',
                 left: 12, right: 12, zIndex: 99,
                 backgroundColor: 'rgba(28,28,30,0.96)',
                 backdropFilter: 'blur(20px)',
