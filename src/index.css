@@ -33,3 +33,7 @@ body {
   display: flex;
   flex-direction: column;
 }
+
+nav {
+  padding-bottom: env(safe-area-inset-bottom);
+}
