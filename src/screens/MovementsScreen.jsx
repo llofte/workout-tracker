@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { db } from '../db/db'
+import { supabase } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
@@ -69,7 +69,8 @@ export default function MovementsScreen({ onEdit }) {
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    db.movements.orderBy('name').toArray().then(setMovements)
+    supabase.from('movements').select('*').order('name')
+      .then(({ data }) => setMovements(data ?? []))
   }, [refreshKey])
 
   if (selected) {

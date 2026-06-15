@@ -9,8 +9,9 @@ import { useSessions } from './hooks/useSession'
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 export default function App() {
+  // innerHeight excludes the home indicator zone — add 34px so nav bg fills it
   const rootHeight = window.navigator.standalone === true
-    ? window.innerHeight + 'px'
+    ? (window.innerHeight + 34) + 'px'
     : '100dvh'
 
   const [activeTab, setActiveTab] = useState('home')
