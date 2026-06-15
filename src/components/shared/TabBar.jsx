@@ -54,6 +54,7 @@ export default function TabBar({ activeTab, onTabChange }) {
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '0.5px solid rgba(255,255,255,0.12)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 34px)',
         display: 'flex',
         alignItems: 'flex-start',
         flexShrink: 0,
