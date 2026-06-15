@@ -41,7 +41,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ backgroundColor: '#0a0a0a', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div style={{ backgroundColor: '#242422', height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
@@ -52,7 +52,7 @@ export default function App() {
       {logOpen && (
         <>
           <div style={{
-            position: 'fixed', inset: 0, backgroundColor: '#0a0a0a', zIndex: 100,
+            position: 'fixed', inset: 0, backgroundColor: '#242422', zIndex: 100,
             overflowY: logMinimized || dragOffset > 0 ? 'hidden' : 'auto',
             overscrollBehavior: 'none',
             transform: logMinimized

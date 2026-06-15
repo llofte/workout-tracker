@@ -1,4 +1,4 @@
-const ACTIVE = '#f5f0e8'
+const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
 const SZ = 26
 
@@ -50,7 +50,7 @@ export default function TabBar({ activeTab, onTabChange }) {
   return (
     <nav
       style={{
-        backgroundColor: 'rgba(28,28,30,0.92)',
+        backgroundColor: 'rgba(26,26,24,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '0.5px solid rgba(255,255,255,0.12)',
