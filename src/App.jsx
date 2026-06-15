@@ -41,7 +41,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ backgroundColor: '#242422', height: '100dvh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#242422', height: '100%', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}

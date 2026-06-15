@@ -21,6 +21,7 @@ html {
 
 body {
   margin: 0;
+  height: 100%;
   background-color: #1a1a18;
   color: #f5f0e8;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
@@ -30,9 +31,7 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  height: 100%;
 }
 
 nav {
