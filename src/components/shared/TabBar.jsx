@@ -1,6 +1,6 @@
 const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
-const SZ = 26
+const SZ = 24
 
 function HomeIcon({ active }) {
   return (
@@ -73,9 +73,9 @@ export default function TabBar({ activeTab, onTabChange }) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 9,
-              paddingBottom: 7,
-              gap: 3,
+              paddingTop: 7,
+              paddingBottom: 5,
+              gap: 2,
               border: 'none',
               background: 'none',
               cursor: 'pointer',
