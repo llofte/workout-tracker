@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '../db/supabase'
+import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
@@ -70,7 +70,15 @@ export default function MovementsScreen({ onEdit }) {
 
   useEffect(() => {
     supabase.from('movements').select('*').order('name')
-      .then(({ data }) => setMovements(data ?? []))
+      .then(async ({ data }) => {
+        if (!data || data.length === 0) {
+          await seedSupabaseIfEmpty()
+          const { data: seeded } = await supabase.from('movements').select('*').order('name')
+          setMovements(seeded ?? [])
+        } else {
+          setMovements(data)
+        }
+      })
   }, [refreshKey])
 
   if (selected) {

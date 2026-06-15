@@ -50,14 +50,18 @@ export default function TabBar({ activeTab, onTabChange }) {
   return (
     <nav
       style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 'calc(49px + env(safe-area-inset-bottom))',
         backgroundColor: 'rgba(26,26,24,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '0.5px solid rgba(255,255,255,0.12)',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 34px)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
         display: 'flex',
         alignItems: 'flex-start',
-        flexShrink: 0,
       }}
     >
       {TABS.map(({ id, label, Icon }) => {

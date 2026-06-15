@@ -9,11 +9,6 @@ import { useSessions } from './hooks/useSession'
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 export default function App() {
-  // innerHeight excludes the home indicator zone — add 34px so nav bg fills it
-  const rootHeight = window.navigator.standalone === true
-    ? (window.innerHeight + 34) + 'px'
-    : '100dvh'
-
   const [activeTab, setActiveTab] = useState('home')
   const [logging, setLogging] = useState(false)
   const [editingSession, setEditingSession] = useState(null)
@@ -46,8 +41,8 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: rootHeight, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
-      <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
+      <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none', paddingBottom: 'calc(49px + env(safe-area-inset-bottom))' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
         {activeTab === 'calc' && <CalcScreen />}

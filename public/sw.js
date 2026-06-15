@@ -1,4 +1,4 @@
-const CACHE = 'bb-wod-v1'
+const CACHE = 'bb-wod-v2'
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting())
@@ -9,6 +9,8 @@ self.addEventListener('activate', e => {
     caches.keys()
       .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => self.clients.matchAll({ type: 'window' }))
+      .then(clients => clients.forEach(c => c.navigate(c.url)))
   )
 })
 
