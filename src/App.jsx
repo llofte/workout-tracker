@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import TabBar from './components/shared/TabBar'
 import HomeScreen from './screens/HomeScreen'
 import LogScreen from './screens/LogScreen'
@@ -10,17 +10,8 @@ const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 export default function App() {
   const rootHeight = window.navigator.standalone === true
-    ? window.screen.height + 'px'
+    ? window.innerHeight + 'px'
     : '100dvh'
-
-  const [sab, setSab] = useState('?')
-  useEffect(() => {
-    const el = document.createElement('div')
-    el.style.cssText = 'position:fixed;bottom:0;left:0;width:0;padding-bottom:env(safe-area-inset-bottom);pointer-events:none;visibility:hidden;'
-    document.body.appendChild(el)
-    setSab(getComputedStyle(el).paddingBottom)
-    document.body.removeChild(el)
-  }, [])
 
   const [activeTab, setActiveTab] = useState('home')
   const [logging, setLogging] = useState(false)
@@ -55,9 +46,6 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: rootHeight, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ position: 'fixed', top: 60, left: 0, right: 0, zIndex: 9999, backgroundColor: 'red', color: 'white', fontSize: 11, padding: '3px 8px', textAlign: 'center', fontFamily: 'monospace' }}>
-        sh:{window.screen.height} ih:{window.innerHeight} sa:{String(window.navigator.standalone)} sab:{sab} rh:{rootHeight}
-      </div>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
