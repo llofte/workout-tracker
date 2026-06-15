@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
+import { TAB_CLEARANCE } from '../utils/pwa'
 
 function formatDate(dateStr) {
   return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', {
@@ -127,7 +128,7 @@ function SessionCard({ session, onClick }) {
 }
 
 const S = {
-  root: { paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 'calc(49px + env(safe-area-inset-bottom) + 16px)' },
+  root: { paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: TAB_CLEARANCE },
   header: { padding: '20px 20px 8px' },
   dateLabel: { color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px', fontWeight: 400 },
   title: { color: '#f5f0e8', fontSize: 20, fontWeight: 600, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' },

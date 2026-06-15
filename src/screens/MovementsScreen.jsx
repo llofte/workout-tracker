@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
+import { TAB_CLEARANCE } from '../utils/pwa'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -98,7 +99,7 @@ export default function MovementsScreen({ onEdit }) {
   const groups = !isSearching ? groupMovements(movements ?? []) : null
 
   return (
-    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 'calc(49px + env(safe-area-inset-bottom) + 16px)' }}>
+    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: TAB_CLEARANCE }}>
       <div style={{ padding: '20px 20px 12px' }}>
         <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: ff }}>
           Movements

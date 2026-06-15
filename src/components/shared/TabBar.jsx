@@ -1,3 +1,5 @@
+import { TAB_HEIGHT, SAFE_BOTTOM } from '../../utils/pwa'
+
 const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
 const SZ = 24
@@ -54,12 +56,12 @@ export default function TabBar({ activeTab, onTabChange }) {
         bottom: 0,
         left: 0,
         right: 0,
-        height: 'calc(49px + env(safe-area-inset-bottom))',
+        height: TAB_HEIGHT,
         backgroundColor: 'rgba(26,26,24,0.92)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '0.5px solid rgba(255,255,255,0.12)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingBottom: SAFE_BOTTOM,
         display: 'flex',
         alignItems: 'flex-start',
       }}
