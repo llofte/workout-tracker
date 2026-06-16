@@ -5,7 +5,6 @@ import LogScreen from './screens/LogScreen'
 import MovementsScreen from './screens/MovementsScreen'
 import CalcScreen from './screens/CalcScreen'
 import { useSessions } from './hooks/useSession'
-import { isStandalone, TAB_HEIGHT, SAFE_BOTTOM } from './utils/pwa'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -49,12 +48,6 @@ export default function App() {
         {activeTab === 'calc' && <CalcScreen />}
       </main>
       <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-      {/* DEBUG — remove after diagnosis */}
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, height: 3, backgroundColor: 'red', zIndex: 9999 }} />
-      <div style={{ position: 'fixed', top: 80, left: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.9)', color: '#0f0', fontSize: 10, padding: '5px 8px', borderRadius: 6, zIndex: 9999, fontFamily: 'monospace', lineHeight: 1.5 }}>
-        {`sa:${isStandalone?'PWA':'WEB'} ih:${window.innerHeight} sh:${screen.height}\nth:${TAB_HEIGHT} sb:${SAFE_BOTTOM}`}
-      </div>
 
       {logOpen && (
         <>
