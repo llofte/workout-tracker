@@ -99,7 +99,7 @@ export default function MovementsScreen({ onEdit }) {
   const groups = !isSearching ? groupMovements(movements ?? []) : null
 
   return (
-    <div style={{ paddingTop: 12, paddingBottom: TAB_CLEARANCE }}>
+    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: TAB_CLEARANCE }}>
       <div style={{ padding: '20px 20px 12px' }}>
         <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: ff }}>
           Movements
