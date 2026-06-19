@@ -5,6 +5,7 @@ import LogScreen from './screens/LogScreen'
 import MovementsScreen from './screens/MovementsScreen'
 import CalcScreen from './screens/CalcScreen'
 import { useSessions } from './hooks/useSession'
+import { PILL_BOTTOM, TAB_HEIGHT } from './utils/pwa'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -77,7 +78,7 @@ export default function App() {
               onClick={restoreLog}
               style={{
                 position: 'fixed',
-                bottom: 'calc(max(env(safe-area-inset-bottom, 0px), 34px) + 58px)',
+                bottom: PILL_BOTTOM + TAB_HEIGHT + 8,
                 left: 12, right: 12, zIndex: 99,
                 backgroundColor: 'rgba(28,28,30,0.96)',
                 backdropFilter: 'blur(20px)',

@@ -1,8 +1,8 @@
-import { TAB_HEIGHT, SAFE_BOTTOM } from '../../utils/pwa'
+import { PILL_BOTTOM } from '../../utils/pwa'
 
 const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
-const SZ = 24
+const SZ = 22
 
 function HomeIcon({ active }) {
   return (
@@ -33,15 +33,6 @@ function CalcIcon({ active }) {
   )
 }
 
-function SettingsIcon({ active }) {
-  return (
-    <svg width={SZ} height={SZ} viewBox="0 0 24 24" fill="none" stroke={active ? ACTIVE : INACTIVE} strokeWidth={active ? 2 : 1.5} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  )
-}
-
 const TABS = [
   { id: 'home', label: 'Home', Icon: HomeIcon },
   { id: 'movements', label: 'Moves', Icon: MovementsIcon },
@@ -50,22 +41,20 @@ const TABS = [
 
 export default function TabBar({ activeTab, onTabChange }) {
   return (
-    <nav
-      style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: TAB_HEIGHT,
-        backgroundColor: 'rgba(26,26,24,0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderTop: '0.5px solid rgba(255,255,255,0.12)',
-        paddingBottom: SAFE_BOTTOM,
-        display: 'flex',
-        alignItems: 'flex-start',
-      }}
-    >
+    <nav style={{
+      position: 'fixed',
+      bottom: PILL_BOTTOM,
+      left: 16,
+      right: 16,
+      backgroundColor: 'rgba(28,28,30,0.96)',
+      backdropFilter: 'blur(20px)',
+      WebkitBackdropFilter: 'blur(20px)',
+      borderRadius: 20,
+      border: '0.5px solid rgba(255,255,255,0.12)',
+      display: 'flex',
+      overflow: 'hidden',
+      zIndex: 50,
+    }}>
       {TABS.map(({ id, label, Icon }) => {
         const active = activeTab === id
         return (
@@ -79,9 +68,9 @@ export default function TabBar({ activeTab, onTabChange }) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              paddingTop: 7,
-              paddingBottom: 5,
-              gap: 2,
+              paddingTop: 8,
+              paddingBottom: 8,
+              gap: 3,
               border: 'none',
               background: 'none',
               cursor: 'pointer',
@@ -89,15 +78,13 @@ export default function TabBar({ activeTab, onTabChange }) {
             }}
           >
             <Icon active={active} />
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: active ? 600 : 400,
-                color: active ? ACTIVE : INACTIVE,
-                letterSpacing: 0.1,
-                fontFamily: 'inherit',
-              }}
-            >
+            <span style={{
+              fontSize: 10,
+              fontWeight: active ? 600 : 400,
+              color: active ? ACTIVE : INACTIVE,
+              letterSpacing: 0.1,
+              fontFamily: 'inherit',
+            }}>
               {label}
             </span>
           </button>
