@@ -1,4 +1,4 @@
-import { PILL_BOTTOM, isStandalone } from '../../utils/pwa'
+import { PILL_BOTTOM } from '../../utils/pwa'
 
 const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
@@ -69,7 +69,7 @@ export default function TabBar({ activeTab, onTabChange }) {
               alignItems: 'center',
               justifyContent: 'center',
               paddingTop: 8,
-              paddingBottom: isStandalone ? 20 : 8,
+              paddingBottom: 8,
               gap: 3,
               border: 'none',
               background: 'none',
