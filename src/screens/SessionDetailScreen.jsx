@@ -345,7 +345,7 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
   }
 
   return (
-    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 60 }}>
+    <div style={{ paddingTop: 12, paddingBottom: 60 }}>
 
       {/* Header */}
       <div style={{ padding: '12px 20px 16px' }}>

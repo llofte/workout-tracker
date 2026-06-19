@@ -1049,7 +1049,7 @@ Rules:
   // ─── Step 1 ───────────────────────────────────────────────────────
   if (step === 1) {
     return (
-      <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 40, display: 'flex', flexDirection: 'column' }}>
+      <div style={{ paddingTop: 12, paddingBottom: 40, display: 'flex', flexDirection: 'column' }}>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
         <div style={{ padding: '12px 20px 24px' }}>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 12 }}>
@@ -1173,7 +1173,7 @@ Rules:
       )}
       {pickerTarget && <LibrarySheet onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />}
 
-      <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 100 }}>
+      <div style={{ paddingTop: 12, paddingBottom: 100 }}>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
 
         {/* Header */}
