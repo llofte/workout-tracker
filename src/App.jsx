@@ -5,7 +5,7 @@ import LogScreen from './screens/LogScreen'
 import MovementsScreen from './screens/MovementsScreen'
 import CalcScreen from './screens/CalcScreen'
 import { useSessions } from './hooks/useSession'
-import { PILL_BOTTOM, TAB_HEIGHT } from './utils/pwa'
+import { isStandalone, PILL_BOTTOM, TAB_HEIGHT } from './utils/pwa'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -42,7 +42,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: isStandalone ? 'calc(-1 * env(safe-area-inset-bottom, 0px))' : 0, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
