@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import TabBar from './components/shared/TabBar'
 import HomeScreen from './screens/HomeScreen'
 import LogScreen from './screens/LogScreen'
@@ -16,28 +16,6 @@ export default function App() {
   const [logMinimized, setLogMinimized] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const { sessions, refetch } = useSessions()
-
-  const [dbg, setDbg] = useState(null)
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const probe = document.createElement('div')
-      probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;'
-      document.body.appendChild(probe)
-      const m = v => { probe.style.height = v; return probe.offsetHeight }
-      const vh = m('100vh'), dvh = m('100dvh'), lvh = m('100lvh'), svh = m('100svh'), fill = m('-webkit-fill-available')
-      const sat = m('env(safe-area-inset-top)'), sab = m('env(safe-area-inset-bottom)')
-      probe.style.cssText = 'position:fixed;left:-9999px;top:0;bottom:0;width:1px;'
-      const fixedH = probe.offsetHeight
-      document.body.removeChild(probe)
-      setDbg(
-        `screenH=${window.screen.height} iH=${window.innerHeight}\n` +
-        `vh=${vh} dvh=${dvh} lvh=${lvh}\n` +
-        `svh=${svh} fill=${fill} fixed01=${fixedH}\n` +
-        `SAT=${sat} SAB=${sab} dpr=${window.devicePixelRatio}`
-      )
-    }, 300)
-    return () => clearTimeout(t)
-  }, [])
 
   const logOpen = logging || !!editingSession
 
@@ -64,12 +42,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'relative', height: '100%', backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
-      {dbg && (
-        <div style={{ position: 'fixed', top: 'env(safe-area-inset-top)', left: 6, zIndex: 99999, background: 'rgba(220,0,0,0.95)', color: '#fff', font: '11px ui-monospace, monospace', padding: '6px 8px', borderRadius: 6, whiteSpace: 'pre', lineHeight: 1.35, pointerEvents: 'none' }}>
-          {dbg}
-        </div>
-      )}
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '100vh', backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
