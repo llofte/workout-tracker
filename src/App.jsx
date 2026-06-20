@@ -30,7 +30,7 @@ export default function App() {
   useEffect(() => {
     const isField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
     const onFocusIn = e => { if (isField(e.target)) setKbOpen(true) }
-    const onFocusOut = () => { setTimeout(() => { if (!isField(document.activeElement)) setKbOpen(false) }, 0) }
+    const onFocusOut = () => { setTimeout(() => { if (!isField(document.activeElement)) { setKbOpen(false); window.scrollTo(0, 0) } }, 0) }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
     return () => {
@@ -66,7 +66,7 @@ export default function App() {
   return (
     <div style={{ position: 'relative', height: '100%', backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
-        {activeTab === 'home' && <HomeScreen key={'home' + tabNonce} sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
+        {activeTab === 'home' && <HomeScreen key={'home' + tabNonce} sessions={sessions} kbOpen={kbOpen} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen key={'movements' + tabNonce} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'calc' && <CalcScreen key={'calc' + tabNonce} />}
       </main>
