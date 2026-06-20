@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { db } from '../db/db'
 import SessionDetailScreen from './SessionDetailScreen'
+import SwipeBack from '../components/shared/SwipeBack'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -227,11 +228,13 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
 
   if (selectedSession) {
     return (
-      <SessionDetailScreen
-        session={selectedSession}
-        onBack={() => setSelectedSession(null)}
-        onEdit={s => { setSelectedSession(null); onEdit(s) }}
-      />
+      <SwipeBack onBack={() => setSelectedSession(null)}>
+        <SessionDetailScreen
+          session={selectedSession}
+          onBack={() => setSelectedSession(null)}
+          onEdit={s => { setSelectedSession(null); onEdit(s) }}
+        />
+      </SwipeBack>
     )
   }
 

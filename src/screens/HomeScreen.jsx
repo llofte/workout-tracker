@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
+import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
 
 function formatDate(dateStr) {
@@ -522,17 +523,20 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit }) {
 
   if (selectedSession) {
     return (
-      <SessionDetailScreen
-        session={selectedSession}
-        onBack={() => setSelectedSession(null)}
-        onEdit={session => { setSelectedSession(null); onEdit(session) }}
-      />
+      <SwipeBack onBack={() => setSelectedSession(null)}>
+        <SessionDetailScreen
+          session={selectedSession}
+          onBack={() => setSelectedSession(null)}
+          onEdit={session => { setSelectedSession(null); onEdit(session) }}
+        />
+      </SwipeBack>
     )
   }
 
   if (viewAll) {
     const groups = groupByMonth(sessions ?? [])
     return (
+      <SwipeBack onBack={() => setViewAll(false)}>
       <div style={S.root}>
         <div style={{ padding: '12px 20px 16px' }}>
           <button onClick={() => setViewAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 12 }}>
@@ -552,6 +556,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit }) {
           </div>
         ))}
       </div>
+      </SwipeBack>
     )
   }
 
@@ -563,7 +568,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v33</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v34</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

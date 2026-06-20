@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
+import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
@@ -84,11 +85,13 @@ export default function MovementsScreen({ onEdit }) {
 
   if (selected) {
     return (
-      <MovementDetailScreen
-        movement={selected}
-        onBack={() => { setSelected(null); setRefreshKey(k => k + 1) }}
-        onEdit={onEdit}
-      />
+      <SwipeBack onBack={() => { setSelected(null); setRefreshKey(k => k + 1) }}>
+        <MovementDetailScreen
+          movement={selected}
+          onBack={() => { setSelected(null); setRefreshKey(k => k + 1) }}
+          onEdit={onEdit}
+        />
+      </SwipeBack>
     )
   }
 
