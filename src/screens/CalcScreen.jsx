@@ -93,7 +93,7 @@ export default function CalcScreen() {
   const targetIsExact = targetResult && targetResult.total === targetNum
 
   return (
-    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 60 }}>
+    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 85px)' }}>
       <div style={{ padding: '20px 20px 16px' }}>
         <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: ff }}>
           Calculator

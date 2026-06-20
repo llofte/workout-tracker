@@ -42,7 +42,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: '100dvh', backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'none' }}>
         {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
@@ -53,7 +53,7 @@ export default function App() {
       {logOpen && (
         <>
           <div style={{
-            position: 'fixed', inset: 0, backgroundColor: '#242422', zIndex: 100,
+            position: 'fixed', top: 0, left: 0, right: 0, height: '100dvh', backgroundColor: '#242422', zIndex: 100,
             overflowY: logMinimized || dragOffset > 0 ? 'hidden' : 'auto',
             overscrollBehavior: 'none',
             transform: logMinimized
@@ -77,8 +77,8 @@ export default function App() {
             <div
               onClick={restoreLog}
               style={{
-                position: 'fixed',
-                bottom: PILL_BOTTOM + TAB_HEIGHT + 8,
+                position: 'absolute',
+                bottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 61px)',
                 left: 12, right: 12, zIndex: 99,
                 backgroundColor: 'rgba(28,28,30,0.96)',
                 backdropFilter: 'blur(20px)',

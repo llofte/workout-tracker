@@ -1,4 +1,4 @@
-import { PILL_BOTTOM, isStandalone } from '../../utils/pwa'
+import { isStandalone } from '../../utils/pwa'
 
 const ACTIVE = '#b898f0'
 const INACTIVE = 'rgba(245,240,232,0.38)'
@@ -42,8 +42,8 @@ const TABS = [
 export default function TabBar({ activeTab, onTabChange }) {
   return (
     <nav style={{
-      position: 'fixed',
-      bottom: PILL_BOTTOM,
+      position: 'absolute',
+      bottom: 'max(env(safe-area-inset-bottom), 8px)',
       left: 16,
       right: 16,
       backgroundColor: 'rgba(28,28,30,0.96)',
