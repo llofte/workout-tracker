@@ -21,22 +21,19 @@ export default function App() {
   useEffect(() => {
     const t = setTimeout(() => {
       const probe = document.createElement('div')
-      probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:0;'
+      probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1px;'
       document.body.appendChild(probe)
-      const measure = v => { probe.style.height = v; return probe.offsetHeight }
-      const sat = measure('env(safe-area-inset-top)')
-      const sab = measure('env(safe-area-inset-bottom)')
+      const m = v => { probe.style.height = v; return probe.offsetHeight }
+      const vh = m('100vh'), dvh = m('100dvh'), lvh = m('100lvh'), svh = m('100svh'), fill = m('-webkit-fill-available')
+      const sat = m('env(safe-area-inset-top)'), sab = m('env(safe-area-inset-bottom)')
+      probe.style.cssText = 'position:fixed;left:-9999px;top:0;bottom:0;width:1px;'
+      const fixedH = probe.offsetHeight
       document.body.removeChild(probe)
-      const app = document.querySelector('#root > div')
-      const nav = document.querySelector('nav')
-      const nb = nav ? Math.round(nav.getBoundingClientRect().bottom) : -1
       setDbg(
-        `iH=${window.innerHeight} vvH=${Math.round(window.visualViewport?.height || 0)}\n` +
-        `docCH=${document.documentElement.clientHeight} rootH=${document.getElementById('root').offsetHeight}\n` +
-        `appH=${app ? Math.round(app.getBoundingClientRect().height) : '?'}\n` +
-        `SAT=${sat} SAB=${sab}\n` +
-        `navBottom=${nb} GAP=${window.innerHeight - nb}\n` +
-        `standalone=${window.navigator.standalone} dpr=${window.devicePixelRatio}`
+        `screenH=${window.screen.height} iH=${window.innerHeight}\n` +
+        `vh=${vh} dvh=${dvh} lvh=${lvh}\n` +
+        `svh=${svh} fill=${fill} fixed01=${fixedH}\n` +
+        `SAT=${sat} SAB=${sab} dpr=${window.devicePixelRatio}`
       )
     }, 300)
     return () => clearTimeout(t)
