@@ -17,17 +17,23 @@
 html {
   margin: 0;
   padding: 0;
+  height: 100%;
   background-color: #242422;
 }
 
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
   background-color: #242422;
   color: #f5f0e8;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
     'Helvetica Neue', sans-serif;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
 }
 
