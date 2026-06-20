@@ -43,10 +43,9 @@ export default function TabBar({ activeTab, onTabChange }) {
   return (
     <nav style={{
       position: 'absolute',
-      bottom: 8,
+      bottom: 'max(env(safe-area-inset-bottom), 8px)',
       left: 16,
       right: 16,
-      paddingBottom: 'max(env(safe-area-inset-bottom), 0px)',
       backgroundColor: 'rgba(28,28,30,0.96)',
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
