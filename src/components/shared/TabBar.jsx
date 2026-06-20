@@ -39,7 +39,7 @@ const TABS = [
   { id: 'calc', label: 'Calc', Icon: CalcIcon },
 ]
 
-export default function TabBar({ activeTab, onTabChange }) {
+export default function TabBar({ activeTab, onTabChange, hidden }) {
   return (
     <nav style={{
       position: 'absolute',
@@ -51,6 +51,8 @@ export default function TabBar({ activeTab, onTabChange }) {
       borderTop: '0.5px solid rgba(255,255,255,0.1)',
       display: 'flex',
       zIndex: 50,
+      transform: hidden ? 'translateY(100%)' : 'translateY(0)',
+      transition: 'transform 0.25s ease',
     }}>
       {TABS.map(({ id, label, Icon }) => {
         const active = activeTab === id

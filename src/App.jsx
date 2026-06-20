@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import TabBar from './components/shared/TabBar'
 import HomeScreen from './screens/HomeScreen'
 import LogScreen from './screens/LogScreen'
@@ -11,11 +11,33 @@ const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home')
+  const [tabNonce, setTabNonce] = useState(0)
+  const [kbOpen, setKbOpen] = useState(false)
   const [logging, setLogging] = useState(false)
   const [editingSession, setEditingSession] = useState(null)
   const [logMinimized, setLogMinimized] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const { sessions, refetch } = useSessions()
+
+  // Re-tapping the active tab (or switching tabs) returns to that tab's root view and scrolls to top.
+  const handleTabChange = (id) => {
+    if (id === activeTab) setTabNonce(n => n + 1)
+    else setActiveTab(id)
+    document.querySelector('main')?.scrollTo({ top: 0 })
+  }
+
+  // Hide the tab bar while a text field is focused so it doesn't ride up above the keyboard.
+  useEffect(() => {
+    const isField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+    const onFocusIn = e => { if (isField(e.target)) setKbOpen(true) }
+    const onFocusOut = () => { setTimeout(() => { if (!isField(document.activeElement)) setKbOpen(false) }, 0) }
+    document.addEventListener('focusin', onFocusIn)
+    document.addEventListener('focusout', onFocusOut)
+    return () => {
+      document.removeEventListener('focusin', onFocusIn)
+      document.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
 
   const logOpen = logging || !!editingSession
 
@@ -44,11 +66,11 @@ export default function App() {
   return (
     <div style={{ position: 'relative', height: '100%', backgroundColor: '#242422', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
-        {activeTab === 'home' && <HomeScreen sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
-        {activeTab === 'movements' && <MovementsScreen onEdit={s => setEditingSession(s)} />}
-        {activeTab === 'calc' && <CalcScreen />}
+        {activeTab === 'home' && <HomeScreen key={'home' + tabNonce} sessions={sessions} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
+        {activeTab === 'movements' && <MovementsScreen key={'movements' + tabNonce} onEdit={s => setEditingSession(s)} />}
+        {activeTab === 'calc' && <CalcScreen key={'calc' + tabNonce} />}
       </main>
-      <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <TabBar activeTab={activeTab} onTabChange={handleTabChange} hidden={kbOpen} />
 
       {logOpen && (
         <>
