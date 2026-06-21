@@ -14,8 +14,8 @@ function sessionHasPR(session) {
   return session.strengthBlock?.movements?.some(m => m.sets?.some(s => s.isPR)) ?? false
 }
 
-function deriveTitle(session) {
-  if (session.title) return session.title
+function deriveSessionParts(session) {
+  if (session.title) return [session.title]
 
   const parts = []
 
@@ -45,7 +45,7 @@ function deriveTitle(session) {
     parts.push(label)
   }
 
-  return parts.join(' / ') || 'BB WOD'
+  return parts.length ? parts : ['BB WOD']
 }
 
 function getSessionMoves(session) {
@@ -101,9 +101,11 @@ function SessionCard({ session, onClick }) {
         )}
       </div>
 
-      <p style={{ color: '#f5f0e8', fontSize: 15, fontWeight: 600, margin: '0 0 8px', fontFamily: 'inherit' }}>
-        {deriveTitle(session)}
-      </p>
+      {deriveSessionParts(session).map((part, i, arr) => (
+        <p key={i} style={{ color: '#f5f0e8', fontSize: 15, fontWeight: 600, margin: i < arr.length - 1 ? '0 0 3px' : '0 0 8px', fontFamily: 'inherit' }}>
+          {part}
+        </p>
+      ))}
 
       {moves.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -580,7 +582,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v41</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v42</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
