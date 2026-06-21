@@ -7,23 +7,6 @@ import { normalizeMovement, toLibraryDisplay } from '../utils/movements'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
-const GROUPS = ['Barbell', 'Dumbbell', 'Kettlebell', 'Cardio', 'Other']
-
-function inferGroup(movement) {
-  const { name, implement } = normalizeMovement(movement.name)
-  if (implement === 'Dumbbell') return 'Dumbbell'
-  if (implement === 'Kettlebell' || /^KB /i.test(name)) return 'Kettlebell'
-  if (/deadlift|snatch|clean|jerk|\bpress\b|(back|front|overhead|sumo|goblet)\s+squat|hang power|thruster|rdl|sdhp/i.test(name)) return 'Barbell'
-  if (/^kb /i.test(name) || /kettlebell|swing/i.test(name)) return 'Kettlebell'
-  if (/\brun\b|running|\brow\b|rowing|\bbike\b|cycling|ski\s*erg|double under|single under/i.test(name)) return 'Cardio'
-  return 'Other'
-}
-
-function groupMovements(movements) {
-  const map = { Barbell: [], Dumbbell: [], Kettlebell: [], Cardio: [], Other: [] }
-  for (const m of movements) map[inferGroup(m)].push(m)
-  return map
-}
 
 function best1RM(prs) {
   if (!prs?.length) return null
@@ -115,11 +98,11 @@ export default function MovementsScreen({ onEdit }) {
     )
   }
 
-  const isSearching = query.trim().length > 0
-  const filtered = isSearching
-    ? (movements ?? []).filter(m => m.name.toLowerCase().includes(query.toLowerCase()))
-    : []
-  const groups = !isSearching ? groupMovements(movements ?? []) : null
+  const q = query.trim().toLowerCase()
+  const list = (movements ?? [])
+    .filter(m => !q || m.name.toLowerCase().includes(q))
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
 
   return (
     <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: TAB_CLEARANCE }}>
@@ -145,43 +128,19 @@ export default function MovementsScreen({ onEdit }) {
 
       {movements === null && null}
 
-      {/* Search results — flat list */}
-      {isSearching && movements !== null && (
-        filtered.length === 0 ? (
+      {movements !== null && (
+        list.length === 0 ? (
           <div style={{ padding: '32px 20px', textAlign: 'center' }}>
             <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 15, fontFamily: ff }}>No movements found.</p>
           </div>
         ) : (
           <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-            {filtered.map((m, i) => (
-              <MovementRow key={m.id} movement={m} last={i === filtered.length - 1} onClick={() => openMovement(m)} />
+            {list.map((m, i) => (
+              <MovementRow key={m.id} movement={m} last={i === list.length - 1} onClick={() => openMovement(m)} show1RM />
             ))}
           </div>
         )
       )}
-
-      {/* Grouped view */}
-      {!isSearching && groups !== null && GROUPS.map(group => {
-        const items = groups[group]
-        if (!items.length) return null
-        return (
-          <div key={group} style={{ marginBottom: 24 }}>
-            <div style={{ padding: '0 20px 8px' }}>
-              <p style={{
-                color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontFamily: ff,
-              }}>
-                {group}
-              </p>
-            </div>
-            <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-              {items.map((m, i) => (
-                <MovementRow key={m.id} movement={m} last={i === items.length - 1} onClick={() => openMovement(m)} show1RM={group === 'Barbell'} />
-              ))}
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }

@@ -15,17 +15,25 @@ const ALIAS_MAP = {
   'SIT-UPS':         { name: 'Sit-Up' },
   'SIT UPS':         { name: 'Sit-Up' },
 
-  // ── SA Overhead Lunge (SA is important to show in session view) ───────────
-  'SA OH LUNGE':       { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SA OVERHEAD LUNGE': { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'OH LUNGE':          { name: 'Overhead Lunge' },
+  // ── Overhead Lunge ────────────────────────────────────────────────────────
+  'SA OH LUNGE':           { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SA OVERHEAD LUNGE':     { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'OH LUNGE':              { name: 'Overhead Lunge' },
+  'OVERHEAD PLATE LUNGE':  { name: 'Overhead Lunge', implement: 'Plate' },
+  'OVERHEAD PLATE LUNGES': { name: 'Overhead Lunge', implement: 'Plate' },
+  'OH PLATE LUNGE':        { name: 'Overhead Lunge', implement: 'Plate' },
+  'PLATE OVERHEAD LUNGE':  { name: 'Overhead Lunge', implement: 'Plate' },
 
-  // ── DB Snatch (fused — canonical name includes DB) ────────────────────────
-  'DB SNATCH':     { name: 'DB Snatch' },
-  'SA DB SNATCH':  { name: 'DB Snatch' },
-  'ALT DB SNATCH': { name: 'DB Snatch' },
-  'DB SN':         { name: 'DB Snatch' },
-  'ALT DB SN':     { name: 'DB Snatch' },
+  // ── Front Rack Lunge → Walking Lunge ─────────────────────────────────────
+  'FRONT RACK LUNGE':  { name: 'Walking Lunge' },
+  'FRONT RACK LUNGES': { name: 'Walking Lunge' },
+
+  // ── DB Snatch → merged into Snatch (implement: Dumbbell) ─────────────────
+  'DB SNATCH':     { name: 'Snatch', implement: 'Dumbbell' },
+  'SA DB SNATCH':  { name: 'Snatch', implement: 'Dumbbell', modifier: 'SA' },
+  'ALT DB SNATCH': { name: 'Snatch', implement: 'Dumbbell' },
+  'DB SN':         { name: 'Snatch', implement: 'Dumbbell' },
+  'ALT DB SN':     { name: 'Snatch', implement: 'Dumbbell' },
 
   // ── DB Step-Up ────────────────────────────────────────────────────────────
   'DB STEP-UP':  { name: 'Step-Up', implement: 'Dumbbell' },
@@ -40,6 +48,15 @@ const ALIAS_MAP = {
 
   // ── Lateral Sprawl DB Jump ────────────────────────────────────────────────
   'LATERAL SPRAWL DB JUMP': { name: 'Lateral Sprawl Jump', implement: 'Dumbbell' },
+
+  // ── Deficit Deadlift → modifier on Deadlift ───────────────────────────────
+  'DEFICIT DEADLIFT':  { name: 'Deadlift', modifier: 'Deficit' },
+  'DEF. DEADLIFT':     { name: 'Deadlift', modifier: 'Deficit' },
+  'DEF. DL':           { name: 'Deadlift', modifier: 'Deficit' },
+
+  // ── Single-Leg Deadlift ───────────────────────────────────────────────────
+  'SINGLE LEG DEADLIFT':  { name: 'Single-Leg Deadlift' },
+  'SINGLE-LEG DEADLIFT':  { name: 'Single-Leg Deadlift' },
 
   // ── Burpee variants ───────────────────────────────────────────────────────
   'BURPEES':              { name: 'Burpee' },
@@ -57,18 +74,20 @@ const ALIAS_MAP = {
   'LAT. BURPEE OVER BAR':      { name: 'Lateral Burpee Over Bar' },
   'LAT. BURPEE OVER ROWER':    { name: 'Lateral Burpee Over Rower' },
 
-  // ── KB Swing / Russian Swing ──────────────────────────────────────────────
-  'KB SWING':       { name: 'KB Swing' },
-  'BANDED SWING':   { name: 'KB Swing', modifier: 'Banded' },
-  'BANDED SWINGS':  { name: 'KB Swing', modifier: 'Banded' },
-  'RUSSIAN SWING':  { name: 'Russian Swing' },
-  'RUSSIAN SWINGS': { name: 'Russian Swing' },
-  'RUSSIAN KB SWING': { name: 'Russian Swing' },
+  // ── KB Swing / Russian KB Swing ───────────────────────────────────────────
+  'KB SWING':         { name: 'KB Swing' },
+  'BANDED SWING':     { name: 'KB Swing', modifier: 'Banded' },
+  'BANDED SWINGS':    { name: 'KB Swing', modifier: 'Banded' },
+  'RUSSIAN SWING':    { name: 'Russian KB Swing' },
+  'RUSSIAN SWINGS':   { name: 'Russian KB Swing' },
+  'RUSSIAN KB SWING': { name: 'Russian KB Swing' },
+  'RUSSIAN KB SWINGS':{ name: 'Russian KB Swing' },
 
-  // ── Gorilla Row / Devil Press (always DB but canonical name has no prefix) ─
-  'GORILLA ROW':      { name: 'Gorilla Row' },
-  'ALT GORILLA ROW':  { name: 'Gorilla Row' },
-  'DB GORILLA ROW':   { name: 'Gorilla Row' },
+  // ── Gorilla Row (always KB) / Devil Press ─────────────────────────────────
+  'GORILLA ROW':      { name: 'Gorilla Row', implement: 'Kettlebell' },
+  'ALT GORILLA ROW':  { name: 'Gorilla Row', implement: 'Kettlebell' },
+  'DB GORILLA ROW':   { name: 'Gorilla Row', implement: 'Kettlebell' },
+  'KB GORILLA ROW':   { name: 'Gorilla Row', implement: 'Kettlebell' },
   'DEVIL PRESS':      { name: 'Devil Press' },
   'DB DEVIL PRESS':   { name: 'Devil Press' },
   "SA DEVIL'S PRESS": { name: 'Devil Press', modifier: 'SA' },
@@ -76,6 +95,19 @@ const ALIAS_MAP = {
   // ── Prisoner Step-Up ──────────────────────────────────────────────────────
   'PRISONER STEP-UP': { name: 'Step-Up', modifier: 'Prisoner' },
   'PRISONER STEP UP': { name: 'Step-Up', modifier: 'Prisoner' },
+
+  // ── Split-Stance Single-Arm Press ─────────────────────────────────────────
+  'SPLIT STANCE SINGLE ARM PRESS':          { name: 'Split-Stance Single-Arm Press' },
+  'SPLIT-STANCE SINGLE-ARM PRESS':          { name: 'Split-Stance Single-Arm Press' },
+  'SPLIT STANCE SA PRESS':                  { name: 'Split-Stance Single-Arm Press' },
+  'SPLIT STANCE SINGLE ARM PRESS (KB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (KB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
+  'SPLIT STANCE SINGLE ARM PRESS (DB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (DB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
+  'KB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
+  'DB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
+  'SPLIT STANCE SA KB PRESS':               { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
+  'SPLIT STANCE SA DB PRESS':               { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
 
   // ── DB Front Squat ────────────────────────────────────────────────────────
   'DB FRONT SQUAT': { name: 'Front Squat', implement: 'Dumbbell' },
@@ -109,12 +141,20 @@ const ALIAS_MAP = {
   'CROSSBODY HAMMER CURLS':      { name: 'Crossbody Hammer Curl' },
   'HAMMER CURLS':                { name: 'Hammer Curl' },
 
+  // ── KB Turkish Get-Up ─────────────────────────────────────────────────────
+  'TGU':              { name: 'Turkish Get-Up' },
+  'KB TURKISH GET-UP':{ name: 'Turkish Get-Up' },
+  'KB TGU':           { name: 'Turkish Get-Up' },
+
   // ── KB Front Rack Hold ────────────────────────────────────────────────────
   'KB FR RACK HOLD':    { name: 'Front Rack Hold', implement: 'Kettlebell' },
   'KB FRONT RACK HOLD': { name: 'Front Rack Hold', implement: 'Kettlebell' },
 
-  // ── OH Hold ───────────────────────────────────────────────────────────────
-  'OH KB HOLD': { name: 'OH Hold', implement: 'Kettlebell' },
+  // ── Overhead Hold ─────────────────────────────────────────────────────────
+  'OH HOLD':         { name: 'Overhead Hold' },
+  'OVERHEAD HOLD':   { name: 'Overhead Hold' },
+  'OH KB HOLD':      { name: 'Overhead Hold', implement: 'Kettlebell' },
+  'KB OVERHEAD HOLD':{ name: 'Overhead Hold', implement: 'Kettlebell' },
 
   // ── Wall Squat Hold ───────────────────────────────────────────────────────
   'WALL SQ HOLD': { name: 'Wall Squat Hold' },
@@ -132,23 +172,29 @@ const ALIAS_MAP = {
   'PUSH UPS':               { name: 'Push-Up' },
   'PLATE ELEVATED PUSH-UP': { name: 'Push-Up', modifier: 'Plate Elevated' },
   'PLATE ELEVATED P.U.':    { name: 'Push-Up', modifier: 'Plate Elevated' },
-  'DB DEF. PUSH-UP':        { name: 'Deficit Push-Up', implement: 'Dumbbell' },
-  'DB DEFICIT PUSH-UP':     { name: 'Deficit Push-Up', implement: 'Dumbbell' },
-  'DB DEFICIT PUSH-UPS':    { name: 'Deficit Push-Up', implement: 'Dumbbell' },
+  'DEFICIT PUSH-UP':        { name: 'Push-Up', modifier: 'Deficit' },
+  'DEFICIT PUSH-UPS':       { name: 'Push-Up', modifier: 'Deficit' },
+  'DB DEF. PUSH-UP':        { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
+  'DB DEFICIT PUSH-UP':     { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
+  'DB DEFICIT PUSH-UPS':    { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
 
   // ── Pull-Up / Chin-Up variants ────────────────────────────────────────────
-  'PULL-UPS':        { name: 'Pull-Up' },
-  'PULL UPS':        { name: 'Pull-Up' },
-  'CHIN-UPS':        { name: 'Chin-Up' },
-  'CHIN UPS':        { name: 'Chin-Up' },
-  'CHIN UP':         { name: 'Chin-Up' },
-  'STRICT CHIN-UPS': { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN-UP':  { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN UPS': { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN UP':  { name: 'Chin-Up', modifier: 'Strict' },
+  'PULL-UPS':         { name: 'Pull-Up' },
+  'PULL UPS':         { name: 'Pull-Up' },
+  'STRICT PULL-UP':   { name: 'Pull-Up', modifier: 'Strict' },
+  'STRICT PULL-UPS':  { name: 'Pull-Up', modifier: 'Strict' },
+  'STRICT PULL UP':   { name: 'Pull-Up', modifier: 'Strict' },
+  'STRICT PULL UPS':  { name: 'Pull-Up', modifier: 'Strict' },
+  'CHIN-UPS':         { name: 'Chin-Up' },
+  'CHIN UPS':         { name: 'Chin-Up' },
+  'CHIN UP':          { name: 'Chin-Up' },
+  'STRICT CHIN-UPS':  { name: 'Chin-Up', modifier: 'Strict' },
+  'STRICT CHIN-UP':   { name: 'Chin-Up', modifier: 'Strict' },
+  'STRICT CHIN UPS':  { name: 'Chin-Up', modifier: 'Strict' },
+  'STRICT CHIN UP':   { name: 'Chin-Up', modifier: 'Strict' },
 
   // ── HSPU / MU abbreviations ───────────────────────────────────────────────
-  'HSPU': { name: 'Strict Handstand Push-Up' },
+  'HSPU': { name: 'Push Press' },     // always sub push press
   'BMU':  { name: 'Bar Muscle-Up' },
   'MU':   { name: 'Ring Muscle-Up' },
   'RMU':  { name: 'Ring Muscle-Up' },
@@ -193,8 +239,6 @@ const ALIAS_MAP = {
   'C&J':            { name: 'Clean & Jerk' },
   'G2OH':           { name: 'Ground to Overhead' },
   'MUSCLE SN':      { name: 'Muscle Snatch' },
-  '3-POS SN':       { name: '3-Position Snatch' },
-  '3 POS SN':       { name: '3-Position Snatch' },
 
   // ── Squat abbreviations ───────────────────────────────────────────────────
   'FS': { name: 'Front Squat' },
@@ -202,8 +246,7 @@ const ALIAS_MAP = {
 
   // ── Deadlift variants ─────────────────────────────────────────────────────
   'RDL':            { name: 'Romanian Deadlift' },
-  'DEF. DL':        { name: 'Deficit Deadlift' },
-  'DEF. DEADLIFT':  { name: 'Deficit Deadlift' },
+  'RDL BUILD':      { name: 'Romanian Deadlift' },
   'SN GRIP DL':     { name: 'Snatch Grip Deadlift' },
   'SN. GRIP DL':    { name: 'Snatch Grip Deadlift' },
   'SNATCH GRIP DL': { name: 'Snatch Grip Deadlift' },
@@ -212,7 +255,8 @@ const ALIAS_MAP = {
   'KB DEFICIT RDL': { name: 'Romanian Deadlift', implement: 'Kettlebell', modifier: 'Deficit' },
 
   // ── SDHP ──────────────────────────────────────────────────────────────────
-  'SDHP': { name: 'SDHP' },
+  'SDHP':                    { name: 'Sumo Deadlift High Pull' },
+  'SUMO DEADLIFT HIGH PULL': { name: 'Sumo Deadlift High Pull' },
 
   // ── Landmine ──────────────────────────────────────────────────────────────
   'KNEELING LM ROTATIONS':       { name: 'Landmine Rotation', modifier: 'Kneeling' },
@@ -237,7 +281,8 @@ const ALIAS_MAP = {
 
   // ── Carries ───────────────────────────────────────────────────────────────
   'FARMER CARRIES':   { name: 'Farmer Carry' },
-  'SUITCASE CARRIES': { name: 'Suitcase Carry' },
+  'SUITCASE CARRY':   { name: 'Farmer Carry' },
+  'SUITCASE CARRIES': { name: 'Farmer Carry' },
 }
 
 // Implement prefix patterns — tried in order after ALIAS_MAP miss
@@ -248,6 +293,13 @@ const IMPLEMENT_PREFIXES = [
   { match: /^KB /i,  implement: 'Kettlebell' },
   { match: /^MB /i,  implement: 'Med Ball' },
 ]
+
+// Session-view abbreviations for long movement names
+const SESSION_ABBREV = {
+  'Romanian Deadlift':      'RDL',
+  'Sumo Deadlift High Pull':'SDHP',
+  'Ground to Overhead':     'G2OH',
+}
 
 // Implement → session-view display prefix (Barbell is silent)
 const SESSION_PREFIX = {
@@ -295,7 +347,7 @@ export function toWorkoutDisplay(move) {
   const normalized = normalizeMovement(move.name)
   const implement = move.implement ?? normalized.implement
   const { name, modifier } = normalized
-  let display = name
+  let display = SESSION_ABBREV[name] ?? name
   if (implement && SESSION_PREFIX[implement]) {
     display = `${SESSION_PREFIX[implement]} ${display}`
   }

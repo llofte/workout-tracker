@@ -64,13 +64,29 @@ export async function seedSupabaseIfEmpty() {
   await supabase.from('movements').insert(rows)
 }
 
-// One-time migration: dedup movements by canonical name and fill in any missing
-// baseline entries. Safe to re-run (idempotent after flag is set).
+// Movements that should be purged from the library entirely.
+// Any Supabase row whose canonical name is in this set will be deleted.
+const PURGE_CANONICAL = new Set([
+  '3-Position Snatch',
+  'DB Snatch',              // merged into Snatch (implement: Dumbbell)
+  'Deficit Deadlift',       // merged into Deadlift (modifier: Deficit)
+  'Deficit Push-Up',        // merged into Push-Up (modifier: Deficit)
+  'Front Rack Lunge',       // merged into Walking Lunge
+  'GHD Sit-Up',
+  'Kipping Handstand Push-Up',
+  'Lu Raise',
+  'Strict Handstand Push-Up',
+  'Suitcase Carry',         // merged into Farmer Carry
+])
+
+// One-time migration: dedup, rename, purge, and fill missing baseline entries.
 export async function syncMovementLibrary() {
-  if (localStorage.getItem('movements_sync_v2')) return
+  if (localStorage.getItem('movements_sync_v3')) return
   try {
     const { data: all } = await supabase.from('movements').select('*')
     if (!all) return
+
+    const baselineSet = new Set(MOVEMENTS_BASELINE.map(m => m.name))
 
     // Group every row by its canonical name
     const byCanonical = new Map()
@@ -80,8 +96,17 @@ export async function syncMovementLibrary() {
       byCanonical.get(canon).push(m)
     }
 
-    // Merge duplicates and rename non-canonical rows
+    const toDelete = []
+    const existingCanon = new Set()
+
     for (const [canon, rows] of byCanonical) {
+      // Purge movements that are no longer in the library
+      if (PURGE_CANONICAL.has(canon)) {
+        toDelete.push(...rows.map(r => r.id))
+        continue
+      }
+
+      existingCanon.add(canon)
       const baseline = MOVEMENTS_BASELINE.find(b => b.name === canon)
 
       // Merge PRs across all rows, deduplicated by date+reps+weight
@@ -94,15 +119,12 @@ export async function syncMovementLibrary() {
       // Keep the row whose name already matches canon (or first if none does)
       const survivor = rows.find(r => r.name === canon) ?? rows[0]
       const dupes = rows.filter(r => r.id !== survivor.id)
-
-      if (dupes.length) {
-        await supabase.from('movements').delete().in('id', dupes.map(r => r.id))
-      }
+      if (dupes.length) toDelete.push(...dupes.map(r => r.id))
 
       const needsUpdate =
         survivor.name !== canon ||
         mergedPrs.length !== (survivor.prs ?? []).length ||
-        baseline
+        (baseline && (survivor.aliases?.join() !== baseline.aliases.join() || survivor.category !== baseline.category))
 
       if (needsUpdate) {
         await supabase.from('movements').update({
@@ -113,8 +135,11 @@ export async function syncMovementLibrary() {
       }
     }
 
+    if (toDelete.length) {
+      await supabase.from('movements').delete().in('id', toDelete)
+    }
+
     // Insert baseline movements that don't exist yet
-    const existingCanon = new Set(byCanonical.keys())
     const missing = MOVEMENTS_BASELINE.filter(m => !existingCanon.has(m.name))
     if (missing.length) {
       await supabase.from('movements').insert(
@@ -128,7 +153,7 @@ export async function syncMovementLibrary() {
       )
     }
 
-    localStorage.setItem('movements_sync_v2', '1')
+    localStorage.setItem('movements_sync_v3', '1')
   } catch (e) {
     console.error('syncMovementLibrary failed:', e)
   }
