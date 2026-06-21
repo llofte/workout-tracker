@@ -20,6 +20,56 @@ function formatRestSeconds(secs) {
   return `${s}s`
 }
 
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00')
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+  const day = d.getDate()
+  return `${weekday} · ${month} ${day}`
+}
+
+function deriveSessionParts(session) {
+  const hasStrength = !!session.strengthBlock
+  const hasMetcon = !!session.metconBlock
+
+  if (session.title) {
+    const raw = session.title.split(' / ').filter(Boolean)
+    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${raw[1]}`]
+    if (raw.length === 1) return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    return raw
+  }
+
+  const parts = []
+
+  if (session.strengthBlock) {
+    const names = (session.strengthBlock.movements || [])
+      .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
+    if (names.length) parts.push(`💪 ${names.join(' + ')}`)
+  }
+
+  if (session.metconBlock) {
+    const { format, duration, rounds, segments } = session.metconBlock
+    let label = format || 'Metcon'
+    if (segments?.length > 1) {
+      const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
+      const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
+      const total = Math.round(totalWorkMin + totalRestMin)
+      const firstDur = segments[0]?.duration
+      const allSame = firstDur && segments.every(s => s.duration === firstDur)
+      if (allSame) {
+        label = `${firstDur} min ${format} ×${segments.length}`
+      } else {
+        label = `${total} min Metcon`
+      }
+    } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
+    else if (format === 'OTM' && duration) label = `${duration} min OTM`
+    else if (format === 'For Time' && rounds) label = `${rounds} Rounds For Time`
+    parts.push(`⚡ ${label}`)
+  }
+
+  return parts.length ? parts : ['BB WOD']
+}
+
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 const S = {
@@ -29,8 +79,9 @@ const S = {
     textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontFamily: ff,
   },
   card: {
-    backgroundColor: '#1c1c1e', borderRadius: 14,
+    backgroundColor: '#201a2a', borderRadius: 14,
     padding: '14px 16px', marginBottom: 10,
+    border: '0.5px solid rgba(255,255,255,0.07)',
   },
   moveName: {
     color: '#f5f0e8', fontSize: 15, fontWeight: 600,
@@ -308,28 +359,10 @@ function AccessoryBlock({ block }) {
   )
 }
 
-function deriveTitle(session) {
-  if (session.title) return session.title
-  const parts = []
-  if (session.strengthBlock) {
-    const names = (session.strengthBlock.movements || [])
-      .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
-    if (names.length) parts.push(names.join(' + '))
-  }
-  if (session.metconBlock) {
-    const { format, duration, rounds } = session.metconBlock
-    let label = format || 'Metcon'
-    if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
-    else if (format === 'OTM' && duration) label = `${duration} min OTM`
-    else if (format === 'For Time' && rounds) label = `${rounds} Rounds For Time`
-    parts.push(label)
-  }
-  return parts.join(' / ') || 'BB WOD'
-}
 
 export default function SessionDetailScreen({ session, onBack, onEdit }) {
   const { strengthBlock, metconBlock, accessoryBlock, notes, date } = session
-  const title = deriveTitle(session)
+  const titleParts = deriveSessionParts(session)
   const allMovements = useMovements()
   const totalVol = calcStrengthVol(strengthBlock) + calcMetconVol(metconBlock) + calcAccessoryVol(accessoryBlock)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -350,20 +383,22 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
       {/* Header */}
       <div style={{ padding: '12px 20px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0 }}>
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0, opacity: 0.8 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             Back
           </button>
-          <button onClick={() => onEdit(session)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, fontFamily: ff, padding: 0 }}>
+          <button onClick={() => onEdit(session)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.45)', fontSize: 14, fontFamily: ff, padding: 0 }}>
             Edit
           </button>
         </div>
-        <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px', fontFamily: ff }}>
-          {new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+        <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 8px', fontFamily: ff }}>
+          {formatDate(date)}
         </p>
-        <h1 style={{ color: '#f5f0e8', fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: '0 0 6px', fontFamily: ff }}>
-          {title}
-        </h1>
+        {titleParts.map((part, i) => (
+          <p key={i} style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: i < titleParts.length - 1 ? '0 0 3px' : '0 0 8px', fontFamily: ff }}>
+            {part}
+          </p>
+        ))}
         {totalVol > 0 && (
           <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, margin: 0, fontFamily: ff }}>
             {totalVol.toLocaleString()} lbs total volume
