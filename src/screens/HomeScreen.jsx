@@ -133,7 +133,7 @@ const S = {
   header: { padding: '20px 20px 8px' },
   dateLabel: { color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px', fontWeight: 400 },
   title: { color: '#f5f0e8', fontSize: 20, fontWeight: 600, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' },
-  ctaWrap: { padding: '16px 20px 8px' },
+  ctaWrap: { padding: '16px 20px 20px' },
   cta: {
     width: '100%', backgroundColor: 'transparent', color: '#0ff7c5',
     border: '1.5px solid rgba(15,247,197,0.5)',
@@ -287,24 +287,33 @@ function SevenDayRing({ sessions }) {
         const isWorkout = sessionDates.has(dateStr)
         const isToday = dateStr === todayStr
         const day = dateStr.split('-')[2]
+        const dayAbbrev = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' })
         return (
-          <div key={dateStr} style={{
-            width: 38, height: 38, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            backgroundColor: isWorkout ? 'rgba(15,247,197,0.1)' : 'rgba(255,255,255,0.04)',
-            border: isWorkout
-              ? '2px solid #0ff7c5'
-              : isToday
-                ? '2px solid rgba(255,255,255,0.2)'
-                : '2px solid rgba(255,255,255,0.06)',
-          }}>
+          <div key={dateStr} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
             <span style={{
-              fontSize: 13, fontWeight: isWorkout ? 700 : 400, lineHeight: 1,
-              color: isWorkout ? '#0ff7c5' : isToday ? 'rgba(245,240,232,0.5)' : 'rgba(245,240,232,0.2)',
-              fontFamily: 'inherit',
+              fontSize: 10, fontWeight: 500, fontFamily: 'inherit',
+              color: isWorkout ? '#0ff7c5' : isToday ? 'rgba(245,240,232,0.4)' : 'rgba(245,240,232,0.2)',
             }}>
-              {day}
+              {dayAbbrev}
             </span>
+            <div style={{
+              width: 38, height: 38, borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backgroundColor: isWorkout ? 'rgba(15,247,197,0.1)' : 'rgba(255,255,255,0.04)',
+              border: isWorkout
+                ? '2px solid #0ff7c5'
+                : isToday
+                  ? '2px solid rgba(255,255,255,0.2)'
+                  : '2px solid rgba(255,255,255,0.06)',
+            }}>
+              <span style={{
+                fontSize: 13, fontWeight: isWorkout ? 700 : 400, lineHeight: 1,
+                color: isWorkout ? '#0ff7c5' : isToday ? 'rgba(245,240,232,0.5)' : 'rgba(245,240,232,0.2)',
+                fontFamily: 'inherit',
+              }}>
+                {day}
+              </span>
+            </div>
           </div>
         )
       })}
@@ -612,7 +621,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v49</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v50</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
