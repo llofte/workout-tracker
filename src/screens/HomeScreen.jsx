@@ -53,18 +53,30 @@ function deriveSessionParts(session) {
     const { format, duration, rounds, segments } = session.metconBlock
     let label = format || 'Metcon'
     if (segments?.length > 1) {
-      const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
-      const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
-      const total = Math.round(totalWorkMin + totalRestMin)
-      const firstDur = segments[0]?.duration
-      const allSame = firstDur && segments.every(s => s.duration === firstDur)
-      if (allSame) {
-        label = `${firstDur} min ${format} ×${segments.length}`
+      if (format === 'OTM') {
+        const r = rounds || segments[0]?.rounds
+        const iv = segments[0]?.interval || 1
+        const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
+        label = r ? `${r * segments.length * iv} min ${emomLabel}` : `${segments.length} min ${emomLabel}`
       } else {
-        label = `${total} min Metcon`
+        const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
+        const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
+        const total = Math.round(totalWorkMin + totalRestMin)
+        const firstDur = segments[0]?.duration
+        const allSame = firstDur && segments.every(s => s.duration === firstDur)
+        if (allSame) {
+          label = `${firstDur} min ${format} ×${segments.length}`
+        } else {
+          label = `${total} min Metcon`
+        }
       }
     } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
-    else if (format === 'OTM' && duration) label = `${duration} min OTM`
+    else if (format === 'OTM') {
+      const iv = segments?.[0]?.interval || 1
+      const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
+      if (rounds) label = `${rounds * iv} min ${emomLabel}`
+      else if (duration) label = `${duration} min ${emomLabel}`
+    }
     else if (format === 'For Time') {
       const allMoves = [
         ...(segments?.flatMap(s => s.movements ?? []) ?? []),
@@ -654,7 +666,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v75</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v76</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

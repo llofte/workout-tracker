@@ -493,7 +493,15 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     if (!s.metconBlock) return ''
     const { format, duration, rounds } = s.metconBlock
     if (format === 'AMRAP' && duration) return `${duration} min AMRAP`
-    if (format === 'OTM' && duration) return `${duration} min OTM`
+    if (format === 'OTM') {
+      const segs = s.metconBlock.segments
+      const iv = segs?.[0]?.interval || 1
+      const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
+      if (segs?.length > 1 && rounds) return `${rounds * segs.length * iv} min ${emomLabel}`
+      if (rounds) return `${rounds * iv} min ${emomLabel}`
+      if (duration) return `${duration} min ${emomLabel}`
+      return emomLabel
+    }
     if (format === 'For Time') {
       if (Number(rounds) === 1) return 'Chipper'
       if (rounds) return `${rounds} Rounds For Time`
@@ -933,19 +941,30 @@ Rules:
       const seg = metconSegments[0]
       let label = metconFormat
       if (metconSegments.length > 1) {
-        const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
-        const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)
-        const total = Math.round(totalWorkMin + totalRestMin)
-        const allSame = metconSegments.every(s => s.duration === seg?.duration)
-        if (allSame && seg?.duration) {
-          label = `${seg.duration} min ${metconFormat} ×${metconSegments.length}`
+        if (metconFormat === 'OTM') {
+          const r = Number(seg?.rounds)
+          const iv = Number(seg?.interval) || 1
+          const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
+          label = r ? `${r * metconSegments.length * iv} min ${emomLabel}` : `${metconSegments.length} min ${emomLabel}`
         } else {
-          label = `${total} min Metcon`
+          const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
+          const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)
+          const total = Math.round(totalWorkMin + totalRestMin)
+          const allSame = metconSegments.every(s => s.duration === seg?.duration)
+          if (allSame && seg?.duration) {
+            label = `${seg.duration} min ${metconFormat} ×${metconSegments.length}`
+          } else {
+            label = `${total} min Metcon`
+          }
         }
       } else if (metconFormat === 'AMRAP' && seg?.duration) {
         label = `${seg.duration} min AMRAP`
-      } else if (metconFormat === 'OTM' && seg?.duration) {
-        label = `${seg.duration} min OTM`
+      } else if (metconFormat === 'OTM') {
+        const iv = Number(seg?.interval) || 1
+        const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
+        const r = Number(seg?.rounds)
+        if (r) label = `${r * iv} min ${emomLabel}`
+        else if (seg?.duration) label = `${seg.duration} min ${emomLabel}`
       } else if (metconFormat === 'For Time' && seg?.rounds) {
         label = `${seg.rounds} Rounds For Time`
       }
