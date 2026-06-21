@@ -63,7 +63,10 @@ function deriveSessionParts(session) {
       }
     } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
     else if (format === 'OTM' && duration) label = `${duration} min OTM`
-    else if (format === 'For Time' && rounds) label = `${rounds} Rounds For Time`
+    else if (format === 'For Time') {
+      if (rounds === 1) label = 'Chipper'
+      else if (rounds) label = `${rounds} Rounds For Time`
+    }
     parts.push(`⚡ ${label}`)
   }
 
