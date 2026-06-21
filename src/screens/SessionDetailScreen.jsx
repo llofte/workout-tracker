@@ -429,9 +429,6 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
   const totalVol = calcStrengthVol(strengthBlock) + calcMetconVol(metconBlock) + calcAccessoryVol(accessoryBlock)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
-  useEffect(() => {
-    document.querySelector('main')?.scrollTo(0, 0)
-  }, [])
 
   async function handleDelete() {
     if (!confirmDelete) { setConfirmDelete(true); return }
