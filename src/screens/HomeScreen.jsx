@@ -16,6 +16,12 @@ function sessionHasPR(session) {
   return session.strengthBlock?.movements?.some(m => m.sets?.some(s => s.isPR)) ?? false
 }
 
+function isLadderReps(val) {
+  if (!val) return false
+  const parts = String(val).trim().replace(/\s+/g, '').split(/[-,]/)
+  return parts.length >= 3 && parts.every(p => /^\d+$/.test(p) && Number(p) > 0)
+}
+
 function deriveSessionParts(session) {
   const hasStrength = !!session.strengthBlock
   const hasMetcon = !!session.metconBlock
@@ -52,7 +58,12 @@ function deriveSessionParts(session) {
     } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
     else if (format === 'OTM' && duration) label = `${duration} min OTM`
     else if (format === 'For Time') {
-      if (rounds === 1) label = 'Chipper'
+      const allMoves = [
+        ...(segments?.flatMap(s => s.movements ?? []) ?? []),
+        ...(session.metconBlock.movements ?? []),
+      ].filter(m => !m.isRest)
+      if (allMoves.some(m => isLadderReps(m.reps))) label = 'Ladder'
+      else if (rounds === 1) label = 'Chipper'
       else if (rounds) label = `${rounds} Rounds For Time`
     }
     parts.push(`⚡ ${label}`)
@@ -635,7 +646,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v72</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v74</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

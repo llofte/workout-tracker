@@ -28,6 +28,12 @@ function formatDate(dateStr) {
   return `${weekday} · ${month} ${day}`
 }
 
+function isLadderReps(val) {
+  if (!val) return false
+  const parts = String(val).trim().replace(/\s+/g, '').split(/[-,]/)
+  return parts.length >= 3 && parts.every(p => /^\d+$/.test(p) && Number(p) > 0)
+}
+
 function deriveSessionParts(session) {
   const hasStrength = !!session.strengthBlock
   const hasMetcon = !!session.metconBlock
@@ -64,7 +70,12 @@ function deriveSessionParts(session) {
     } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
     else if (format === 'OTM' && duration) label = `${duration} min OTM`
     else if (format === 'For Time') {
-      if (rounds === 1) label = 'Chipper'
+      const allMoves = [
+        ...(segments?.flatMap(s => s.movements ?? []) ?? []),
+        ...(session.metconBlock.movements ?? []),
+      ].filter(m => !m.isRest)
+      if (allMoves.some(m => isLadderReps(m.reps))) label = 'Ladder'
+      else if (rounds === 1) label = 'Chipper'
       else if (rounds) label = `${rounds} Rounds For Time`
     }
     parts.push(`⚡ ${label}`)

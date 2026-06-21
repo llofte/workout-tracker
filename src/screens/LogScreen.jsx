@@ -28,6 +28,7 @@ function newMetconSegment(withRest) {
     interval: '1',
     tabataWork: '20',
     tabataRest: '10',
+    ladderScheme: '',
     moves: [newMetconMove()],
   }
 }
@@ -68,8 +69,9 @@ function restoreMetconMove(m) {
   }
 }
 
-function restoreSegment(seg) {
+function restoreSegment(seg, format) {
   const rb = seg.restBefore || 0
+  const ladderScheme = format === 'Ladder' ? (seg.movements?.[0]?.reps?.toString() ?? '') : ''
   return {
     restBeforeMin: rb ? String(Math.floor(rb / 60)) : '',
     restBeforeSec: rb ? String(rb % 60) : '',
@@ -78,6 +80,7 @@ function restoreSegment(seg) {
     interval: seg.interval?.toString() ?? '1',
     tabataWork: seg.work?.toString() ?? '20',
     tabataRest: seg.rest?.toString() ?? '10',
+    ladderScheme,
     moves: seg.movements?.length ? seg.movements.map(restoreMetconMove) : [newMetconMove()],
   }
 }
@@ -117,7 +120,7 @@ async function detectPRs(sessionId, date, strengthBlock) {
   return anyPR ? { ...strengthBlock, movements: updatedMovements } : null
 }
 
-const FORMATS = ['AMRAP', 'For Time', 'OTM', 'Tabata', 'Other']
+const FORMATS = ['AMRAP', 'For Time', 'Ladder', 'OTM', 'Tabata', 'Other']
 
 function isLadder(val) {
   if (!val || typeof val !== 'string') return false
@@ -439,7 +442,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const [hasMetcon, setHasMetcon] = useState(s ? !!s.metconBlock : true)
   const [metconFormat, setMetconFormat] = useState(s?.metconBlock?.format ?? 'AMRAP')
   const [metconSegments, setMetconSegments] = useState(() => {
-    if (s?.metconBlock?.segments?.length) return s.metconBlock.segments.map(restoreSegment)
+    if (s?.metconBlock?.segments?.length) return s.metconBlock.segments.map(seg => restoreSegment(seg, s.metconBlock.format))
     if (s?.metconBlock?.movements?.length) return [{
       restBeforeMin: '', restBeforeSec: '',
       duration: s.metconBlock.duration?.toString() ?? '',
@@ -983,7 +986,7 @@ Rules:
         metconBlock: hasMetcon ? {
           format: metconFormat,
           // top-level fields from first segment for HomeScreen display
-          duration: metconFormat !== 'For Time' && metconFormat !== 'Tabata' && firstSeg.duration !== '' ? Number(firstSeg.duration) : null,
+          duration: metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && firstSeg.duration !== '' ? Number(firstSeg.duration) : null,
           rounds: (metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && firstSeg.rounds !== '' ? Number(firstSeg.rounds) : null,
           score: metconScore || null,
           buyIn: hasBuyIn ? buyInMoves.map(m => m.isRest ? {
@@ -1002,7 +1005,7 @@ Rules:
           }) : null,
           segments: metconSegments.map(seg => ({
             restBefore: (seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (Number(seg.restBeforeMin || 0) * 60 + Number(seg.restBeforeSec || 0)) : null,
-            duration: metconFormat !== 'For Time' && metconFormat !== 'Tabata' && seg.duration !== '' ? Number(seg.duration) : null,
+            duration: metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && seg.duration !== '' ? Number(seg.duration) : null,
             rounds: (metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && seg.rounds !== '' ? Number(seg.rounds) : null,
             interval: metconFormat === 'OTM' && seg.interval !== '' ? Number(seg.interval) : null,
             work: metconFormat === 'Tabata' ? (seg.tabataWork !== '' ? Number(seg.tabataWork) : 20) : null,
@@ -1013,7 +1016,7 @@ Rules:
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
             } : {
               name: m.name,
-              reps: m.reps || null,
+              reps: (metconFormat === 'Ladder' && seg.ladderScheme) ? seg.ladderScheme : (m.reps || null),
               weight: m.weight !== '' ? Number(m.weight) : null,
               weightUnit: 'lbs',
               dumbbellCount: m.dumbbellCount ?? null,
@@ -1447,7 +1450,7 @@ Rules:
 
                 {/* Per-segment fields */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                  {metconFormat !== 'For Time' && metconFormat !== 'Tabata' && (
+                  {metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Duration (min)</p>
                       <input placeholder="20" value={seg.duration} onChange={e => updateSegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
@@ -1478,6 +1481,24 @@ Rules:
                     </div>
                   )}
                 </div>
+
+                {/* Ladder rep scheme — entered once, applies to all movements */}
+                {metconFormat === 'Ladder' && (
+                  <div style={{ marginBottom: 14 }}>
+                    <p style={labelStyle}>Rep Scheme</p>
+                    <input
+                      placeholder="e.g. 27-21-15-9"
+                      value={seg.ladderScheme}
+                      onChange={e => updateSegField(si, 'ladderScheme', e.target.value)}
+                      style={inputBase}
+                    />
+                    {seg.ladderScheme && isLadder(seg.ladderScheme) && (
+                      <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, margin: '6px 0 0', fontFamily: 'inherit' }}>
+                        {parseLadder(seg.ladderScheme).join(' → ')}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* Movements */}
                 {seg.moves.map((move, mi) => (
@@ -1524,10 +1545,12 @@ Rules:
                           </>
                         ) : (
                           <>
-                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              <input placeholder="—" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
-                              <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
-                            </div>
+                            {metconFormat !== 'Ladder' && (
+                              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <input placeholder="—" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                              </div>
+                            )}
                             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                               <input placeholder="—" value={move.weight} onChange={e => updateSegMove(si, mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
                               <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>lbs</span>
@@ -1541,7 +1564,7 @@ Rules:
                           </>
                         )}
                       </div>
-                      {!move.isRest && isLadder(move.reps) && (
+                      {!move.isRest && metconFormat !== 'Ladder' && isLadder(move.reps) && (
                         <div style={{ marginTop: 8 }}>
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit', letterSpacing: 0.3 }}>
                             {parseLadder(move.reps).join(' → ')}
@@ -1577,10 +1600,10 @@ Rules:
             {/* Score — single field for the whole metcon */}
             <div style={{ marginTop: 16 }}>
               <p style={labelStyle}>
-                {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : metconFormat === 'For Time' ? 'Time (MM:SS)' : 'Score'}
+                {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? 'Time (MM:SS)' : 'Score'}
               </p>
               <input
-                placeholder={metconFormat === 'AMRAP' ? '12 rounds + 5 reps' : metconFormat === 'For Time' ? '14:32' : ''}
+                placeholder={metconFormat === 'AMRAP' ? '12 rounds + 5 reps' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? '14:32' : ''}
                 value={metconScore} onChange={e => setMetconScore(e.target.value)} style={inputBase}
               />
             </div>
