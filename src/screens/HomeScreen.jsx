@@ -17,14 +17,22 @@ function sessionHasPR(session) {
 }
 
 function deriveSessionParts(session) {
-  if (session.title) return session.title.split(' / ').filter(Boolean)
+  const hasStrength = !!session.strengthBlock
+  const hasMetcon = !!session.metconBlock
+
+  if (session.title) {
+    const raw = session.title.split(' / ').filter(Boolean)
+    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${raw[1]}`]
+    if (raw.length === 1) return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    return raw
+  }
 
   const parts = []
 
   if (session.strengthBlock) {
     const names = (session.strengthBlock.movements || [])
       .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
-    if (names.length) parts.push(names.join(' + '))
+    if (names.length) parts.push(`💪 ${names.join(' + ')}`)
   }
 
   if (session.metconBlock) {
@@ -44,7 +52,7 @@ function deriveSessionParts(session) {
     } else if (format === 'AMRAP' && duration) label = `${duration} min AMRAP`
     else if (format === 'OTM' && duration) label = `${duration} min OTM`
     else if (format === 'For Time' && rounds) label = `${rounds} Rounds For Time`
-    parts.push(label)
+    parts.push(`⚡ ${label}`)
   }
 
   return parts.length ? parts : ['BB WOD']
@@ -623,7 +631,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v59</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v60</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
