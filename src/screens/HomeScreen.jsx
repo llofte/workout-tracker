@@ -287,61 +287,73 @@ function WeeklyChart({ sessions }) {
 
   const values = tab === 'Frequency' ? counts : volumes
   const max = Math.max(...values, 1)
+  const n = values.length
 
-  function barLabel(v) {
-    if (v === 0) return ''
-    if (tab === 'Volume') return v >= 1000 ? `${(v / 1000).toFixed(1)}k` : String(v)
-    return String(v)
-  }
+  const W = 280
+  const H = 56
+  const padX = 6
+  const padTop = 8
+  const padBot = 4
+
+  const pts = values.map((v, i) => ({
+    x: padX + (i / (n - 1)) * (W - padX * 2),
+    y: padTop + (1 - v / max) * (H - padTop - padBot),
+    v,
+  }))
+
+  const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
+  const areaPath = `${linePath} L${pts[n - 1].x},${H} L${pts[0].x},${H} Z`
+
+  const curVal = values[n - 1]
+  const curLabel = tab === 'Volume' && curVal >= 1000
+    ? `${(curVal / 1000).toFixed(1)}k`
+    : curVal > 0 ? String(curVal) : '—'
 
   return (
     <div style={{ margin: '4px 20px 8px', backgroundColor: '#201a2a', borderRadius: 14, padding: '12px 14px 12px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-      <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
-        {CHART_TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '5px 11px', borderRadius: 20, border: 'none', cursor: 'pointer',
-            backgroundColor: tab === t ? 'rgba(245,240,232,0.13)' : 'transparent',
-            color: tab === t ? '#f5f0e8' : 'rgba(245,240,232,0.32)',
-            fontSize: 12, fontWeight: tab === t ? 600 : 400, fontFamily: 'inherit',
-          }}>
-            {t}
-          </button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
-        {values.map((v, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center' }}>
-            <span style={{
-              fontSize: 9, lineHeight: 1, fontFamily: 'inherit',
-              color: i === values.length - 1 ? 'rgba(245,240,232,0.6)' : 'rgba(245,240,232,0.28)',
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 2 }}>
+          {CHART_TABS.map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{
+              padding: '5px 11px', borderRadius: 20, border: 'none', cursor: 'pointer',
+              backgroundColor: tab === t ? 'rgba(245,240,232,0.13)' : 'transparent',
+              color: tab === t ? '#f5f0e8' : 'rgba(245,240,232,0.32)',
+              fontSize: 12, fontWeight: tab === t ? 600 : 400, fontFamily: 'inherit',
             }}>
-              {barLabel(v)}
-            </span>
-          </div>
-        ))}
+              {t}
+            </button>
+          ))}
+        </div>
+        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>
+          {curLabel} this wk
+        </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 52 }}>
-        {values.map((v, i) => {
-          const isCurrent = i === values.length - 1
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 56, display: 'block' }} preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="wc-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#0ff7c5" stopOpacity="0.2" />
+            <stop offset="100%" stopColor="#0ff7c5" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={areaPath} fill="url(#wc-grad)" />
+        <path d={linePath} fill="none" stroke="#0ff7c5" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+        {pts.map((p, i) => {
+          const isCurrent = i === n - 1
           return (
-            <div key={i} style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'flex-end' }}>
-              <div style={{
-                width: '100%',
-                height: v > 0 ? `${Math.max((v / max) * 100, 8)}%` : 2,
-                backgroundColor: isCurrent
-                  ? (v > 0 ? '#0ff7c5' : 'rgba(15,247,197,0.1)')
-                  : (v > 0 ? 'rgba(245,240,232,0.22)' : 'rgba(245,240,232,0.06)'),
-                borderRadius: '3px 3px 2px 2px',
-              }} />
-            </div>
+            <circle key={i} cx={p.x} cy={p.y}
+              r={isCurrent ? 3 : 2}
+              fill={isCurrent ? '#0ff7c5' : '#201a2a'}
+              stroke={isCurrent ? '#0ff7c5' : 'rgba(15,247,197,0.45)'}
+              strokeWidth="1.5"
+            />
           )
         })}
-      </div>
-      <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+      </svg>
+      <div style={{ display: 'flex', marginTop: 6 }}>
         {mondays.map((m, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center' }}>
             <span style={{
-              color: i === mondays.length - 1 ? 'rgba(245,240,232,0.5)' : 'rgba(245,240,232,0.2)',
+              color: i === n - 1 ? 'rgba(245,240,232,0.5)' : 'rgba(245,240,232,0.2)',
               fontSize: 9, fontFamily: 'inherit', display: 'block',
             }}>
               {weekBarLabel(m)}
@@ -568,7 +580,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v40</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v41</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
