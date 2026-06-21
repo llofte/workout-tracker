@@ -86,19 +86,19 @@ function SessionCard({ session, onClick }) {
       borderLeft: '3px solid #0ff7c5',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13 }}>
-          {formatDate(session.date)}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#0ff7c5', flexShrink: 0 }} />
+          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13 }}>
+            {formatDate(session.date)}
+          </span>
+        </div>
         {hasPR && (
-          <span style={{
-            backgroundColor: 'rgba(15,247,197,0.15)',
-            color: '#0ff7c5',
-            borderRadius: 6,
-            padding: '2px 8px',
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: 0.3,
-          }}>PR</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            <span style={{ color: '#0ff7c5', fontSize: 11, fontWeight: 700, letterSpacing: 0.4 }}>PR</span>
+          </div>
         )}
       </div>
 
@@ -583,7 +583,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v45</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v46</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
