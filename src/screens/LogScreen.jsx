@@ -483,13 +483,20 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
   const [titleStrength, setTitleStrength] = useState(() => {
     if (!s) return ''
-    if (s.title) return s.title.split(' / ')[0] ?? ''
+    if (s.title) {
+      if (!s.strengthBlock) return ''
+      return s.title.split(' / ')[0] ?? ''
+    }
     const names = (s.strengthBlock?.movements ?? []).map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
     return names.join(' + ')
   })
   const [titleMetcon, setTitleMetcon] = useState(() => {
     if (!s) return ''
-    if (s.title) return s.title.split(' / ')[1] ?? ''
+    if (s.title) {
+      if (!s.metconBlock) return ''
+      const raw = s.title.split(' / ')
+      return raw[s.strengthBlock ? 1 : 0] ?? ''
+    }
     if (!s.metconBlock) return ''
     const { format, duration, rounds } = s.metconBlock
     if (format === 'AMRAP' && duration) return `${duration} min AMRAP`
@@ -1287,8 +1294,11 @@ Rules:
           {initialSession && (
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
               <style>{`.title-field::placeholder{color:rgba(245,240,232,0.25);font-style:italic}.title-field:focus::placeholder{color:transparent}`}</style>
-              {[{ emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
-                { emoji: '⚡', value: titleMetcon, set: setTitleMetcon, ph: 'Metcon title…' }].map(({ emoji, value, set, ph }) => (
+              {[
+                hasStrength && { emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
+                hasMetcon   && { emoji: '⚡', value: titleMetcon,   set: setTitleMetcon,   ph: 'Metcon title…' },
+                hasAccessory && { emoji: '⭐', value: 'Accessory', set: () => {}, ph: 'Accessory' },
+              ].filter(Boolean).map(({ emoji, value, set, ph }) => (
                 <div key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, userSelect: 'none' }}>{emoji}</span>
                   <input
@@ -1296,7 +1306,8 @@ Rules:
                     value={value}
                     onChange={e => set(e.target.value)}
                     placeholder={ph}
-                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 14, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                    readOnly={emoji === '⭐'}
+                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 14, color: emoji === '⭐' ? 'rgba(245,240,232,0.4)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
                   />
                 </div>
               ))}
