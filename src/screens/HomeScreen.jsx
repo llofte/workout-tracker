@@ -270,32 +270,68 @@ function sessionVolume(session) {
   return vol
 }
 
-const CHART_TABS = ['Frequency', 'Volume']
+function SevenDayRing({ sessions }) {
+  const days = []
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    d.setHours(12, 0, 0, 0)
+    days.push(d.toISOString().split('T')[0])
+  }
+  const sessionDates = new Set((sessions ?? []).map(s => s.date))
+  const todayStr = new Date().toISOString().split('T')[0]
+
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 20px', marginBottom: 10 }}>
+      {days.map(dateStr => {
+        const isWorkout = sessionDates.has(dateStr)
+        const isToday = dateStr === todayStr
+        const day = dateStr.split('-')[2]
+        return (
+          <div key={dateStr} style={{
+            width: 38, height: 38, borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: isWorkout ? 'rgba(15,247,197,0.1)' : 'rgba(255,255,255,0.04)',
+            border: isWorkout
+              ? '2px solid #0ff7c5'
+              : isToday
+                ? '2px solid rgba(255,255,255,0.2)'
+                : '2px solid rgba(255,255,255,0.06)',
+          }}>
+            <span style={{
+              fontSize: 13, fontWeight: isWorkout ? 700 : 400, lineHeight: 1,
+              color: isWorkout ? '#0ff7c5' : isToday ? 'rgba(245,240,232,0.5)' : 'rgba(245,240,232,0.2)',
+              fontFamily: 'inherit',
+            }}>
+              {day}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 function WeeklyChart({ sessions }) {
-  const [tab, setTab] = useState('Frequency')
   const mondays = getLast8Mondays()
-  const counts = new Array(8).fill(0)
   const volumes = new Array(8).fill(0)
 
   for (const s of sessions) {
     const idx = mondays.indexOf(getMondayOf(s.date))
     if (idx === -1) continue
-    counts[idx]++
     volumes[idx] += sessionVolume(s)
   }
 
-  const values = tab === 'Frequency' ? counts : volumes
-  const max = Math.max(...values, 1)
-  const n = values.length
+  const max = Math.max(...volumes, 1)
+  const n = volumes.length
 
   const W = 280
-  const H = 56
+  const H = 66
   const padX = 6
-  const padTop = 8
+  const padTop = 16
   const padBot = 4
 
-  const pts = values.map((v, i) => ({
+  const pts = volumes.map((v, i) => ({
     x: padX + (i / (n - 1)) * (W - padX * 2),
     y: padTop + (1 - v / max) * (H - padTop - padBot),
     v,
@@ -304,31 +340,17 @@ function WeeklyChart({ sessions }) {
   const linePath = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ')
   const areaPath = `${linePath} L${pts[n - 1].x},${H} L${pts[0].x},${H} Z`
 
-  const curVal = values[n - 1]
-  const curLabel = tab === 'Volume' && curVal >= 1000
-    ? `${(curVal / 1000).toFixed(1)}k`
-    : curVal > 0 ? String(curVal) : '—'
+  const curVal = volumes[n - 1]
+  const fmtVol = v => v >= 1000 ? `${(v / 1000).toFixed(1)}k` : v > 0 ? String(v) : ''
+  const curLabel = curVal >= 1000 ? `${(curVal / 1000).toFixed(1)}k lbs` : curVal > 0 ? `${curVal} lbs` : '—'
 
   return (
-    <div style={{ margin: '4px 20px 8px', backgroundColor: '#201a2a', borderRadius: 14, padding: '12px 14px 12px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {CHART_TABS.map(t => (
-            <button key={t} onClick={() => setTab(t)} style={{
-              padding: '5px 11px', borderRadius: 20, border: 'none', cursor: 'pointer',
-              backgroundColor: tab === t ? 'rgba(245,240,232,0.13)' : 'transparent',
-              color: tab === t ? '#f5f0e8' : 'rgba(245,240,232,0.32)',
-              fontSize: 12, fontWeight: tab === t ? 600 : 400, fontFamily: 'inherit',
-            }}>
-              {t}
-            </button>
-          ))}
-        </div>
-        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>
-          {curLabel} this wk
-        </span>
+    <div style={{ margin: '0 20px 8px', backgroundColor: '#201a2a', borderRadius: 14, padding: '12px 14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, fontFamily: 'inherit' }}>Volume</span>
+        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>{curLabel} this wk</span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 56, display: 'block' }} preserveAspectRatio="none">
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: H, display: 'block' }} preserveAspectRatio="none">
         <defs>
           <linearGradient id="wc-grad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#0ff7c5" stopOpacity="0.2" />
@@ -339,13 +361,23 @@ function WeeklyChart({ sessions }) {
         <path d={linePath} fill="none" stroke="#0ff7c5" strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
         {pts.map((p, i) => {
           const isCurrent = i === n - 1
+          const label = fmtVol(p.v)
           return (
-            <circle key={i} cx={p.x} cy={p.y}
-              r={isCurrent ? 3 : 2}
-              fill={isCurrent ? '#0ff7c5' : '#201a2a'}
-              stroke={isCurrent ? '#0ff7c5' : 'rgba(15,247,197,0.45)'}
-              strokeWidth="1.5"
-            />
+            <g key={i}>
+              {label && (
+                <text x={p.x} y={p.y - 5} textAnchor="middle"
+                  fill={isCurrent ? '#0ff7c5' : 'rgba(245,240,232,0.38)'}
+                  fontSize="8" fontWeight={isCurrent ? '700' : '400'}>
+                  {label}
+                </text>
+              )}
+              <circle cx={p.x} cy={p.y}
+                r={isCurrent ? 3 : 2}
+                fill={isCurrent ? '#0ff7c5' : '#201a2a'}
+                stroke={isCurrent ? '#0ff7c5' : 'rgba(15,247,197,0.45)'}
+                strokeWidth="1.5"
+              />
+            </g>
           )
         })}
       </svg>
@@ -580,7 +612,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v47</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v48</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -607,6 +639,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         </button>
       </div>
 
+      <SevenDayRing sessions={sessions ?? []} />
       <WeeklyChart sessions={sessions ?? []} />
 
       <div style={{ ...S.sectionHeader, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
