@@ -519,9 +519,10 @@ function AskClaude({ sessions }) {
 
   return (
     <div style={{ margin: '8px 20px 0', backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-      <style>{`@keyframes hs-spin { to { transform: rotate(360deg) } }`}</style>
+      <style>{`@keyframes hs-spin { to { transform: rotate(360deg) } } .ask-claude-ta::placeholder { color: rgba(245,240,232,0.25); font-style: italic; } .ask-claude-ta:focus::placeholder { color: transparent; }`}</style>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
+          className="ask-claude-ta"
           value={question}
           onChange={e => setQuestion(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); ask() } }}
@@ -631,7 +632,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v66</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v67</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

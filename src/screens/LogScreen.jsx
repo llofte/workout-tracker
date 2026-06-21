@@ -1120,7 +1120,9 @@ Rules:
 
             {/* Generate section */}
             <div style={{ padding: '0 20px' }}>
+              <style>{`.generate-ta::placeholder { color: rgba(245,240,232,0.25); font-style: italic; } .generate-ta:focus::placeholder { color: transparent; }`}</style>
               <textarea
+                className="generate-ta"
                 placeholder='"15-min metcon with barbell and row"'
                 value={generatePrompt}
                 onChange={e => setGeneratePrompt(e.target.value)}
