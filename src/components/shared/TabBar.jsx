@@ -47,7 +47,7 @@ export default function TabBar({ activeTab, onTabChange, hidden }) {
       left: 0,
       right: 0,
       paddingBottom: 'env(safe-area-inset-bottom)',
-      backgroundColor: '#100b16',
+      backgroundColor: '#0e0912',
       borderTop: '0.5px solid rgba(255,255,255,0.1)',
       display: 'flex',
       zIndex: 50,
