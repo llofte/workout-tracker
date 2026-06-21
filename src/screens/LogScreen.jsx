@@ -6,6 +6,14 @@ import { useMovements } from '../hooks/useMovements'
 const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
   import.meta.env.VITE_ANTHROPIC_API_KEY !== 'your_key_here'
 
+function formatDate(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00')
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
+  const month = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()
+  const day = d.getDate()
+  return `${weekday} · ${month} ${day}`
+}
+
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', dumbbellCount: null } }
@@ -144,7 +152,7 @@ function LibrarySheet({ onSelect, onClose }) {
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200 }} />
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        backgroundColor: '#1c1c1e', borderRadius: '20px 20px 0 0', zIndex: 201,
+        backgroundColor: '#201a2a', borderRadius: '20px 20px 0 0', zIndex: 201,
         maxHeight: '75vh', display: 'flex', flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
@@ -159,7 +167,7 @@ function LibrarySheet({ onSelect, onClose }) {
           <input
             type="search" placeholder="Search..." value={query}
             onChange={e => setQuery(e.target.value)} autoFocus
-            style={{ ...inputBase, backgroundColor: '#2c2c2e' }}
+            style={{ ...inputBase, backgroundColor: 'rgba(255,255,255,0.09)' }}
           />
         </div>
         <div style={{ overflowY: 'auto', flex: 1, paddingTop: 8 }}>
@@ -1052,21 +1060,21 @@ Rules:
       <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 40, display: 'flex', flexDirection: 'column' }}>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
         <div style={{ padding: '12px 20px 24px' }}>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 12 }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 12, opacity: 0.8 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             Back
           </button>
-          <p style={{ color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px' }}>
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 8px', fontFamily: 'inherit' }}>
+            {formatDate(new Date().toISOString().split('T')[0])}
           </p>
-          <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: 'inherit' }}>New Session</h1>
+          <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' }}>New Session</h1>
         </div>
 
         {/* hidden file inputs */}
         <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" style={{ display: 'none' }} onChange={e => handlePhotoSelect(e.target.files?.[0])} />
         <input ref={libraryInputRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => handlePhotoSelect(e.target.files?.[0])} />
 
-        <div style={{ margin: '0 20px', backgroundColor: '#1c1c1e', borderRadius: 20, padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, border: `1px ${photoLoading ? 'solid rgba(245,240,232,0.08)' : 'dashed rgba(245,240,232,0.15)'}` }}>
+        <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 20, padding: '40px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, border: `1px ${photoLoading ? 'solid rgba(245,240,232,0.08)' : 'dashed rgba(245,240,232,0.15)'}` }}>
           {photoLoading ? (
             <>
               <style>{`@keyframes log-spin { to { transform: rotate(360deg) } }`}</style>
@@ -1179,7 +1187,7 @@ Rules:
         {/* Header */}
         <div style={{ padding: '12px 20px 16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <button onClick={() => initialSession ? onClose?.() : setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0 }}>
+            <button onClick={() => initialSession ? onClose?.() : setStep(1)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, opacity: 0.8 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
               Back
             </button>
@@ -1191,10 +1199,11 @@ Rules:
               </button>
             )}
           </div>
-          <h1 style={{ color: '#f5f0e8', fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: 0, fontFamily: 'inherit' }}>
-            {initialSession
-              ? new Date(initialSession.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-              : new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+          <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 8px', fontFamily: 'inherit' }}>
+            {formatDate(initialSession?.date ?? new Date().toISOString().split('T')[0])}
+          </p>
+          <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' }}>
+            {initialSession ? 'Edit Session' : 'Log Workout'}
           </h1>
         </div>
 
@@ -1231,7 +1240,7 @@ Rules:
             </div>
 
             {strengthMoves.map((move, mi) => (
-              <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10 }}>
+              <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <input
                     placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -1286,7 +1295,7 @@ Rules:
             {hasBuyIn && (
               <>
                 {buyInMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1411,7 +1420,7 @@ Rules:
 
                 {/* Movements */}
                 {seg.moves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1525,7 +1534,7 @@ Rules:
             {hasBuyOut && (
               <>
                 {buyOutMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1591,7 +1600,7 @@ Rules:
             {accessoryType === 'Traditional' && (
               <>
                 {accessoryTraditionalMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10 }}>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       <input
                         placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -1639,7 +1648,7 @@ Rules:
                   </div>
                 </div>
                 {accessoryTabataMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px', marginBottom: 10 }}>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                       <input
                         placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -1688,7 +1697,7 @@ Rules:
       {/* ── LOG BUTTON (sticky footer) ── */}
       <div style={{
         position: 'sticky', bottom: 0,
-        backgroundColor: '#0a0a0a',
+        backgroundColor: '#120c18',
         padding: '12px 20px calc(env(safe-area-inset-bottom) + 16px)',
         borderTop: '0.5px solid rgba(255,255,255,0.06)',
       }}>
