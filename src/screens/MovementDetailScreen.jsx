@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { db } from '../db/db'
+import { supabase, rowToSession } from '../db/supabase'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 
@@ -80,12 +80,13 @@ async function renameMovementInSessions(oldName, newName) {
   const rename = moves => moves?.map(m =>
     (!m.isRest && m.name === oldName) ? { ...m, name: newName } : m
   )
-  const sessions = await db.sessions.toArray()
+  const { data: rows } = await supabase.from('sessions').select('*')
+  const sessions = (rows ?? []).map(rowToSession)
   for (const session of sessions) {
     if (!sessionHasMovement(session, oldName)) continue
     const patch = {}
     if (session.strengthBlock?.movements?.some(m => m.name === oldName)) {
-      patch.strengthBlock = {
+      patch.strength_block = {
         ...session.strengthBlock,
         movements: session.strengthBlock.movements.map(m =>
           m.name === oldName ? { ...m, name: newName } : m
@@ -99,7 +100,7 @@ async function renameMovementInSessions(oldName, newName) {
         mb.buyIn?.some(m => m.name === oldName) ||
         mb.buyOut?.some(m => m.name === oldName)
       if (hit) {
-        patch.metconBlock = {
+        patch.metcon_block = {
           ...mb,
           movements: rename(mb.movements),
           segments: mb.segments?.map(seg => ({ ...seg, movements: rename(seg.movements) })),
@@ -109,14 +110,16 @@ async function renameMovementInSessions(oldName, newName) {
       }
     }
     if (session.accessoryBlock?.movements?.some(m => m.name === oldName)) {
-      patch.accessoryBlock = {
+      patch.accessory_block = {
         ...session.accessoryBlock,
         movements: session.accessoryBlock.movements.map(m =>
           m.name === oldName ? { ...m, name: newName } : m
         ),
       }
     }
-    if (Object.keys(patch).length) await db.sessions.update(session.id, patch)
+    if (Object.keys(patch).length) {
+      await supabase.from('sessions').update(patch).eq('id', session.id)
+    }
   }
 }
 
@@ -216,10 +219,11 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
 
   useEffect(() => {
     async function load() {
-      const [rec, allSessions] = await Promise.all([
-        db.movements.get(init.id),
-        db.sessions.orderBy('date').reverse().toArray(),
+      const [{ data: rec }, { data: allRows }] = await Promise.all([
+        supabase.from('movements').select('*').eq('id', init.id).single(),
+        supabase.from('sessions').select('*').order('date', { ascending: false }),
       ])
+      const allSessions = (allRows ?? []).map(rowToSession)
       setRecord(rec)
       setSessions(allSessions.filter(s => sessionHasMovement(s, init.name)))
     }
@@ -278,7 +282,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
         ? { ...pr, reps: Number(editForm.reps), weight: Number(editForm.weight), date: editForm.date }
         : pr
     )
-    await db.movements.update(record.id, { prs: newPrs })
+    await supabase.from('movements').update({ prs: newPrs }).eq('id', record.id)
     setRecord({ ...record, prs: newPrs })
     setEditingPr(null)
     setSaving(false)
@@ -287,7 +291,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
   async function confirmDelete() {
     setSaving(true)
     const newPrs = record.prs.filter(pr => pr !== confirmDeletePr)
-    await db.movements.update(record.id, { prs: newPrs })
+    await supabase.from('movements').update({ prs: newPrs }).eq('id', record.id)
     setRecord({ ...record, prs: newPrs })
     setEditingPr(null)
     setConfirmDeletePr(null)
@@ -299,12 +303,13 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
     if (!newName || newName === record.name) { setEditingName(false); return }
     setSaving(true)
     const oldName = record.name
-    await db.movements.update(record.id, { name: newName })
+    await supabase.from('movements').update({ name: newName }).eq('id', record.id)
     await renameMovementInSessions(oldName, newName)
-    const [updatedRecord, allSessions] = await Promise.all([
-      db.movements.get(record.id),
-      db.sessions.orderBy('date').reverse().toArray(),
+    const [{ data: updatedRecord }, { data: allRows }] = await Promise.all([
+      supabase.from('movements').select('*').eq('id', record.id).single(),
+      supabase.from('sessions').select('*').order('date', { ascending: false }),
     ])
+    const allSessions = (allRows ?? []).map(rowToSession)
     setRecord(updatedRecord)
     setSessions(allSessions.filter(s => sessionHasMovement(s, newName)))
     setEditingName(false)
@@ -313,7 +318,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
 
   async function handleDeleteMovement() {
     if (!confirmDeleteMovement) { setConfirmDeleteMovement(true); return }
-    await db.movements.delete(record.id)
+    await supabase.from('movements').delete().eq('id', record.id)
     onBack()
   }
 
@@ -328,7 +333,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
       sessionId: null,
     }
     const newPrs = [...(record.prs ?? []), newPr]
-    await db.movements.update(record.id, { prs: newPrs })
+    await supabase.from('movements').update({ prs: newPrs }).eq('id', record.id)
     setRecord({ ...record, prs: newPrs })
     setAddingPr(false)
     setAddForm({ reps: '', weight: '', date: new Date().toISOString().split('T')[0] })
