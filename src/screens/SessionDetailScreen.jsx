@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
+import { toWorkoutDisplay } from '../utils/movements'
 
 function formatReps(moveName, reps) {
   if (reps == null) return ''
@@ -265,7 +266,7 @@ function MetconMoveRow({ move, isOTM }) {
         </span>
       )}
       <span style={{ color: '#f5f0e8', fontSize: 14, fontWeight: 500, fontFamily: ff, flex: 1 }}>
-        {move.name || '—'}
+        {toWorkoutDisplay(move)}
       </span>
       <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 13, fontFamily: ff, flexShrink: 0 }}>
         {[move.reps != null ? formatReps(move.name, move.reps) : '', move.weight ? `${move.weight} lbs` : ''].filter(Boolean).join(' · ')}
@@ -300,7 +301,7 @@ function StrengthBlock({ block, allMovements }) {
       <div style={{ padding: '0 20px' }}>
         {block.movements?.map((move, i) => (
           <div key={i} style={S.card}>
-            <p style={S.moveName}>{move.name || '—'}</p>
+            <p style={S.moveName}>{toWorkoutDisplay(move)}</p>
             <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} />
           </div>
         ))}
@@ -401,7 +402,7 @@ function AccessoryBlock({ block }) {
       <div style={{ padding: '0 20px' }}>
         {block.movements?.map((move, i) => (
           <div key={i} style={S.card}>
-            <p style={S.moveName}>{move.name || '—'}</p>
+            <p style={S.moveName}>{toWorkoutDisplay(move)}</p>
             {block.type === 'Traditional' ? (
               <SetRows sets={move.sets} />
             ) : (

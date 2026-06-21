@@ -3,22 +3,25 @@ import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
+import { normalizeMovement, toLibraryDisplay } from '../utils/movements'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 const GROUPS = ['Barbell', 'Dumbbell', 'Kettlebell', 'Cardio', 'Other']
 
-function inferGroup(name) {
-  if (/\bdb\b|dumbbell/i.test(name)) return 'Dumbbell'
-  if (/\bkb\b|kettlebell/i.test(name)) return 'Kettlebell'
-  if (/deadlift|snatch|clean|jerk|\bpress\b|(back|front|overhead|sumo)\s+squat|hang power/i.test(name)) return 'Barbell'
-  if (/\brun\b|running|\brow\b|rowing|\bbike\b|cycling|ski erg|assault/i.test(name)) return 'Cardio'
+function inferGroup(movement) {
+  const { name, implement } = normalizeMovement(movement.name)
+  if (implement === 'Dumbbell') return 'Dumbbell'
+  if (implement === 'Kettlebell' || /^KB /i.test(name)) return 'Kettlebell'
+  if (/deadlift|snatch|clean|jerk|\bpress\b|(back|front|overhead|sumo|goblet)\s+squat|hang power|thruster|rdl|sdhp/i.test(name)) return 'Barbell'
+  if (/^kb /i.test(name) || /kettlebell|swing/i.test(name)) return 'Kettlebell'
+  if (/\brun\b|running|\brow\b|rowing|\bbike\b|cycling|ski\s*erg|double under|single under/i.test(name)) return 'Cardio'
   return 'Other'
 }
 
 function groupMovements(movements) {
   const map = { Barbell: [], Dumbbell: [], Kettlebell: [], Cardio: [], Other: [] }
-  for (const m of movements) map[inferGroup(m.name)].push(m)
+  for (const m of movements) map[inferGroup(m)].push(m)
   return map
 }
 
@@ -31,6 +34,8 @@ function best1RM(prs) {
 
 function MovementRow({ movement, last, onClick, show1RM = false }) {
   const pr = show1RM ? best1RM(movement.prs) : null
+  const { name, implement } = normalizeMovement(movement.name)
+  const displayName = toLibraryDisplay(name, implement)
   return (
     <div onClick={onClick} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -39,7 +44,7 @@ function MovementRow({ movement, last, onClick, show1RM = false }) {
       cursor: 'pointer',
     }}>
       <p style={{ color: '#f5f0e8', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>
-        {movement.name}
+        {displayName}
       </p>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         {pr && (
