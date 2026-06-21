@@ -83,15 +83,12 @@ function SessionCard({ session, onClick }) {
       margin: '0 20px 10px',
       cursor: 'pointer',
       border: '0.5px solid rgba(255,255,255,0.07)',
-      borderLeft: '3px solid #0ff7c5',
+      borderLeft: '2px solid #0ff7c5',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#0ff7c5', flexShrink: 0 }} />
-          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13 }}>
-            {formatDate(session.date)}
-          </span>
-        </div>
+        <span style={{ color: '#0ff7c5', fontSize: 13, opacity: 0.75 }}>
+          {formatDate(session.date)}
+        </span>
         {hasPR && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
@@ -583,7 +580,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v46</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v47</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
