@@ -504,7 +504,20 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       const segs = s.metconBlock.segments
       const iv = segs?.[0]?.interval || 1
       const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
-      if (segs?.length > 1 && rounds) return `${rounds * segs.length * iv} min ${emomLabel}`
+      if (segs?.length > 1) {
+        const hasRestBetween = segs.some((seg, i) => i > 0 && seg.restBefore)
+        if (hasRestBetween) {
+          const segDurations = segs.map(seg => {
+            const slots = [...new Set((seg.movements ?? []).filter(m => !m.isRest && m.minuteAssignment != null).map(m => m.minuteAssignment))].length || 1
+            return (seg.rounds || rounds || 0) * iv * slots
+          })
+          const allSame = segDurations.every(d => d === segDurations[0])
+          return allSame && segDurations[0]
+            ? `${segDurations[0]} min ${emomLabel} ×${segs.length}`
+            : `${segDurations.reduce((a, b) => a + b, 0)} min ${emomLabel}`
+        }
+        if (rounds) return `${rounds * segs.length * iv} min ${emomLabel}`
+      }
       if (rounds) return `${rounds * iv} min ${emomLabel}`
       if (duration) return `${duration} min ${emomLabel}`
       return emomLabel
@@ -961,10 +974,22 @@ Rules:
       let label = metconFormat
       if (metconSegments.length > 1) {
         if (metconFormat === 'OTM') {
-          const r = Number(seg?.rounds)
           const iv = Number(seg?.interval) || 1
           const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
-          label = r ? `${r * metconSegments.length * iv} min ${emomLabel}` : `${metconSegments.length} min ${emomLabel}`
+          const hasRestBetween = metconSegments.some((s, i) => i > 0 && (s.restBeforeMin || s.restBeforeSec))
+          if (hasRestBetween) {
+            const segDurations = metconSegments.map(s => {
+              const slots = [...new Set(s.moves.filter(m => !m.isRest && m.minuteAssignment).map(m => m.minuteAssignment))].length || 1
+              return Number(s.rounds || 0) * iv * slots
+            })
+            const allSame = segDurations.every(d => d === segDurations[0])
+            label = allSame && segDurations[0]
+              ? `${segDurations[0]} min ${emomLabel} ×${metconSegments.length}`
+              : `${segDurations.reduce((a, b) => a + b, 0)} min ${emomLabel}`
+          } else {
+            const r = Number(seg?.rounds)
+            label = r ? `${r * metconSegments.length * iv} min ${emomLabel}` : `${metconSegments.length} min ${emomLabel}`
+          }
         } else {
           const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
           const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
@@ -60,10 +60,22 @@ function deriveSessionParts(session) {
     let label = format || 'Metcon'
     if (segments?.length > 1) {
       if (format === 'OTM') {
-        const r = rounds || segments[0]?.rounds
         const iv = segments[0]?.interval || 1
         const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
-        label = r ? `${r * segments.length * iv} min ${emomLabel}` : `${segments.length} min ${emomLabel}`
+        const hasRestBetween = segments.some((s, i) => i > 0 && s.restBefore)
+        if (hasRestBetween) {
+          const segDurations = segments.map(s => {
+            const slots = [...new Set((s.movements ?? []).filter(m => !m.isRest && m.minuteAssignment != null).map(m => m.minuteAssignment))].length || 1
+            return (s.rounds || rounds || 0) * iv * slots
+          })
+          const allSame = segDurations.every(d => d === segDurations[0])
+          label = allSame && segDurations[0]
+            ? `${segDurations[0]} min ${emomLabel} ×${segments.length}`
+            : `${segDurations.reduce((a, b) => a + b, 0)} min ${emomLabel}`
+        } else {
+          const r = rounds || segments[0]?.rounds
+          label = r ? `${r * segments.length * iv} min ${emomLabel}` : `${segments.length} min ${emomLabel}`
+        }
       } else {
         const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
         const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
@@ -626,8 +638,22 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const [viewAll, setViewAll] = useState(false)
   const { thisWeek, weekStreak } = computeStats(sessions)
+  const savedScrollY = useRef(0)
 
-  const openSession = s => setSelectedSession(s)
+  const openSession = s => {
+    savedScrollY.current = document.querySelector('main')?.scrollTop ?? 0
+    setSelectedSession(s)
+  }
+
+  useEffect(() => {
+    if (!selectedSession && savedScrollY.current > 0) {
+      const pos = savedScrollY.current
+      requestAnimationFrame(() => {
+        const main = document.querySelector('main')
+        if (main) main.scrollTop = pos
+      })
+    }
+  }, [selectedSession])
 
   if (selectedSession) {
     return (
@@ -677,7 +703,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v79</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v81</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

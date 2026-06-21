@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
@@ -69,6 +69,7 @@ export default function MovementsScreen({ onEdit }) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(null)
+  const savedScrollY = useRef(0)
 
   useEffect(() => {
     supabase.from('movements').select('*').order('name')
@@ -82,6 +83,21 @@ export default function MovementsScreen({ onEdit }) {
         }
       })
   }, [refreshKey])
+
+  useEffect(() => {
+    if (!selected && savedScrollY.current > 0) {
+      const pos = savedScrollY.current
+      requestAnimationFrame(() => {
+        const main = document.querySelector('main')
+        if (main) main.scrollTop = pos
+      })
+    }
+  }, [selected])
+
+  const openMovement = m => {
+    savedScrollY.current = document.querySelector('main')?.scrollTop ?? 0
+    setSelected(m)
+  }
 
   if (selected) {
     return (
@@ -134,7 +150,7 @@ export default function MovementsScreen({ onEdit }) {
         ) : (
           <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
             {filtered.map((m, i) => (
-              <MovementRow key={m.id} movement={m} last={i === filtered.length - 1} onClick={() => setSelected(m)} />
+              <MovementRow key={m.id} movement={m} last={i === filtered.length - 1} onClick={() => openMovement(m)} />
             ))}
           </div>
         )
@@ -156,7 +172,7 @@ export default function MovementsScreen({ onEdit }) {
             </div>
             <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
               {items.map((m, i) => (
-                <MovementRow key={m.id} movement={m} last={i === items.length - 1} onClick={() => setSelected(m)} show1RM={group === 'Barbell'} />
+                <MovementRow key={m.id} movement={m} last={i === items.length - 1} onClick={() => openMovement(m)} show1RM={group === 'Barbell'} />
               ))}
             </div>
           </div>
