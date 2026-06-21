@@ -478,6 +478,8 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   )
 
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
+  const [titleStrength, setTitleStrength] = useState(() => s?.title ? (s.title.split(' / ')[0] ?? '') : '')
+  const [titleMetcon, setTitleMetcon] = useState(() => s?.title ? (s.title.split(' / ')[1] ?? '') : '')
   const [saving, setSaving] = useState(false)
   const [pickerTarget, setPickerTarget] = useState(null)
 
@@ -878,6 +880,10 @@ Rules:
   }
 
   function generateSessionTitle() {
+    const st = titleStrength.trim()
+    const mt = titleMetcon.trim()
+    if (st || mt) return [st, mt].filter(Boolean).join(' / ') || 'BB WOD'
+
     const parts = []
 
     if (hasStrength) {
@@ -1207,6 +1213,24 @@ Rules:
           <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' }}>
             {initialSession ? 'Edit Session' : 'Log Workout'}
           </h1>
+          {initialSession && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
+              <style>{`.title-field::placeholder{color:rgba(245,240,232,0.25);font-style:italic}.title-field:focus::placeholder{color:transparent}`}</style>
+              {[{ emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
+                { emoji: '⚡', value: titleMetcon, set: setTitleMetcon, ph: 'Metcon title…' }].map(({ emoji, value, set, ph }) => (
+                <div key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, userSelect: 'none' }}>{emoji}</span>
+                  <input
+                    className="title-field"
+                    value={value}
+                    onChange={e => set(e.target.value)}
+                    placeholder={ph}
+                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 14, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── STRENGTH ── */}
