@@ -40,8 +40,16 @@ function deriveSessionParts(session) {
 
   if (session.title) {
     const raw = session.title.split(' / ').filter(Boolean)
-    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${raw[1]}`]
-    if (raw.length === 1) return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    const mb = session.metconBlock
+    const ladderOverride = mb && (mb.format === 'For Time' || mb.format === 'Ladder') && [
+      ...(mb.segments?.flatMap(s => s.movements ?? []) ?? []),
+      ...(mb.movements ?? []),
+    ].filter(m => !m.isRest).some(m => isLadderReps(m.reps))
+    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${ladderOverride ? 'Ladder' : raw[1]}`]
+    if (raw.length === 1) {
+      if (ladderOverride) return hasStrength ? [`💪 ${raw[0]}`, `⚡ Ladder`] : [`⚡ Ladder`]
+      return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    }
     return raw
   }
 

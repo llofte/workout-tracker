@@ -28,8 +28,16 @@ function deriveSessionParts(session) {
 
   if (session.title) {
     const raw = session.title.split(' / ').filter(Boolean)
-    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${raw[1]}`]
-    if (raw.length === 1) return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    const mb = session.metconBlock
+    const ladderOverride = mb && (mb.format === 'For Time' || mb.format === 'Ladder') && [
+      ...(mb.segments?.flatMap(s => s.movements ?? []) ?? []),
+      ...(mb.movements ?? []),
+    ].filter(m => !m.isRest).some(m => isLadderReps(m.reps))
+    if (raw.length >= 2) return [`💪 ${raw[0]}`, `⚡ ${ladderOverride ? 'Ladder' : raw[1]}`]
+    if (raw.length === 1) {
+      if (ladderOverride) return hasStrength ? [`💪 ${raw[0]}`, `⚡ Ladder`] : [`⚡ Ladder`]
+      return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
+    }
     return raw
   }
 
@@ -646,7 +654,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v74</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v75</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
