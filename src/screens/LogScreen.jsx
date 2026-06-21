@@ -506,15 +506,11 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const libraryInputRef = useRef(null)
 
   async function fileToJpegBase64(file) {
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = e => resolve(e.target.result)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
     return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file)
       const img = new Image()
       img.onload = () => {
+        URL.revokeObjectURL(url)
         const MAX = 1600
         let w = img.width, h = img.height
         if (w > MAX || h > MAX) {
@@ -526,8 +522,8 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         canvas.getContext('2d').drawImage(img, 0, 0, w, h)
         resolve(canvas.toDataURL('image/jpeg', 0.88).split(',')[1])
       }
-      img.onerror = reject
-      img.src = dataUrl
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image decode failed')) }
+      img.src = url
     })
   }
 
