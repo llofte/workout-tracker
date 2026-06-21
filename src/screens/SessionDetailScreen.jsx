@@ -214,8 +214,10 @@ function SetRows({ sets, moveName, allMovements }) {
     return 'former'
   }
 
+  let workNum = 0
   return sets?.map((set, si) => {
     const isWarmup = set.notation === 'warmup'
+    if (!isWarmup) workNum++
     const pr = prStatus(set)
     return (
       <div key={si} style={{
@@ -223,7 +225,7 @@ function SetRows({ sets, moveName, allMovements }) {
         padding: '6px 0',
         borderBottom: si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
-        <span style={S.setNum(isWarmup)}>{isWarmup ? 'W' : set.setNumber}</span>
+        <span style={S.setNum(isWarmup)}>{isWarmup ? 'W' : workNum}</span>
         <span style={S.setLabel(isWarmup)}>
           {set.reps != null ? `${set.reps} ${set.reps === 1 ? 'rep' : 'reps'}` : '—'}
           {set.weight ? ` · ${set.weight} lbs` : ''}

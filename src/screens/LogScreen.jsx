@@ -198,7 +198,7 @@ function SetRow({ set, onChange, onDelete }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6, paddingBottom: 6, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
       <span style={{ width: 28, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: set.isWarmup ? 'rgba(245,240,232,0.28)' : 'rgba(245,240,232,0.45)' }}>
-        {set.num}
+        {set.isWarmup ? 'W' : set.num}
       </span>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <input
