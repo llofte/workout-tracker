@@ -85,7 +85,7 @@ export default function MovementsScreen({ onEdit }) {
   }, [refreshKey])
 
   useEffect(() => {
-    if (!selected && savedScrollY.current > 0) {
+    if (!selected) {
       const pos = savedScrollY.current
       requestAnimationFrame(() => {
         const main = document.querySelector('main')
