@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { MOVEMENTS_BASELINE } from './db'
+import { normalizeMovement } from '../utils/movements'
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -61,4 +62,74 @@ export async function seedSupabaseIfEmpty() {
     prs: m.prs,
   }))
   await supabase.from('movements').insert(rows)
+}
+
+// One-time migration: dedup movements by canonical name and fill in any missing
+// baseline entries. Safe to re-run (idempotent after flag is set).
+export async function syncMovementLibrary() {
+  if (localStorage.getItem('movements_sync_v2')) return
+  try {
+    const { data: all } = await supabase.from('movements').select('*')
+    if (!all) return
+
+    // Group every row by its canonical name
+    const byCanonical = new Map()
+    for (const m of all) {
+      const { name: canon } = normalizeMovement(m.name)
+      if (!byCanonical.has(canon)) byCanonical.set(canon, [])
+      byCanonical.get(canon).push(m)
+    }
+
+    // Merge duplicates and rename non-canonical rows
+    for (const [canon, rows] of byCanonical) {
+      const baseline = MOVEMENTS_BASELINE.find(b => b.name === canon)
+
+      // Merge PRs across all rows, deduplicated by date+reps+weight
+      const seen = new Set()
+      const mergedPrs = rows.flatMap(r => r.prs ?? []).filter(pr => {
+        const key = `${pr.date}-${pr.reps}-${pr.weight}`
+        return seen.has(key) ? false : (seen.add(key), true)
+      })
+
+      // Keep the row whose name already matches canon (or first if none does)
+      const survivor = rows.find(r => r.name === canon) ?? rows[0]
+      const dupes = rows.filter(r => r.id !== survivor.id)
+
+      if (dupes.length) {
+        await supabase.from('movements').delete().in('id', dupes.map(r => r.id))
+      }
+
+      const needsUpdate =
+        survivor.name !== canon ||
+        mergedPrs.length !== (survivor.prs ?? []).length ||
+        baseline
+
+      if (needsUpdate) {
+        await supabase.from('movements').update({
+          name: canon,
+          prs: mergedPrs,
+          ...(baseline ? { aliases: baseline.aliases, category: baseline.category } : {}),
+        }).eq('id', survivor.id)
+      }
+    }
+
+    // Insert baseline movements that don't exist yet
+    const existingCanon = new Set(byCanonical.keys())
+    const missing = MOVEMENTS_BASELINE.filter(m => !existingCanon.has(m.name))
+    if (missing.length) {
+      await supabase.from('movements').insert(
+        missing.map(m => ({
+          id: crypto.randomUUID(),
+          name: m.name,
+          aliases: m.aliases,
+          category: m.category,
+          prs: m.prs,
+        }))
+      )
+    }
+
+    localStorage.setItem('movements_sync_v2', '1')
+  } catch (e) {
+    console.error('syncMovementLibrary failed:', e)
+  }
 }

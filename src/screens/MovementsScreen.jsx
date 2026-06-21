@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react'
-import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
+import { supabase, seedSupabaseIfEmpty, syncMovementLibrary } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
@@ -77,16 +77,18 @@ export default function MovementsScreen({ onEdit }) {
   const savedScrollY = useRef(0)
 
   useEffect(() => {
-    supabase.from('movements').select('*').order('name')
-      .then(async ({ data }) => {
-        if (!data || data.length === 0) {
-          await seedSupabaseIfEmpty()
-          const { data: seeded } = await supabase.from('movements').select('*').order('name')
-          setMovements(seeded ?? [])
-        } else {
-          setMovements(data)
-        }
-      })
+    syncMovementLibrary().then(() => {
+      supabase.from('movements').select('*').order('name')
+        .then(async ({ data }) => {
+          if (!data || data.length === 0) {
+            await seedSupabaseIfEmpty()
+            const { data: seeded } = await supabase.from('movements').select('*').order('name')
+            setMovements(seeded ?? [])
+          } else {
+            setMovements(data)
+          }
+        })
+    })
   }, [refreshKey])
 
   useLayoutEffect(() => {
