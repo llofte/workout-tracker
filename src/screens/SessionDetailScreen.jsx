@@ -175,10 +175,15 @@ function SetRows({ sets, moveName, allMovements }) {
           {set.weight ? ` · ${set.weight} lbs` : ''}
         </span>
         {pr === 'current' && (
-          <span style={{ marginLeft: 'auto', backgroundColor: 'rgba(192,57,43,0.22)', color: '#e05c4b', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, fontFamily: ff, flexShrink: 0 }}>PR</span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+            <span style={{ color: '#0ff7c5', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff }}>PR</span>
+          </div>
         )}
         {pr === 'former' && (
-          <span style={{ marginLeft: 'auto', backgroundColor: 'rgba(255,255,255,0.06)', color: 'rgba(245,240,232,0.3)', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 700, letterSpacing: 0.3, fontFamily: ff, flexShrink: 0 }}>PR</span>
+          <span style={{ marginLeft: 'auto', color: 'rgba(245,240,232,0.25)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff, flexShrink: 0 }}>PR</span>
         )}
       </div>
     )
