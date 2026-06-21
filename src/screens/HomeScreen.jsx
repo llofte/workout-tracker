@@ -77,12 +77,13 @@ function SessionCard({ session, onClick }) {
 
   return (
     <div onClick={onClick} style={{
-      backgroundColor: '#201a2a',
+      background: 'linear-gradient(160deg, #261f30 0%, #201a2a 100%)',
       borderRadius: 14,
       padding: '13px 16px',
       margin: '0 20px 10px',
       cursor: 'pointer',
       border: '0.5px solid rgba(255,255,255,0.07)',
+      borderLeft: '3px solid #0ff7c5',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 7 }}>
         <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13 }}>
@@ -582,7 +583,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v44</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v45</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
