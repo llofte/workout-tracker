@@ -1096,10 +1096,10 @@ Rules:
               <p style={{ color: 'rgba(245,240,232,0.45)', fontSize: 14, margin: 0, textAlign: 'center', lineHeight: 1.4, fontFamily: 'inherit' }}>
                 Point your camera at the WOD whiteboard — Claude will parse it for you.
               </p>
-              <button onClick={() => cameraInputRef.current?.click()} style={{ marginTop: 4, backgroundColor: '#f5f0e8', color: '#0a0a0a', border: 'none', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+              <button onClick={() => cameraInputRef.current?.click()} style={{ marginTop: 4, backgroundColor: 'transparent', color: '#0ff7c5', border: '1.5px solid rgba(15,247,197,0.5)', borderRadius: 12, padding: '14px 32px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
                 Open Camera
               </button>
-              <button onClick={() => libraryInputRef.current?.click()} style={{ backgroundColor: 'transparent', color: 'rgba(245,240,232,0.6)', border: '1px solid rgba(245,240,232,0.18)', borderRadius: 12, padding: '13px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
+              <button onClick={() => libraryInputRef.current?.click()} style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: 'rgba(245,240,232,0.5)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: '13px 32px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>
                 Choose from Library
               </button>
               {photoError && (
