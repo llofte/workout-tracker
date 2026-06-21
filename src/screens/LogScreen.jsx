@@ -478,8 +478,26 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   )
 
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
-  const [titleStrength, setTitleStrength] = useState(() => s?.title ? (s.title.split(' / ')[0] ?? '') : '')
-  const [titleMetcon, setTitleMetcon] = useState(() => s?.title ? (s.title.split(' / ')[1] ?? '') : '')
+  const [titleStrength, setTitleStrength] = useState(() => {
+    if (!s) return ''
+    if (s.title) return s.title.split(' / ')[0] ?? ''
+    const names = (s.strengthBlock?.movements ?? []).map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
+    return names.join(' + ')
+  })
+  const [titleMetcon, setTitleMetcon] = useState(() => {
+    if (!s) return ''
+    if (s.title) return s.title.split(' / ')[1] ?? ''
+    if (!s.metconBlock) return ''
+    const { format, duration, rounds } = s.metconBlock
+    if (format === 'AMRAP' && duration) return `${duration} min AMRAP`
+    if (format === 'OTM' && duration) return `${duration} min OTM`
+    if (format === 'For Time') {
+      if (Number(rounds) === 1) return 'Chipper'
+      if (rounds) return `${rounds} Rounds For Time`
+      return 'For Time'
+    }
+    return format || ''
+  })
   const [saving, setSaving] = useState(false)
   const [pickerTarget, setPickerTarget] = useState(null)
 
