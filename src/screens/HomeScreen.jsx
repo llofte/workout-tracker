@@ -1,4 +1,4 @@
-import { useState, useEffect, useLayoutEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
@@ -638,69 +638,61 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const [viewAll, setViewAll] = useState(false)
   const { thisWeek, weekStreak } = computeStats(sessions)
-  const savedScrollY = useRef(0)
-
-  const openSession = s => {
-    savedScrollY.current = document.querySelector('main')?.scrollTop ?? 0
-    setSelectedSession(s)
-  }
-
-  useLayoutEffect(() => {
-    if (!selectedSession) {
-      const main = document.querySelector('main')
-      if (main) main.scrollTop = savedScrollY.current
-    }
-  }, [selectedSession])
-
-  if (selectedSession) {
-    return (
-      <SwipeBack onBack={() => setSelectedSession(null)}>
-        <SessionDetailScreen
-          session={selectedSession}
-          onBack={() => setSelectedSession(null)}
-          onEdit={session => { setSelectedSession(null); onEdit(session) }}
-        />
-      </SwipeBack>
-    )
-  }
+  const sessionDetailOverlay = selectedSession && (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, overflow: 'hidden' }}>
+      <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
+        <SwipeBack onBack={() => setSelectedSession(null)}>
+          <SessionDetailScreen
+            session={selectedSession}
+            onBack={() => setSelectedSession(null)}
+            onEdit={session => { setSelectedSession(null); onEdit(session) }}
+          />
+        </SwipeBack>
+      </div>
+    </div>
+  )
 
   if (viewAll) {
     const groups = groupByMonth(sessions ?? [])
     return (
-      <SwipeBack onBack={() => setViewAll(false)}>
-      <div style={S.root}>
-        <div style={{ padding: '12px 20px 20px' }}>
-          <button onClick={() => setViewAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 16, opacity: 0.8 }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-            Back
-          </button>
-          <h1 style={S.title}>All Workouts</h1>
-        </div>
-        {groups.map(group => (
-          <div key={group.label}>
-            <div style={{ padding: '4px 20px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <p style={S.sectionLabel}>{group.label}</p>
-              <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
-            </div>
-            {group.sessions.map(s => (
-              <SessionCard key={s.id} session={s} onClick={() => openSession(s)} />
-            ))}
+      <>
+        <SwipeBack onBack={() => setViewAll(false)}>
+        <div style={S.root}>
+          <div style={{ padding: '12px 20px 20px' }}>
+            <button onClick={() => setViewAll(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'inherit', padding: 0, marginBottom: 16, opacity: 0.8 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+              Back
+            </button>
+            <h1 style={S.title}>All Workouts</h1>
           </div>
-        ))}
-      </div>
-      </SwipeBack>
+          {groups.map(group => (
+            <div key={group.label}>
+              <div style={{ padding: '4px 20px 8px', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <p style={S.sectionLabel}>{group.label}</p>
+                <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+              </div>
+              {group.sessions.map(s => (
+                <SessionCard key={s.id} session={s} onClick={() => setSelectedSession(s)} />
+              ))}
+            </div>
+          ))}
+        </div>
+        </SwipeBack>
+        {sessionDetailOverlay}
+      </>
     )
   }
 
   const recent = sessions?.slice(0, RECENT_LIMIT) ?? []
 
   return (
+    <>
     <div style={{ ...S.root, paddingBottom: kbOpen ? 24 : S.root.paddingBottom }}>
       <div style={S.header}>
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v84</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v85</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -749,7 +741,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
       )}
 
       {sessions !== null && recent.map(s => (
-        <SessionCard key={s.id} session={s} onClick={() => openSession(s)} />
+        <SessionCard key={s.id} session={s} onClick={() => setSelectedSession(s)} />
       ))}
 
       <div style={{ padding: '16px 20px 8px' }}>
@@ -757,5 +749,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
       </div>
       <AskClaude sessions={sessions ?? []} />
     </div>
+    {sessionDetailOverlay}
+    </>
   )
 }
