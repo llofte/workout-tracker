@@ -505,6 +505,32 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const cameraInputRef = useRef(null)
   const libraryInputRef = useRef(null)
 
+  async function fileToJpegBase64(file) {
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = e => resolve(e.target.result)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1600
+        let w = img.width, h = img.height
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX }
+          else { w = Math.round(w * MAX / h); h = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w; canvas.height = h
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+        resolve(canvas.toDataURL('image/jpeg', 0.88).split(',')[1])
+      }
+      img.onerror = reject
+      img.src = dataUrl
+    })
+  }
+
   async function handlePhotoSelect(file) {
     if (!file) return
     setPhotoFile(file)
@@ -512,12 +538,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     setPhotoLoading(true)
     setPhotoError('')
     try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = e => resolve(e.target.result.split(',')[1])
-        reader.onerror = reject
-        reader.readAsDataURL(file)
-      })
+      const base64 = await fileToJpegBase64(file)
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -530,7 +551,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
           model: 'claude-sonnet-4-6',
           max_tokens: 2000,
           messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } },
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
             { type: 'text', text: buildPhotoPrompt() },
           ]}],
         }),
