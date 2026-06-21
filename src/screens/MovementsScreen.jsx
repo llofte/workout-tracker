@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import { supabase, seedSupabaseIfEmpty } from '../db/supabase'
 import MovementDetailScreen from './MovementDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
@@ -84,13 +84,10 @@ export default function MovementsScreen({ onEdit }) {
       })
   }, [refreshKey])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!selected) {
-      const pos = savedScrollY.current
-      requestAnimationFrame(() => {
-        const main = document.querySelector('main')
-        if (main) main.scrollTop = pos
-      })
+      const main = document.querySelector('main')
+      if (main) main.scrollTop = savedScrollY.current
     }
   }, [selected])
 

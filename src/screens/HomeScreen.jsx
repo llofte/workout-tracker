@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
@@ -645,13 +645,10 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
     setSelectedSession(s)
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!selectedSession) {
-      const pos = savedScrollY.current
-      requestAnimationFrame(() => {
-        const main = document.querySelector('main')
-        if (main) main.scrollTop = pos
-      })
+      const main = document.querySelector('main')
+      if (main) main.scrollTop = savedScrollY.current
     }
   }, [selectedSession])
 
@@ -703,7 +700,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v83</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v84</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
