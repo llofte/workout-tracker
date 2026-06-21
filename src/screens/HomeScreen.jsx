@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect, useRef } from 'react'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
@@ -638,6 +638,20 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const [viewAll, setViewAll] = useState(false)
   const { thisWeek, weekStreak } = computeStats(sessions)
+  const savedScrollY = useRef(0)
+
+  const openSession = s => {
+    savedScrollY.current = document.querySelector('main')?.scrollTop ?? 0
+    setSelectedSession(s)
+  }
+
+  useLayoutEffect(() => {
+    if (!selectedSession) {
+      const main = document.querySelector('main')
+      if (main) main.scrollTop = savedScrollY.current
+    }
+  }, [selectedSession])
+
   const sessionDetailOverlay = selectedSession && (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, overflow: 'hidden' }}>
       <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
@@ -672,7 +686,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
                 <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
               </div>
               {group.sessions.map(s => (
-                <SessionCard key={s.id} session={s} onClick={() => setSelectedSession(s)} />
+                <SessionCard key={s.id} session={s} onClick={() => openSession(s)} />
               ))}
             </div>
           ))}
@@ -692,7 +706,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v85</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v86</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -741,7 +755,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
       )}
 
       {sessions !== null && recent.map(s => (
-        <SessionCard key={s.id} session={s} onClick={() => setSelectedSession(s)} />
+        <SessionCard key={s.id} session={s} onClick={() => openSession(s)} />
       ))}
 
       <div style={{ padding: '16px 20px 8px' }}>
