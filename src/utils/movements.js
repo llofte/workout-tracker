@@ -10,8 +10,8 @@ const ALIAS_MAP = {
   'VUPS':           { name: 'V-Up' },
 
   // ── Sit-Up variants ───────────────────────────────────────────────────────
-  'WEIGHTED SIT-UP': { name: 'Sit-Up' },
-  'WEIGHTED SIT UP': { name: 'Sit-Up' },
+  'WEIGHTED SIT-UP': { name: 'Sit-Up', implement: 'Med Ball' },
+  'WEIGHTED SIT UP': { name: 'Sit-Up', implement: 'Med Ball' },
   'SIT-UPS':         { name: 'Sit-Up' },
   'SIT UPS':         { name: 'Sit-Up' },
 
@@ -251,9 +251,11 @@ const IMPLEMENT_PREFIXES = [
 
 // Implement → session-view display prefix (Barbell is silent)
 const SESSION_PREFIX = {
-  Dumbbell:  'DB',
+  Dumbbell:   'DB',
   Kettlebell: 'KB',
   'Med Ball': 'MB',
+  Plate:      'Plate',
+  Band:       'Banded',
 }
 
 // Implement → library-view abbreviation
@@ -286,10 +288,13 @@ export function normalizeMovement(rawName) {
   return { name: trimmed }
 }
 
-// Session-detail (whiteboard) display: "DB Step-Up", "Power Snatch", "KB Swing", "SA DB Overhead Lunge"
+// Session-detail (whiteboard) display: "DB Sit-Up", "Power Snatch", "KB Swing", "SA DB Overhead Lunge"
+// Checks move.implement first (explicit, from new log format) then falls back to name normalization.
 export function toWorkoutDisplay(move) {
   if (!move?.name) return '—'
-  const { name, implement, modifier } = normalizeMovement(move.name)
+  const normalized = normalizeMovement(move.name)
+  const implement = move.implement ?? normalized.implement
+  const { name, modifier } = normalized
   let display = name
   if (implement && SESSION_PREFIX[implement]) {
     display = `${SESSION_PREFIX[implement]} ${display}`
