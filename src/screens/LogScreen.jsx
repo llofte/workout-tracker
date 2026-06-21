@@ -581,6 +581,10 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
           ]}],
         }),
       })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(`API ${res.status}: ${errBody.error?.message || res.statusText}`)
+      }
       const data = await res.json()
       const raw = data.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
       const result = JSON.parse(raw)
@@ -610,7 +614,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       setStep(2)
     } catch (err) {
       console.error(err)
-      setPhotoError("Couldn't read the whiteboard — try again or enter manually.")
+      setPhotoError(err.message?.startsWith('API ') ? err.message : "Couldn't read the whiteboard — try again or enter manually.")
     } finally {
       setPhotoLoading(false)
     }
@@ -890,6 +894,10 @@ Rules:
           messages: [{ role: 'user', content: buildGeneratePrompt(generatePrompt.trim()) }],
         }),
       })
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(`API ${res.status}: ${errBody.error?.message || res.statusText}`)
+      }
       const data = await res.json()
       const raw = data.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
       const result = JSON.parse(raw)
@@ -919,7 +927,7 @@ Rules:
       setStep(2)
     } catch (err) {
       console.error(err)
-      setGenerateError("Couldn't generate a workout — try again.")
+      setGenerateError(err.message || "Couldn't generate a workout — try again.")
     } finally {
       setGenerating(false)
     }

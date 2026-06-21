@@ -521,7 +521,10 @@ function AskClaude({ sessions }) {
           messages: [{ role: 'user', content: prompt }],
         }),
       })
-      if (!res.ok) throw new Error(`${res.status}`)
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(`API ${res.status}: ${errBody.error?.message || res.statusText}`)
+      }
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let text = ''
@@ -542,8 +545,8 @@ function AskClaude({ sessions }) {
           } catch {}
         }
       }
-    } catch {
-      setError('Could not reach Claude. Check your connection and try again.')
+    } catch (err) {
+      setError(err.message || 'Could not reach Claude. Check your connection and try again.')
     } finally {
       setLoading(false)
     }
@@ -674,7 +677,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v77</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v78</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
