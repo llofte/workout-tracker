@@ -6,7 +6,7 @@ import SwipeBack from '../components/shared/SwipeBack'
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 const inputStyle = {
-  backgroundColor: '#2c2c2e',
+  backgroundColor: 'rgba(255,255,255,0.09)',
   border: 'none',
   borderRadius: 8,
   padding: '8px 10px',
@@ -246,7 +246,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
     return (
       <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 40 }}>
         <div style={{ padding: '12px 20px' }}>
-          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0 }}>
+          <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0, opacity: 0.8 }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             Movements
           </button>
@@ -345,7 +345,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
 
       {/* Header */}
       <div style={{ padding: '12px 20px 20px' }}>
-        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(245,240,232,0.55)', fontSize: 15, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0, marginBottom: 16 }}>
+        <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#0ff7c5', fontSize: 14, display: 'flex', alignItems: 'center', gap: 4, fontFamily: ff, padding: 0, opacity: 0.8, marginBottom: 16 }}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
           Movements
         </button>
@@ -355,7 +355,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
               value={nameInput}
               onChange={e => setNameInput(e.target.value)}
               autoFocus
-              style={{ flex: 1, backgroundColor: '#2c2c2e', border: 'none', borderRadius: 10, padding: '10px 14px', fontSize: 22, fontWeight: 700, color: '#f5f0e8', fontFamily: ff, outline: 'none', minWidth: 0 }}
+              style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.09)', border: 'none', borderRadius: 10, padding: '10px 14px', fontSize: 20, fontWeight: 700, color: '#f5f0e8', fontFamily: ff, outline: 'none', minWidth: 0 }}
             />
             <button onClick={saveName} disabled={saving} style={{ backgroundColor: '#f5f0e8', color: '#0a0a0a', border: 'none', borderRadius: 8, padding: '10px 14px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: ff, flexShrink: 0 }}>
               Save
@@ -366,7 +366,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
           </div>
         ) : (
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-            <h1 style={{ color: '#f5f0e8', fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: 0, fontFamily: ff }}>
+            <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: ff }}>
               {record.name}
             </h1>
             <button onClick={() => { setNameInput(record.name); setEditingName(true) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'rgba(245,240,232,0.28)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -388,7 +388,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
           <div style={{ padding: '0 20px 8px' }}>
             <p style={sectionLabel}>Personal Records</p>
           </div>
-          <div style={{ margin: '0 20px 24px', backgroundColor: '#1c1c1e', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ margin: '0 20px 24px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
 
             {bestPrs.map((pr, i) => {
               const isLast = i === bestPrs.length - 1
@@ -524,7 +524,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
       </div>
       <div style={{ padding: '0 20px' }}>
         {sessions.length === 0 ? (
-          <div style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '28px 20px', textAlign: 'center' }}>
+          <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '28px 20px', textAlign: 'center', border: '0.5px solid rgba(255,255,255,0.07)' }}>
             <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 14, margin: 0, fontFamily: ff }}>
               No logged sessions yet.
             </p>
@@ -532,7 +532,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
         ) : sessions.map(session => {
           const entries = getEntriesFromSession(session, record.name)
           return (
-            <div key={session.id} onClick={() => setSelectedSession(session)} style={{ backgroundColor: '#1c1c1e', borderRadius: 14, padding: '14px 16px', marginBottom: 10, cursor: 'pointer' }}>
+            <div key={session.id} onClick={() => setSelectedSession(session)} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 16px', marginBottom: 10, cursor: 'pointer', border: '0.5px solid rgba(255,255,255,0.07)' }}>
               <p style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, margin: '0 0 10px', fontFamily: ff }}>
                 {formatSessionDate(session.date)}
               </p>

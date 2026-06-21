@@ -104,7 +104,7 @@ export default function MovementsScreen({ onEdit }) {
   return (
     <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: TAB_CLEARANCE }}>
       <div style={{ padding: '20px 20px 12px' }}>
-        <h1 style={{ color: '#f5f0e8', fontSize: 34, fontWeight: 700, letterSpacing: -0.5, margin: 0, fontFamily: ff }}>
+        <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: ff }}>
           Movements
         </h1>
       </div>
@@ -112,7 +112,7 @@ export default function MovementsScreen({ onEdit }) {
       <div style={{ padding: '0 20px 16px' }}>
         <input
           style={{
-            width: '100%', backgroundColor: '#2c2c2e', border: 'none', borderRadius: 12,
+            width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 12,
             padding: '10px 14px', fontSize: 16, color: '#f5f0e8', fontFamily: ff,
             outline: 'none', display: 'block', boxSizing: 'border-box',
           }}
@@ -132,7 +132,7 @@ export default function MovementsScreen({ onEdit }) {
             <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 15, fontFamily: ff }}>No movements found.</p>
           </div>
         ) : (
-          <div style={{ margin: '0 20px', backgroundColor: '#1c1c1e', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
             {filtered.map((m, i) => (
               <MovementRow key={m.id} movement={m} last={i === filtered.length - 1} onClick={() => setSelected(m)} />
             ))}
@@ -154,7 +154,7 @@ export default function MovementsScreen({ onEdit }) {
                 {group}
               </p>
             </div>
-            <div style={{ margin: '0 20px', backgroundColor: '#1c1c1e', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
               {items.map((m, i) => (
                 <MovementRow key={m.id} movement={m} last={i === items.length - 1} onClick={() => setSelected(m)} show1RM={group === 'Barbell'} />
               ))}
