@@ -68,7 +68,7 @@ export default function SwipeBack({ onBack, children }) {
         transform: `translateX(${dx}px)`,
         transition: animating ? 'transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
         minHeight: '100%',
-        backgroundColor: '#242422',
+        backgroundColor: '#120c18',
         boxShadow: dx > 0 ? '-12px 0 32px rgba(0,0,0,0.4)' : 'none',
         willChange: 'transform',
       }}
