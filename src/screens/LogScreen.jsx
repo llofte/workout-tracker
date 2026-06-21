@@ -928,7 +928,11 @@ Rules:
   function generateSessionTitle() {
     const st = titleStrength.trim()
     const mt = titleMetcon.trim()
-    if (st || mt) return [st, mt].filter(Boolean).join(' / ') || 'BB WOD'
+    if (st || mt) {
+      const titleParts = [st, mt].filter(Boolean)
+      if (hasAccessory) titleParts.push('Accessory')
+      return titleParts.join(' / ') || 'BB WOD'
+    }
 
     const parts = []
 
@@ -966,10 +970,12 @@ Rules:
         if (r) label = `${r * iv} min ${emomLabel}`
         else if (seg?.duration) label = `${seg.duration} min ${emomLabel}`
       } else if (metconFormat === 'For Time' && seg?.rounds) {
-        label = `${seg.rounds} Rounds For Time`
+        label = Number(seg.rounds) === 1 ? 'Chipper' : `${seg.rounds} Rounds For Time`
       }
       parts.push(label)
     }
+
+    if (hasAccessory) parts.push('Accessory')
 
     return parts.join(' / ') || 'BB WOD'
   }
