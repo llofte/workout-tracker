@@ -142,7 +142,7 @@ const S = {
   root: { paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: TAB_CLEARANCE },
   header: { padding: '20px 20px 8px' },
   dateLabel: { color: 'rgba(245,240,232,0.5)', fontSize: 14, margin: '0 0 4px', fontWeight: 400 },
-  title: { color: '#f5f0e8', fontSize: 20, fontWeight: 600, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' },
+  title: { color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' },
   ctaWrap: { padding: '16px 20px 20px' },
   cta: {
     width: '100%', backgroundColor: 'transparent', color: '#0ff7c5',
@@ -605,7 +605,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
             Back
           </button>
-          <h1 style={{ color: '#f5f0e8', fontSize: 28, fontWeight: 700, letterSpacing: -0.4, margin: 0, fontFamily: 'inherit' }}>All Workouts</h1>
+          <h1 style={S.title}>All Workouts</h1>
         </div>
         {groups.map(group => (
           <div key={group.label}>
@@ -631,7 +631,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v60</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v61</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
