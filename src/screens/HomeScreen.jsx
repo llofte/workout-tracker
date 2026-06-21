@@ -77,7 +77,7 @@ function SessionCard({ session, onClick }) {
 
   return (
     <div onClick={onClick} style={{
-      backgroundColor: '#2d2545',
+      backgroundColor: '#33273b',
       borderRadius: 14,
       padding: '13px 16px',
       margin: '0 20px 10px',
@@ -90,8 +90,8 @@ function SessionCard({ session, onClick }) {
         </span>
         {hasPR && (
           <span style={{
-            backgroundColor: 'rgba(0,224,200,0.15)',
-            color: '#00e0c8',
+            backgroundColor: 'rgba(15,247,197,0.15)',
+            color: '#0ff7c5',
             borderRadius: 6,
             padding: '2px 8px',
             fontSize: 11,
@@ -135,8 +135,8 @@ const S = {
   title: { color: '#f5f0e8', fontSize: 20, fontWeight: 600, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' },
   ctaWrap: { padding: '16px 20px 8px' },
   cta: {
-    width: '100%', backgroundColor: 'transparent', color: '#00e0c8',
-    border: '1.5px solid rgba(0,224,200,0.5)',
+    width: '100%', backgroundColor: 'transparent', color: '#0ff7c5',
+    border: '1.5px solid rgba(15,247,197,0.5)',
     borderRadius: 14, padding: '10px 16px', fontSize: 17, fontWeight: 700,
     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
     gap: 8, fontFamily: 'inherit', letterSpacing: -0.2,
@@ -145,7 +145,7 @@ const S = {
   sectionTitle: { color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.3, margin: 0, fontFamily: 'inherit' },
   sectionLabel: { color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, margin: 0, fontFamily: 'inherit' },
   emptyCard: {
-    margin: '0 20px', backgroundColor: '#2d2545', borderRadius: 14,
+    margin: '0 20px', backgroundColor: '#33273b', borderRadius: 14,
     padding: '36px 20px', textAlign: 'center',
     border: '0.5px solid rgba(255,255,255,0.07)',
   },
@@ -295,7 +295,7 @@ function WeeklyChart({ sessions }) {
   }
 
   return (
-    <div style={{ margin: '4px 20px 8px', backgroundColor: '#2d2545', borderRadius: 14, padding: '12px 14px 12px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ margin: '4px 20px 8px', backgroundColor: '#33273b', borderRadius: 14, padding: '12px 14px 12px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
       <div style={{ display: 'flex', gap: 2, marginBottom: 10 }}>
         {CHART_TABS.map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
@@ -329,7 +329,7 @@ function WeeklyChart({ sessions }) {
                 width: '100%',
                 height: v > 0 ? `${Math.max((v / max) * 100, 8)}%` : 2,
                 backgroundColor: isCurrent
-                  ? (v > 0 ? '#00e0c8' : 'rgba(0,224,200,0.1)')
+                  ? (v > 0 ? '#0ff7c5' : 'rgba(15,247,197,0.1)')
                   : (v > 0 ? 'rgba(245,240,232,0.22)' : 'rgba(245,240,232,0.06)'),
                 borderRadius: '3px 3px 2px 2px',
               }} />
@@ -448,7 +448,7 @@ function AskClaude({ sessions }) {
   const hasResponse = response || error
 
   if (!hasApiKey) return (
-    <div style={{ margin: '8px 20px 0', backgroundColor: '#2d2545', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ margin: '8px 20px 0', backgroundColor: '#33273b', borderRadius: 14, padding: '14px 16px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
       <p style={{ color: 'rgba(245,240,232,0.3)', fontSize: 14, margin: 0, fontFamily: 'inherit' }}>
         Ask Claude requires an API key — add one to enable AI features.
       </p>
@@ -456,7 +456,7 @@ function AskClaude({ sessions }) {
   )
 
   return (
-    <div style={{ margin: '8px 20px 0', backgroundColor: '#2d2545', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
+    <div style={{ margin: '8px 20px 0', backgroundColor: '#33273b', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
       <style>{`@keyframes hs-spin { to { transform: rotate(360deg) } }`}</style>
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
         <textarea
@@ -466,7 +466,7 @@ function AskClaude({ sessions }) {
           placeholder="Ask about your training…"
           rows={2}
           style={{
-            flex: 1, backgroundColor: '#251d3e', border: 'none', borderRadius: 10,
+            flex: 1, backgroundColor: '#2a2030', border: 'none', borderRadius: 10,
             padding: '10px 12px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit',
             outline: 'none', resize: 'none', lineHeight: 1.4,
           }}
@@ -568,7 +568,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v38</span>
+          <span style={{ backgroundColor: '#e05c4b', color: '#fff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3 }}>v39</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -588,7 +588,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
 
       <div style={S.ctaWrap}>
         <button style={S.cta} onClick={onLogWorkout}>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00e0c8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ff7c5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
           Log Workout

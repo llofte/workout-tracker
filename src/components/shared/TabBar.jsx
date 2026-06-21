@@ -1,6 +1,6 @@
 import { isStandalone } from '../../utils/pwa'
 
-const ACTIVE = '#00e0c8'
+const ACTIVE = '#0ff7c5'
 const INACTIVE = 'rgba(245,240,232,0.38)'
 const SZ = 22
 
@@ -47,7 +47,7 @@ export default function TabBar({ activeTab, onTabChange, hidden }) {
       left: 0,
       right: 0,
       paddingBottom: 'env(safe-area-inset-bottom)',
-      backgroundColor: '#130f20',
+      backgroundColor: '#100b16',
       borderTop: '0.5px solid rgba(255,255,255,0.1)',
       display: 'flex',
       zIndex: 50,

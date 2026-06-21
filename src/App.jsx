@@ -64,7 +64,7 @@ export default function App() {
   }
 
   return (
-    <div style={{ position: 'relative', height: '100%', backgroundColor: '#1a1428', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ position: 'relative', height: '100%', backgroundColor: '#18101e', display: 'flex', flexDirection: 'column' }}>
       <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
         {activeTab === 'home' && <HomeScreen key={'home' + tabNonce} sessions={sessions} kbOpen={kbOpen} onLogWorkout={() => setLogging(true)} onEdit={s => setEditingSession(s)} />}
         {activeTab === 'movements' && <MovementsScreen key={'movements' + tabNonce} onEdit={s => setEditingSession(s)} />}
@@ -75,7 +75,7 @@ export default function App() {
       {logOpen && (
         <>
           <div style={{
-            position: 'absolute', inset: 0, backgroundColor: '#1a1428', zIndex: 100,
+            position: 'absolute', inset: 0, backgroundColor: '#18101e', zIndex: 100,
             overflowY: logMinimized || dragOffset > 0 ? 'hidden' : 'auto',
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch',
