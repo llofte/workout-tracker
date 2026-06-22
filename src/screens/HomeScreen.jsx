@@ -347,13 +347,23 @@ function sessionVolume(session) {
 
   const mb = session.metconBlock
   if (mb) {
-    // New format: segments — rounds already on each segment
+    // New format: segments
+    const amrapSeg = mb.format === 'AMRAP' ? parseAmrapScore(mb.score) : null
     for (const seg of mb.segments ?? []) {
-      const rounds = seg.rounds || 1
-      for (const mv of seg.movements ?? []) {
-        if (mv.isRest || !mv.weight) continue
-        const reps = parseReps(mv.reps)
-        if (reps) vol += reps * mv.weight * rounds
+      if (amrapSeg) {
+        for (const mv of seg.movements ?? []) {
+          if (mv.isRest || !mv.weight) continue
+          const reps = parseReps(mv.reps)
+          if (reps) vol += reps * mv.weight * amrapSeg.completedRounds
+        }
+        vol += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
+      } else {
+        const rounds = seg.rounds || 1
+        for (const mv of seg.movements ?? []) {
+          if (mv.isRest || !mv.weight) continue
+          const reps = parseReps(mv.reps)
+          if (reps) vol += reps * mv.weight * rounds
+        }
       }
     }
 
