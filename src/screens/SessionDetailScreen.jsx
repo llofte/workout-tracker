@@ -263,8 +263,18 @@ function calcAccessoryVol(block) {
   return v
 }
 
+function formatScore(score) {
+  if (!score) return null
+  const amrap = parseAmrapScore(String(score).trim())
+  if (!amrap) return String(score)
+  const roundsPart = `${amrap.completedRounds} ${amrap.completedRounds === 1 ? 'round' : 'rounds'}`
+  if (!amrap.extraReps) return roundsPart
+  return `${roundsPart} + ${amrap.extraReps} ${amrap.extraReps === 1 ? 'rep' : 'reps'}`
+}
+
 function SummaryBox({ score, vol }) {
   if (!score && !(vol > 0)) return null
+  const displayScore = score ? formatScore(score) : null
   return (
     <div style={{
       ...S.card,
@@ -272,7 +282,7 @@ function SummaryBox({ score, vol }) {
       border: '0.5px solid rgba(15,247,197,0.15)',
       padding: '10px 16px',
     }}>
-      {score && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{score}</span>}
+      {displayScore && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{displayScore}</span>}
       {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 400, fontFamily: ff }}> · </span>}
       {vol > 0 && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{vol.toLocaleString()} lbs</span>}
     </div>
