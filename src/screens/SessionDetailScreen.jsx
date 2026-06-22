@@ -267,7 +267,7 @@ function SummaryBox({ score, vol }) {
       padding: '10px 16px',
     }}>
       {score && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{score}</span>}
-      {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 15, fontWeight: 400, fontFamily: ff }}> · </span>}
+      {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 20, fontWeight: 400, fontFamily: ff }}> · </span>}
       {vol > 0 && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{vol.toLocaleString()} lbs</span>}
     </div>
   )
@@ -433,7 +433,7 @@ function MetconBlock({ block }) {
             )}
             <div style={S.card}>
               {si === 0 && subtitle && (
-                <p style={{ ...S.sectionSub, margin: '0 0 10px' }}>{subtitle}</p>
+                <p style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
               )}
               {si > 0 && (seg.duration || seg.rounds) && (
                 <p style={S.metaLine}>
