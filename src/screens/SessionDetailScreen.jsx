@@ -196,12 +196,22 @@ function calcStrengthVol(block) {
 function calcMetconVol(block) {
   if (!block) return 0
   let v = 0
+  const amrapSeg = block.format === 'AMRAP' ? parseAmrapScore(block.score) : null
   for (const seg of block.segments ?? []) {
-    const r = seg.rounds || 1
-    for (const mv of seg.movements ?? []) {
-      if (mv.isRest || !mv.weight) continue
-      const reps = parseReps(mv.reps)
-      if (reps) v += reps * mv.weight * r
+    if (amrapSeg) {
+      for (const mv of seg.movements ?? []) {
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) v += reps * mv.weight * amrapSeg.completedRounds
+      }
+      v += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
+    } else {
+      const r = seg.rounds || 1
+      for (const mv of seg.movements ?? []) {
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) v += reps * mv.weight * r
+      }
     }
   }
   if (block.movements?.length) {
@@ -257,7 +267,7 @@ function SummaryBox({ score, vol }) {
       padding: '10px 16px',
     }}>
       {score && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{score}</span>}
-      {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 15, fontWeight: 400, fontFamily: ff }}> | </span>}
+      {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 15, fontWeight: 400, fontFamily: ff }}> · </span>}
       {vol > 0 && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{vol.toLocaleString()} lbs</span>}
     </div>
   )
@@ -398,7 +408,7 @@ function MetconBlock({ block }) {
 
   return (
     <>
-      <SectionHeader title="Metcon" subtitle={subtitle} />
+      <SectionHeader title="Metcon" />
       <div style={{ padding: '0 20px' }}>
 
         {block.buyIn?.length > 0 && (
@@ -422,7 +432,10 @@ function MetconBlock({ block }) {
               </div>
             )}
             <div style={S.card}>
-              {(seg.duration || seg.rounds) && (
+              {si === 0 && subtitle && (
+                <p style={{ ...S.sectionSub, margin: '0 0 10px' }}>{subtitle}</p>
+              )}
+              {si > 0 && (seg.duration || seg.rounds) && (
                 <p style={S.metaLine}>
                   {[
                     seg.duration ? `${seg.duration} min` : '',
