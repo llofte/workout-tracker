@@ -21,7 +21,7 @@ function formatDate(dateStr) {
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', dumbbellCount: null } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null } }
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
   return {
@@ -74,14 +74,23 @@ function restoreMetconMove(m) {
     const t = m.restSeconds || 0
     return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: true,
       restMin: t >= 60 ? String(Math.floor(t / 60)) : '',
-      restSec: t % 60 ? String(t % 60) : '', notes: '', dumbbellCount: null }
+      restSec: t % 60 ? String(t % 60) : '', notes: '',
+      implement: null, singleArm: false, side: null }
+  }
+  let implement = m.implement ?? null
+  let singleArm = m.singleArm ?? false
+  let side = m.side ?? null
+  if (implement == null && m.name) {
+    const norm = normalizeMovement(m.name)
+    implement = IMPL_SHORT[norm.implement] ?? null
+    if (!singleArm && norm.modifier === 'SA') singleArm = true
   }
   return {
     name: m.name || '', reps: m.reps?.toString() ?? '',
     weight: m.weight?.toString() ?? '',
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
-    dumbbellCount: m.dumbbellCount ?? null,
+    implement, singleArm, side,
   }
 }
 
@@ -1133,7 +1142,9 @@ Rules:
               reps: (metconFormat === 'Ladder' && seg.ladderScheme) ? seg.ladderScheme : (m.reps || null),
               weight: m.weight !== '' ? Number(m.weight) : null,
               weightUnit: 'lbs',
-              dumbbellCount: m.dumbbellCount ?? null,
+              implement: m.implement ?? null,
+              singleArm: m.singleArm ?? false,
+              side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
             }),
@@ -1671,7 +1682,21 @@ Rules:
                       )}
                     </div>
                     <div>
-                      {!move.isRest && <DbToggle value={move.dumbbellCount} onChange={v => updateSegMove(si, mi, 'dumbbellCount', v)} />}
+                      {!move.isRest && (
+                        <ImplementSelector
+                          implement={move.implement}
+                          singleArm={move.singleArm}
+                          side={move.side}
+                          onChange={({ implement, singleArm, side }) =>
+                            setMetconSegments(prev => prev.map((sg, sgi) =>
+                              sgi === si ? {
+                                ...sg,
+                                moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side } : m)
+                              } : sg
+                            ))
+                          }
+                        />
+                      )}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         {move.isRest ? (
                           <>

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, rowToSession } from '../db/supabase'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
+import { normalizeMovement } from '../utils/movements'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -18,24 +19,30 @@ const inputStyle = {
   boxSizing: 'border-box',
 }
 
+function canonName(rawName) {
+  return normalizeMovement(rawName).name.toLowerCase()
+}
+
 function sessionHasMovement(session, name) {
-  const n = name.toLowerCase()
-  if (session.strengthBlock?.movements?.some(m => m.name?.toLowerCase() === n)) return true
-  if (session.metconBlock?.movements?.some(m => !m.isRest && m.name?.toLowerCase() === n)) return true
-  if (session.metconBlock?.segments?.some(seg =>
-    seg.movements?.some(m => !m.isRest && m.name?.toLowerCase() === n)
-  )) return true
-  if (session.metconBlock?.buyIn?.some(m => !m.isRest && m.name?.toLowerCase() === n)) return true
-  if (session.metconBlock?.buyOut?.some(m => !m.isRest && m.name?.toLowerCase() === n)) return true
-  if (session.accessoryBlock?.movements?.some(m => m.name?.toLowerCase() === n)) return true
+  const n = canonName(name)
+  const hit = m => !m.isRest && canonName(m.name) === n
+  const hitAny = m => canonName(m.name) === n
+  if (session.strengthBlock?.movements?.some(hitAny)) return true
+  if (session.metconBlock?.movements?.some(hit)) return true
+  if (session.metconBlock?.segments?.some(seg => seg.movements?.some(hit))) return true
+  if (session.metconBlock?.buyIn?.some(hit)) return true
+  if (session.metconBlock?.buyOut?.some(hit)) return true
+  if (session.accessoryBlock?.movements?.some(hitAny)) return true
   return false
 }
 
 function getEntriesFromSession(session, name) {
-  const n = name.toLowerCase()
+  const n = canonName(name)
+  const match = m => !m.isRest && canonName(m.name) === n
+  const matchAny = m => canonName(m.name) === n
   const results = []
 
-  const sm = session.strengthBlock?.movements?.find(m => m.name?.toLowerCase() === n)
+  const sm = session.strengthBlock?.movements?.find(matchAny)
   if (sm) {
     results.push({
       context: 'Strength',
@@ -48,23 +55,23 @@ function getEntriesFromSession(session, name) {
   if (metcon) {
     if (metcon.segments?.length) {
       for (const seg of metcon.segments) {
-        const mm = seg.movements?.find(m => !m.isRest && m.name?.toLowerCase() === n)
+        const mm = seg.movements?.find(match)
         if (mm) {
           results.push({ context: `Metcon · ${metcon.format}`, type: 'move', move: mm, rounds: seg.rounds, format: metcon.format })
           break
         }
       }
     } else if (metcon.movements?.length) {
-      const mm = metcon.movements.find(m => !m.isRest && m.name?.toLowerCase() === n)
+      const mm = metcon.movements.find(match)
       if (mm) results.push({ context: `Metcon · ${metcon.format}`, type: 'move', move: mm, rounds: metcon.rounds, format: metcon.format })
     }
-    const biMove = metcon.buyIn?.find(m => !m.isRest && m.name?.toLowerCase() === n)
+    const biMove = metcon.buyIn?.find(match)
     if (biMove) results.push({ context: 'Buy In', type: 'move', move: biMove })
-    const boMove = metcon.buyOut?.find(m => !m.isRest && m.name?.toLowerCase() === n)
+    const boMove = metcon.buyOut?.find(match)
     if (boMove) results.push({ context: 'Buy Out', type: 'move', move: boMove })
   }
 
-  const am = session.accessoryBlock?.movements?.find(m => m.name?.toLowerCase() === n)
+  const am = session.accessoryBlock?.movements?.find(matchAny)
   if (am) {
     results.push({
       context: 'Accessory',
