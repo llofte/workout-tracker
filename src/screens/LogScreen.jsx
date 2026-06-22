@@ -1869,7 +1869,7 @@ Rules:
       }}>
         <button
           onClick={handleLog} disabled={saving}
-          style={{ width: '100%', backgroundColor: saving ? 'rgba(245,240,232,0.5)' : '#f5f0e8', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '18px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
+          style={{ width: '100%', backgroundColor: saving ? 'rgba(15,247,197,0.4)' : '#0ff7c5', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '18px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
         >
           {saving ? (initialSession ? 'Saving…' : 'Logging…') : (initialSession ? 'Save Changes' : 'Log Workout')}
         </button>

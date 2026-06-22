@@ -34,9 +34,10 @@ A personal Progressive Web App (PWA) for tracking CrossFit/BB WOD workouts. Buil
 
 Native iOS aesthetic. The app should feel indistinguishable from a real iOS app when saved to the home screen.
 
-- **Color palette:** Dark mode primary. Deep near-black background (`#0a0a0a`), card surfaces at `#1c1c1e` (iOS system grouped background), accent color is a bold chalk-white with a warm tint — referencing the whiteboard the workouts are written on. Secondary accent: a muted red for PRs.
+- **Color palette:** Dark mode only. Deep near-black background (`#0a0a0a`), card surfaces at `#201a2a` (deep purple-black), primary accent is teal (`#0ff7c5`) — used for labels, active states, and primary action buttons. Secondary accent: a muted red (`#e05c4b`) for PRs only. **No white buttons anywhere** — the teal replaces chalk-white as the action color.
+- **Button rules:** Primary CTA → solid teal (`#0ff7c5`) background with black text. Selection pills (active) → `rgba(15,247,197,0.14)` bg with `#0ff7c5` text. Secondary/ghost buttons → `rgba(255,255,255,0.07)` bg with dimmed warm-white text. Destructive → `rgba(255,59,48,0.12)` bg with `#ff6b5e` text.
 - **Typography:** SF Pro stack (`-apple-system, BlinkMacSystemFont, 'SF Pro Display'`). Heavy weights for numbers/weights, regular for labels.
-- **Layout:** Bottom tab bar (5 tabs max), no hamburger menus. Cards with 12px radius. Swipe gestures where native iOS would have them.
+- **Layout:** Bottom tab bar (5 tabs max), no hamburger menus. Cards with 14px radius. Swipe gestures where native iOS would have them.
 - **Motion:** Subtle — iOS-style spring transitions on navigation, nothing gratuitous.
 - **Signature element:** Weight numbers displayed large and bold, like a scoreboard. When you log a PR, a brief chalk-dust animation fires.
 
