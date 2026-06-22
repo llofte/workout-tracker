@@ -2,6 +2,10 @@ import { useState, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
+import { normalizeMovement } from '../utils/movements'
+
+// Full implement name → selector short code
+const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate' }
 
 const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
   import.meta.env.VITE_ANTHROPIC_API_KEY !== 'your_key_here'
@@ -42,6 +46,15 @@ function parseStrengthStructure(structure) {
 
 function restoreStrengthMove(m) {
   let wn = 0, wkn = 0
+  // For old data without explicit fields, infer from the movement name
+  let implement = m.implement ?? null
+  let singleArm = m.singleArm ?? false
+  let side = m.side ?? null
+  if (implement == null && m.name) {
+    const norm = normalizeMovement(m.name)
+    implement = IMPL_SHORT[norm.implement] ?? null
+    if (!singleArm && norm.modifier === 'SA') singleArm = true
+  }
   return {
     name: m.name || '',
     sets: m.sets?.map(s => s.notation === 'warmup'
@@ -49,9 +62,9 @@ function restoreStrengthMove(m) {
       : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
     ) ?? [newWorkingSet(1)],
     notes: m.notes || '',
-    implement: m.implement ?? null,
-    singleArm: m.singleArm ?? false,
-    side: m.side ?? null,
+    implement,
+    singleArm,
+    side,
     dumbbellCount: m.dumbbellCount ?? null,
   }
 }
