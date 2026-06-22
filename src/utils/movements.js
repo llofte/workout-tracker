@@ -52,8 +52,14 @@ const ALIAS_MAP = {
   'DB REACH THROUGH':       { name: 'Plank Reach Through', implement: 'Dumbbell' },
   'ALT DB REACH THROUGH':   { name: 'Plank Reach Through', implement: 'Dumbbell' },
 
-  // ── Lateral Sprawl DB Jump ────────────────────────────────────────────────
-  'LATERAL SPRAWL DB JUMP': { name: 'Lateral Sprawl Jump', implement: 'Dumbbell' },
+  // ── Lateral Sprawl Jump Over ──────────────────────────────────────────────
+  'LATERAL SPRAWL DB JUMP':              { name: 'Lateral Sprawl Jump Over', implement: 'Dumbbell' },
+  'LATERAL SPRAWL JUMP':                 { name: 'Lateral Sprawl Jump Over' },
+  'LATERAL SPRAWL JUMP OVER DUMBBELL':   { name: 'Lateral Sprawl Jump Over', implement: 'Dumbbell' },
+  'LATERAL SPRAWL JUMP OVER DB':         { name: 'Lateral Sprawl Jump Over', implement: 'Dumbbell' },
+  'LATERAL SPRAWL JUMP OVER BARBELL':    { name: 'Lateral Sprawl Jump Over', implement: 'Barbell' },
+  'LATERAL SPRAWL JUMP OVER BAR':        { name: 'Lateral Sprawl Jump Over', implement: 'Barbell' },
+  'LATERAL SPRAWL JUMP OVER ROWER':      { name: 'Lateral Sprawl Jump Over', implement: 'Rower' },
 
   // ── Deficit Deadlift → modifier on Deadlift ───────────────────────────────
   'DEFICIT DEADLIFT':  { name: 'Deadlift', modifier: 'Deficit' },
@@ -321,6 +327,7 @@ const SESSION_PREFIX = {
   'Med Ball': 'MB',
   Plate:      'Plate',
   Band:       'Banded',
+  Rower:      'Rower',
 }
 
 // Implement → library-view abbreviation
@@ -332,6 +339,7 @@ const LIBRARY_ABBREV = {
   Bodyweight: 'BW',
   Band:       'Band',
   Plate:      'Plate',
+  Rower:      'Rower',
 }
 
 // Returns {name, implement?, modifier?} for a raw movement name string.
@@ -365,7 +373,7 @@ export function toWorkoutDisplay(move) {
 
   // Implement prefix
   if (move.implement) {
-    const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate' }[move.implement] // BB is silent
+    const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement] // BB is silent
     if (prefix) display = `${prefix} ${display}`
   } else if (normalized.implement) {
     const prefix = SESSION_PREFIX[normalized.implement]

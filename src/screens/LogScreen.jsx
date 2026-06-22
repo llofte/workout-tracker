@@ -5,7 +5,7 @@ import { useMovements } from '../hooks/useMovements'
 import { normalizeMovement } from '../utils/movements'
 
 // Full implement name → selector short code
-const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate' }
+const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate', Rower: 'Rower' }
 
 const hasApiKey = !!import.meta.env.VITE_ANTHROPIC_API_KEY &&
   import.meta.env.VITE_ANTHROPIC_API_KEY !== 'your_key_here'
@@ -409,7 +409,7 @@ function ImplementSelector({ implement, singleArm, side, onChange }) {
   })
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-      {['BB', 'KB', 'DB', 'Plate'].map(imp => (
+      {['BB', 'KB', 'DB', 'Plate', 'Rower'].map(imp => (
         <button key={imp}
           onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
           style={pill(implement === imp)}

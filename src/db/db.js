@@ -259,7 +259,7 @@ export const MOVEMENTS_BASELINE = [
   { name: 'Devil Press',           aliases: [],        category: 'other', prs: [] },
   { name: 'KB Swing',              aliases: [],        category: 'other', prs: [] },
   { name: 'Lateral Burpee Over',   aliases: [],        category: 'other', prs: [] },
-  { name: 'Lateral Sprawl Jump',   aliases: [],        category: 'other', prs: [] },
+  { name: 'Lateral Sprawl Jump Over', aliases: [],      category: 'other', prs: [] },
   { name: 'MB Oblique Toss',       aliases: [],        category: 'other', prs: [] },
   { name: 'Rope Climb',            aliases: [],        category: 'other', prs: [] },
   { name: 'Russian KB Swing',      aliases: [],        category: 'other', prs: [] },
