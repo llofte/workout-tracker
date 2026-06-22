@@ -174,8 +174,7 @@ const labelStyle = {
 }
 
 // ─── Library Sheet ────────────────────────────────────────────────────
-function LibrarySheet({ onSelect, onClose }) {
-  const movements = useMovements()
+function LibrarySheet({ movements, onSelect, onClose }) {
   const [query, setQuery] = useState('')
   const filtered = (movements ?? []).filter(m =>
     m.name.toLowerCase().includes(query.toLowerCase())
@@ -589,6 +588,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     }
     return format || ''
   })
+  const movements = useMovements()
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(s?.date ?? new Date().toISOString().split('T')[0])
   const [pickerTarget, setPickerTarget] = useState(null)
@@ -1358,7 +1358,7 @@ Rules:
           </div>
         </div>
       )}
-      {pickerTarget && <LibrarySheet onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />}
+      {pickerTarget && <LibrarySheet movements={movements} onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />}
 
       <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 100 }}>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
@@ -1965,7 +1965,7 @@ Rules:
       }}>
         <button
           onClick={handleLog} disabled={saving}
-          style={{ width: '100%', backgroundColor: saving ? 'rgba(15,247,197,0.4)' : '#0ff7c5', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '18px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
+          style={{ width: '100%', backgroundColor: saving ? 'rgba(15,247,197,0.4)' : '#0ff7c5', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '13px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
         >
           {saving ? (initialSession ? 'Saving…' : 'Logging…') : (initialSession ? 'Save Changes' : 'Log Workout')}
         </button>
