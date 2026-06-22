@@ -113,11 +113,18 @@ function deriveSessionParts(session) {
   return parts.length ? parts : ['BB WOD']
 }
 
+function chipName(name) {
+  return name.trim()
+    .replace(/\s+(R|L|Right|Left|\(R\)|\(L\)|R\/L)$/i, '')
+    .replace(/\bDumbbell\b/gi, 'DB')
+    .trim()
+}
+
 function getSessionMoves(session) {
   const names = []
 
   for (const m of session.strengthBlock?.movements ?? []) {
-    if (m.name?.trim()) names.push(m.name.trim())
+    if (m.name?.trim()) names.push(chipName(m.name))
   }
 
   const metcon = session.metconBlock
@@ -126,10 +133,10 @@ function getSessionMoves(session) {
       ? metcon.segments.flatMap(s => s.movements ?? [])
       : metcon.movements ?? []
     for (const m of segMoves) {
-      if (!m.isRest && m.name?.trim()) names.push(m.name.trim())
+      if (!m.isRest && m.name?.trim()) names.push(chipName(m.name))
     }
     for (const m of [...(metcon.buyIn ?? []), ...(metcon.buyOut ?? [])]) {
-      if (!m.isRest && m.name?.trim()) names.push(m.name.trim())
+      if (!m.isRest && m.name?.trim()) names.push(chipName(m.name))
     }
   }
 
@@ -784,7 +791,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v116</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v117</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
