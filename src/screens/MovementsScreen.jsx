@@ -33,10 +33,10 @@ function MovementRow({ movement, last, onClick }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {pr && (
           <div style={{ textAlign: 'right' }}>
-            <div style={{ color: '#f5f0e8', fontSize: 16, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1, fontFamily: ff }}>
-              {pr.weight}<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(245,240,232,0.4)', marginLeft: 3 }}>lbs</span>
+            <div style={{ color: '#0ff7c5', fontSize: 16, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1, fontFamily: ff }}>
+              {pr.weight}<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(15,247,197,0.55)', marginLeft: 3 }}>lbs</span>
             </div>
-            <div style={{ color: 'rgba(245,240,232,0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 3, fontFamily: ff }}>
+            <div style={{ color: 'rgba(15,247,197,0.5)', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 3, fontFamily: ff }}>
               {repLabel}
             </div>
           </div>
