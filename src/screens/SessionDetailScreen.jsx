@@ -3,11 +3,13 @@ import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 import { toWorkoutDisplay } from '../utils/movements'
 
-function formatReps(moveName, reps) {
+function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
   const s = String(reps)
   if (/[a-zA-Z]/.test(s)) return s
-  if (/\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i.test(moveName ?? '')) return `${s} cal`
+  if (cardioUnit === 'm') return `${s} m`
+  if (cardioUnit === 'sec') return `${s} sec`
+  if (cardioUnit === 'cal' || /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i.test(moveName ?? '')) return `${s} cal`
   const n = Number(s)
   return isNaN(n) ? s : `${n} ${n === 1 ? 'rep' : 'reps'}`
 }
@@ -337,7 +339,7 @@ function MetconMoveRow({ move, isOTM }) {
       </div>
     )
   }
-  const repsText = formatReps(move.name, move.reps)
+  const repsText = formatReps(move.name, move.reps, move.cardioUnit)
   const weightText = move.weight ? `${move.weight} lbs` : '—'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>

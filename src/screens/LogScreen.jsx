@@ -22,7 +22,10 @@ function formatDate(dateStr) {
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
+
+const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i
+function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
   return {
@@ -97,6 +100,7 @@ function restoreMetconMove(m) {
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
     implement, singleArm, side,
+    cardioUnit: m.cardioUnit ?? 'cal',
   }
 }
 
@@ -1158,6 +1162,7 @@ Rules:
               side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
+              cardioUnit: m.cardioUnit || 'cal',
             }),
           })),
         } : null,
@@ -1727,7 +1732,22 @@ Rules:
                             {metconFormat !== 'Ladder' && (
                               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                                 <input placeholder="—" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
-                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                                {isCardioName(move.name) ? (
+                                  <div style={{ display: 'flex', gap: 3, marginTop: 1 }}>
+                                    {['cal', 'm', 'sec'].map(u => (
+                                      <button key={u} onClick={() => updateSegMove(si, mi, 'cardioUnit', u)} style={{
+                                        flex: 1, backgroundColor: (move.cardioUnit || 'cal') === u ? 'rgba(15,247,197,0.18)' : 'rgba(255,255,255,0.05)',
+                                        color: (move.cardioUnit || 'cal') === u ? '#0ff7c5' : 'rgba(245,240,232,0.35)',
+                                        border: 'none', borderRadius: 5, padding: '3px 0', fontSize: 10, fontWeight: 700,
+                                        fontFamily: 'inherit', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.4,
+                                      }}>
+                                        {u}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                                )}
                               </div>
                             )}
                             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
