@@ -304,34 +304,70 @@ function weekBarLabel(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Parse reps that may be a number or a string like '27-21-15-9' (sum the parts)
+function parseReps(reps) {
+  if (typeof reps === 'number') return reps
+  if (typeof reps === 'string') {
+    const nums = reps.split(/[-,]/).map(Number).filter(n => Number.isFinite(n) && n > 0)
+    return nums.length ? nums.reduce((a, b) => a + b, 0) : null
+  }
+  return null
+}
+
 function sessionVolume(session) {
   let vol = 0
+
   for (const mv of session.strengthBlock?.movements ?? []) {
     for (const s of mv.sets ?? []) {
       if (s.notation === 'warmup') continue
       if (s.reps && s.weight) vol += s.reps * s.weight
     }
   }
+
   const mb = session.metconBlock
   if (mb) {
+    // New format: segments — rounds already on each segment
     for (const seg of mb.segments ?? []) {
       const rounds = seg.rounds || 1
       for (const mv of seg.movements ?? []) {
-        if (mv.isRest || !mv.weight || typeof mv.reps !== 'number') continue
-        vol += mv.reps * mv.weight * rounds
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) vol += reps * mv.weight * rounds
       }
     }
-    for (const mv of [...(mb.movements ?? []), ...(mb.buyIn ?? []), ...(mb.buyOut ?? [])]) {
-      if (mv.isRest || !mv.weight || typeof mv.reps !== 'number') continue
-      vol += mv.reps * mv.weight
+
+    // Old format: mb.movements — apply rounds multiplier (was missing)
+    if (mb.movements?.length) {
+      let rounds = mb.rounds || 1
+      // OTM with minuteAssignment: each movement repeats duration÷slots times
+      if (mb.format === 'OTM' && mb.duration && mb.movements.some(mv => mv.minuteAssignment != null)) {
+        const slots = new Set(
+          mb.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
+        ).size
+        if (slots > 0) rounds = Math.floor(mb.duration / slots)
+      }
+      for (const mv of mb.movements) {
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) vol += reps * mv.weight * rounds
+      }
+    }
+
+    // Buy-in / buy-out are always done once
+    for (const mv of [...(mb.buyIn ?? []), ...(mb.buyOut ?? [])]) {
+      if (mv.isRest || !mv.weight) continue
+      const reps = parseReps(mv.reps)
+      if (reps) vol += reps * mv.weight
     }
   }
+
   for (const mv of session.accessoryBlock?.movements ?? []) {
     for (const s of mv.sets ?? []) {
       if (s.notation === 'warmup') continue
       if (s.reps && s.weight) vol += s.reps * s.weight
     }
   }
+
   return vol
 }
 
@@ -708,7 +744,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v106</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v107</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
