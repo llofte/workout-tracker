@@ -302,6 +302,12 @@ const ALIAS_MAP = {
   'FARMER CARRIES':   { name: 'Farmer Carry' },
   'SUITCASE CARRY':   { name: 'Farmer Carry' },
   'SUITCASE CARRIES': { name: 'Farmer Carry' },
+
+  // ── Bike variants → Assault Bike ─────────────────────────────────────────
+  'BIKE':         { name: 'Assault Bike' },
+  'ASSAULT BIKE': { name: 'Assault Bike' },
+  'AIR BIKE':     { name: 'Assault Bike' },
+  'ECHO BIKE':    { name: 'Assault Bike' },
 }
 
 // Implement prefix patterns — tried in order after ALIAS_MAP miss

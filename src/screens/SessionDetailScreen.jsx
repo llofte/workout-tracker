@@ -451,7 +451,7 @@ function MetconBlock({ block }) {
             )}
             <div style={S.card}>
               {!isMultiSeg && si === 0 && subtitle && (
-                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
+                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, margin: '0 0 8px', fontFamily: ff }}>{subtitle}</p>
               )}
               {isMultiSeg && (
                 <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, margin: '0 0 8px', fontFamily: ff }}>
