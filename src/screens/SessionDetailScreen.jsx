@@ -394,6 +394,20 @@ function StrengthBlock({ block, allMovements }) {
   )
 }
 
+function segmentLabel(seg, block) {
+  const parts = []
+  if (seg.rounds) parts.push(`${seg.rounds} Rounds`)
+  if (block.format === 'OTM') {
+    const iv = seg.interval || 1
+    parts.push(iv === 1 ? 'EMOM' : `E${iv}MOM`)
+  } else if (seg.duration) {
+    parts.push(`${seg.duration} min`)
+  } else if (block.format) {
+    parts.push(block.format)
+  }
+  return parts.join(' · ')
+}
+
 function MetconBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
@@ -406,9 +420,11 @@ function MetconBlock({ block }) {
       ? [{ movements: block.movements, duration: block.duration, rounds: block.rounds }]
       : []
 
+  const isMultiSeg = segments.length > 1
+
   return (
     <>
-      <SectionHeader title="Metcon" />
+      <SectionHeader title="Metcon" subtitle={isMultiSeg ? subtitle : null} />
       <div style={{ padding: '0 20px' }}>
 
         {block.buyIn?.length > 0 && (
@@ -432,16 +448,12 @@ function MetconBlock({ block }) {
               </div>
             )}
             <div style={S.card}>
-              {si === 0 && subtitle && (
+              {!isMultiSeg && si === 0 && subtitle && (
                 <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
               )}
-              {si > 0 && (seg.duration || seg.rounds) && (
-                <p style={S.metaLine}>
-                  {[
-                    seg.duration ? `${seg.duration} min` : '',
-                    seg.rounds ? `${seg.rounds} rounds` : '',
-                    isOTM && seg.interval ? `every ${seg.interval} min` : '',
-                  ].filter(Boolean).join(' · ')}
+              {isMultiSeg && (
+                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>
+                  {segmentLabel(seg, block)}
                 </p>
               )}
               {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
