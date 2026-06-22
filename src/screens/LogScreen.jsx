@@ -530,6 +530,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     return format || ''
   })
   const [saving, setSaving] = useState(false)
+  const [date, setDate] = useState(s?.date ?? new Date().toISOString().split('T')[0])
   const [pickerTarget, setPickerTarget] = useState(null)
 
   const [generatePrompt, setGeneratePrompt] = useState('')
@@ -1026,7 +1027,7 @@ Rules:
       const firstSeg = metconSegments[0]
       const sessionData = {
         title: generateSessionTitle(),
-        date: initialSession?.date ?? new Date().toISOString().split('T')[0],
+        date: date,
         program: 'BB WOD',
         strengthBlock: hasStrength ? {
           title: strengthMoves[0]?.name || '',
@@ -1310,9 +1311,21 @@ Rules:
               </button>
             )}
           </div>
-          <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 8px', fontFamily: 'inherit' }}>
-            {formatDate(initialSession?.date ?? new Date().toISOString().split('T')[0])}
-          </p>
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 5, margin: '0 0 8px' }}>
+            <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: 0, fontFamily: 'inherit' }}>
+              {formatDate(date)}
+            </p>
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0ff7c5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5, flexShrink: 0 }}>
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            <input
+              type="date"
+              value={date}
+              onChange={e => setDate(e.target.value)}
+              style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+            />
+          </div>
           <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' }}>
             {initialSession ? 'Edit Session' : 'Log Workout'}
           </h1>
