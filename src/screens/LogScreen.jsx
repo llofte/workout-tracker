@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
@@ -1363,7 +1364,10 @@ Rules:
           </div>
         </div>
       )}
-      {pickerTarget && <LibrarySheet movements={movements} onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />}
+      {pickerTarget && createPortal(
+        <LibrarySheet movements={movements} onSelect={handlePickMovement} onClose={() => setPickerTarget(null)} />,
+        document.body
+      )}
 
       <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 100 }}>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
