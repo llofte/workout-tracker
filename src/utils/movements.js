@@ -361,12 +361,26 @@ export function normalizeMovement(rawName) {
   return { name: trimmed }
 }
 
-// Session-detail display: "SA KB Overhead Lunge (L)", "DB RDL", "Deficit Deadlift"
+// Session-detail display: "SA DB Overhead Lunge (R)", "DB RDL", "Deficit Deadlift"
 // Explicit move.implement (short code: 'BB'|'KB'|'DB'|'Plate') takes precedence over normalized.
 // Explicit move.singleArm / move.side take precedence over 'SA' modifier from alias map (old data).
+// R/L suffixes in the raw name (e.g. " R", " (L)") are preserved even when the alias map would strip them.
 export function toWorkoutDisplay(move) {
   if (!move?.name) return '—'
-  const normalized = normalizeMovement(move.name)
+
+  // Strip R/L suffix before alias lookup so e.g. "SA OH Lunge R" normalizes via "SA OH Lunge"
+  let rawName = move.name
+  let rawSide = null
+  if (!move.side) {
+    const m = rawName.match(/\s*\((R|L|Right|Left)\)\s*$|\s+(R|L|Right|Left)\s*$/i)
+    if (m) {
+      const s = m[1]
+      rawSide = /^right$/i.test(s) ? 'R' : /^left$/i.test(s) ? 'L' : s.toUpperCase()
+      rawName = rawName.slice(0, rawName.length - m[0].length).trim()
+    }
+  }
+
+  const normalized = normalizeMovement(rawName)
   const { name, modifier } = normalized
 
   let display = SESSION_ABBREV[name] ?? name
@@ -393,6 +407,7 @@ export function toWorkoutDisplay(move) {
   const isSA = move.singleArm != null ? move.singleArm : modifier === 'SA'
   if (isSA) display = `SA ${display}`
   if (move.side) display = `${display} (${move.side})`
+  else if (rawSide) display = `${display} (${rawSide})`
 
   // Non-SA modifiers (Deficit, Strict…) prepended
   if (modifier && modifier !== 'SA') display = `${modifier} ${display}`
