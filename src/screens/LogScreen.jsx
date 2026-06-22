@@ -349,6 +349,27 @@ function SuggestButton({ name, sets }) {
   )
 }
 
+// ─── DB Toggle (metcon) ───────────────────────────────────────────────
+function DbToggle({ value, onChange }) {
+  const pill = (active) => ({
+    backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
+    border: `1px solid ${active ? 'rgba(15,247,197,0.3)' : 'transparent'}`,
+    borderRadius: 8, padding: '5px 11px',
+    fontSize: 12, fontWeight: active ? 700 : 500, letterSpacing: 0.2,
+    color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
+    fontFamily: 'inherit', cursor: 'pointer',
+  })
+  return (
+    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+      {[1, 2].map(n => (
+        <button key={n} onClick={() => onChange(value === n ? null : n)} style={pill(value === n)}>
+          {n} DB
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Implement Selector ───────────────────────────────────────────────
 function ImplementSelector({ implement, singleArm, side, onChange }) {
   const canBeSA = implement === 'KB' || implement === 'DB'
