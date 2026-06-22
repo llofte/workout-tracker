@@ -161,6 +161,27 @@ function parseReps(reps) {
   return null
 }
 
+function parseAmrapScore(score) {
+  if (!score) return null
+  const match = String(score).trim().match(/^(\d+)(?:\+(\d+))?$/)
+  if (!match) return null
+  return { completedRounds: parseInt(match[1], 10), extraReps: match[2] ? parseInt(match[2], 10) : 0 }
+}
+
+function calcPartialRoundVol(movements, extraReps) {
+  let v = 0
+  let remaining = extraReps
+  for (const mv of movements) {
+    if (remaining <= 0) break
+    if (mv.isRest) continue
+    const mvReps = parseReps(mv.reps) || 0
+    const used = Math.min(mvReps, remaining)
+    if (mv.weight && used > 0) v += used * mv.weight
+    remaining -= mvReps
+  }
+  return v
+}
+
 function calcStrengthVol(block) {
   let v = 0
   for (const mv of block?.movements ?? []) {
@@ -184,17 +205,27 @@ function calcMetconVol(block) {
     }
   }
   if (block.movements?.length) {
-    let rounds = block.rounds || 1
-    if (block.format === 'OTM' && block.duration && block.movements.some(mv => mv.minuteAssignment != null)) {
-      const slots = new Set(
-        block.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
-      ).size
-      if (slots > 0) rounds = Math.floor(block.duration / slots)
-    }
-    for (const mv of block.movements) {
-      if (mv.isRest || !mv.weight) continue
-      const reps = parseReps(mv.reps)
-      if (reps) v += reps * mv.weight * rounds
+    const amrap = block.format === 'AMRAP' ? parseAmrapScore(block.score) : null
+    if (amrap) {
+      for (const mv of block.movements) {
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) v += reps * mv.weight * amrap.completedRounds
+      }
+      v += calcPartialRoundVol(block.movements, amrap.extraReps)
+    } else {
+      let rounds = block.rounds || 1
+      if (block.format === 'OTM' && block.duration && block.movements.some(mv => mv.minuteAssignment != null)) {
+        const slots = new Set(
+          block.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
+        ).size
+        if (slots > 0) rounds = Math.floor(block.duration / slots)
+      }
+      for (const mv of block.movements) {
+        if (mv.isRest || !mv.weight) continue
+        const reps = parseReps(mv.reps)
+        if (reps) v += reps * mv.weight * rounds
+      }
     }
   }
   for (const mv of [...(block.buyIn ?? []), ...(block.buyOut ?? [])]) {

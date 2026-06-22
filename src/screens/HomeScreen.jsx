@@ -305,7 +305,6 @@ function weekBarLabel(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
-// Parse reps that may be a number or a string like '27-21-15-9' (sum the parts)
 function parseReps(reps) {
   if (typeof reps === 'number') return reps
   if (typeof reps === 'string') {
@@ -313,6 +312,27 @@ function parseReps(reps) {
     return nums.length ? nums.reduce((a, b) => a + b, 0) : null
   }
   return null
+}
+
+function parseAmrapScore(score) {
+  if (!score) return null
+  const match = String(score).trim().match(/^(\d+)(?:\+(\d+))?$/)
+  if (!match) return null
+  return { completedRounds: parseInt(match[1], 10), extraReps: match[2] ? parseInt(match[2], 10) : 0 }
+}
+
+function calcPartialRoundVol(movements, extraReps) {
+  let v = 0
+  let remaining = extraReps
+  for (const mv of movements) {
+    if (remaining <= 0) break
+    if (mv.isRest) continue
+    const mvReps = parseReps(mv.reps) || 0
+    const used = Math.min(mvReps, remaining)
+    if (mv.weight && used > 0) v += used * mv.weight
+    remaining -= mvReps
+  }
+  return v
 }
 
 function sessionVolume(session) {
@@ -337,20 +357,29 @@ function sessionVolume(session) {
       }
     }
 
-    // Old format: mb.movements — apply rounds multiplier (was missing)
+    // Old format: mb.movements — apply rounds multiplier
     if (mb.movements?.length) {
-      let rounds = mb.rounds || 1
-      // OTM with minuteAssignment: each movement repeats duration÷slots times
-      if (mb.format === 'OTM' && mb.duration && mb.movements.some(mv => mv.minuteAssignment != null)) {
-        const slots = new Set(
-          mb.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
-        ).size
-        if (slots > 0) rounds = Math.floor(mb.duration / slots)
-      }
-      for (const mv of mb.movements) {
-        if (mv.isRest || !mv.weight) continue
-        const reps = parseReps(mv.reps)
-        if (reps) vol += reps * mv.weight * rounds
+      const amrap = mb.format === 'AMRAP' ? parseAmrapScore(mb.score) : null
+      if (amrap) {
+        for (const mv of mb.movements) {
+          if (mv.isRest || !mv.weight) continue
+          const reps = parseReps(mv.reps)
+          if (reps) vol += reps * mv.weight * amrap.completedRounds
+        }
+        vol += calcPartialRoundVol(mb.movements, amrap.extraReps)
+      } else {
+        let rounds = mb.rounds || 1
+        if (mb.format === 'OTM' && mb.duration && mb.movements.some(mv => mv.minuteAssignment != null)) {
+          const slots = new Set(
+            mb.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
+          ).size
+          if (slots > 0) rounds = Math.floor(mb.duration / slots)
+        }
+        for (const mv of mb.movements) {
+          if (mv.isRest || !mv.weight) continue
+          const reps = parseReps(mv.reps)
+          if (reps) vol += reps * mv.weight * rounds
+        }
       }
     }
 
@@ -745,7 +774,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v114</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v115</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
