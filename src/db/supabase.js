@@ -158,3 +158,33 @@ export async function syncMovementLibrary() {
     console.error('syncMovementLibrary failed:', e)
   }
 }
+
+// One-time patch: fill in reps for session movements that were logged with null reps.
+export async function patchSessionData() {
+  if (localStorage.getItem('session_data_patch_v1')) return
+  try {
+    const { data } = await supabase
+      .from('sessions')
+      .select('id, metcon_block')
+      .eq('date', '2026-06-02')
+      .maybeSingle()
+
+    if (data?.metcon_block?.movements) {
+      const movements = data.metcon_block.movements.map(m => {
+        // SA OH Lunge: 6 reps each arm = 12 total at 20 lbs
+        if ((m.name === 'SA OH Lunge' || m.name === 'Overhead Lunge') && m.reps == null) {
+          return { ...m, reps: 12, notes: '6 ea side' }
+        }
+        return m
+      })
+      await supabase
+        .from('sessions')
+        .update({ metcon_block: { ...data.metcon_block, movements } })
+        .eq('id', data.id)
+    }
+
+    localStorage.setItem('session_data_patch_v1', '1')
+  } catch (e) {
+    console.error('patchSessionData failed:', e)
+  }
+}

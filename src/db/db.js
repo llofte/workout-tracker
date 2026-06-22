@@ -296,7 +296,7 @@ const SEED_SESSIONS = [
       timeCap: null,
       score: '3.5 rounds',
       movements: [
-        { name: 'SA OH Lunge', reps: null, weight: 20, weightUnit: 'lbs', minuteAssignment: null, notes: null },
+        { name: 'SA OH Lunge', reps: 12, weight: 20, weightUnit: 'lbs', minuteAssignment: null, notes: '6 ea side' },
         { name: 'V-Up', reps: null, weight: null, weightUnit: 'lbs', minuteAssignment: null, notes: null },
         { name: 'Lateral Sprawl DB Jump', reps: null, weight: null, weightUnit: 'lbs', minuteAssignment: null, notes: null },
       ],
