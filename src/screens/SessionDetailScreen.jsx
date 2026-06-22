@@ -366,9 +366,23 @@ function MetconBlock({ block }) {
       <SectionHeader
         title="Metcon"
         subtitle={subtitle}
-        right={<VolLabel vol={vol} />}
+        right={block.score ? null : <VolLabel vol={vol} />}
       />
       <div style={{ padding: '0 20px' }}>
+
+        {block.score && (
+          <div style={{
+            ...S.card,
+            backgroundColor: 'rgba(15,247,197,0.05)',
+            border: '0.5px solid rgba(15,247,197,0.15)',
+            padding: '10px 16px',
+          }}>
+            <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{block.score}</span>
+            {vol > 0 && (
+              <span style={{ color: 'rgba(245,240,232,0.38)', fontSize: 15, fontWeight: 600, fontFamily: ff }}> | {vol.toLocaleString()} lbs</span>
+            )}
+          </div>
+        )}
 
         {block.buyIn?.length > 0 && (
           <div style={{ ...S.card, borderLeft: '2px solid rgba(245,240,232,0.12)' }}>
@@ -409,18 +423,6 @@ function MetconBlock({ block }) {
           <div style={{ ...S.card, borderLeft: '2px solid rgba(245,240,232,0.12)' }}>
             <p style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 8px', fontFamily: ff }}>Buy Out</p>
             {block.buyOut.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
-          </div>
-        )}
-
-        {block.score && (
-          <div style={{
-            ...S.card,
-            backgroundColor: 'rgba(15,247,197,0.05)',
-            border: '0.5px solid rgba(15,247,197,0.15)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: ff }}>Result</span>
-            <span style={{ color: '#0ff7c5', fontSize: 22, fontWeight: 700, fontFamily: ff, letterSpacing: -0.5 }}>{block.score}</span>
           </div>
         )}
       </div>
