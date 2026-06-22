@@ -1366,7 +1366,7 @@ Rules:
             <div style={{ marginBottom: 14 }}>
               <div style={{ display: 'flex', gap: 6, marginBottom: strengthType === 'OTM' ? 12 : 0 }}>
                 {['Traditional', 'OTM'].map(type => (
-                  <button key={type} onClick={() => setStrengthType(type)} style={{ flexShrink: 0, backgroundColor: strengthType === type ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: strengthType === type ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: strengthType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  <button key={type} onClick={() => setStrengthType(type)} style={{ flexShrink: 0, backgroundColor: strengthType === type ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: strengthType === type ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: strengthType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
                     {type}
                   </button>
                 ))}
@@ -1393,7 +1393,7 @@ Rules:
                     onChange={e => updateStrengthMove(mi, 'name', e.target.value)}
                     style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
                   />
-                  <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                  <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                     Library
                   </button>
                   <button onClick={() => removeStrengthMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
@@ -1450,7 +1450,7 @@ Rules:
                       ) : (
                         <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyInMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
                       )}
-                      {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                      {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
                       <button onClick={() => updateBuyInMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
                       {buyInMoves.length > 1 && <button onClick={() => removeBuyInMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
                     </div>
@@ -1487,7 +1487,7 @@ Rules:
             {/* Format pills — shared across all segments */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
               {FORMATS.map(fmt => (
-                <button key={fmt} onClick={() => setMetconFormat(fmt)} style={{ flexShrink: 0, backgroundColor: metconFormat === fmt ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: metconFormat === fmt ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: metconFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                <button key={fmt} onClick={() => setMetconFormat(fmt)} style={{ flexShrink: 0, backgroundColor: metconFormat === fmt ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: metconFormat === fmt ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: metconFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
                   {fmt}
                 </button>
               ))}
@@ -1598,7 +1598,7 @@ Rules:
                         />
                       )}
                       {!move.isRest && (
-                        <button onClick={() => openPicker('metcon', mi, si)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                        <button onClick={() => openPicker('metcon', mi, si)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                           Library
                         </button>
                       )}
@@ -1709,7 +1709,7 @@ Rules:
                       ) : (
                         <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyOutMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
                       )}
-                      {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                      {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
                       <button onClick={() => updateBuyOutMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
                       {buyOutMoves.length > 1 && <button onClick={() => removeBuyOutMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
                     </div>
@@ -1757,7 +1757,7 @@ Rules:
           <div style={{ padding: '0 20px' }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
               {['Traditional', 'Tabata'].map(type => (
-                <button key={type} onClick={() => setAccessoryType(type)} style={{ flexShrink: 0, backgroundColor: accessoryType === type ? '#f5f0e8' : 'rgba(255,255,255,0.08)', color: accessoryType === type ? '#0a0a0a' : 'rgba(245,240,232,0.6)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: accessoryType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                <button key={type} onClick={() => setAccessoryType(type)} style={{ flexShrink: 0, backgroundColor: accessoryType === type ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: accessoryType === type ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: accessoryType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
                   {type}
                 </button>
               ))}
@@ -1773,7 +1773,7 @@ Rules:
                         onChange={e => updateAccessoryTradMove(mi, 'name', e.target.value)}
                         style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
                       />
-                      <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                      <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                         Library
                       </button>
                       {accessoryTraditionalMoves.length > 1 && (
@@ -1821,7 +1821,7 @@ Rules:
                         onChange={e => updateAccessoryTabataMove(mi, 'name', e.target.value)}
                         style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
                       />
-                      <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(245,240,232,0.1)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#f5f0e8', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                      <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                         Library
                       </button>
                       {accessoryTabataMoves.length > 1 && (
