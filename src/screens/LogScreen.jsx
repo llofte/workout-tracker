@@ -176,6 +176,7 @@ const labelStyle = {
 // ─── Library Sheet ────────────────────────────────────────────────────
 function LibrarySheet({ movements, onSelect, onClose }) {
   const [query, setQuery] = useState('')
+  const isLoading = movements === null
   const filtered = (movements ?? []).filter(m =>
     m.name.toLowerCase().includes(query.toLowerCase())
   )
@@ -203,7 +204,11 @@ function LibrarySheet({ movements, onSelect, onClose }) {
           />
         </div>
         <div style={{ overflowY: 'auto', flex: 1, paddingTop: 8 }}>
-          {filtered.map(m => (
+          {isLoading ? (
+            <p style={{ color: 'rgba(245,240,232,0.35)', fontSize: 14, textAlign: 'center', padding: '32px 20px', margin: 0, fontFamily: 'inherit' }}>
+              Loading…
+            </p>
+          ) : filtered.map(m => (
             <button key={m.id} onClick={() => onSelect(m.name)} style={{
               width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '14px 20px', backgroundColor: 'transparent', border: 'none',
