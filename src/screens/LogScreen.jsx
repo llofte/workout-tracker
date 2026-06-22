@@ -198,7 +198,7 @@ function LibrarySheet({ movements, onSelect, onClose }) {
           </div>
           <input
             type="search" placeholder="Search..." value={query}
-            onChange={e => setQuery(e.target.value)} autoFocus
+            onChange={e => setQuery(e.target.value)}
             style={{ ...inputBase, backgroundColor: 'rgba(255,255,255,0.09)' }}
           />
         </div>

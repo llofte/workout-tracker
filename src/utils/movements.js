@@ -371,13 +371,22 @@ export function toWorkoutDisplay(move) {
 
   let display = SESSION_ABBREV[name] ?? name
 
-  // Implement prefix
+  const isJumpOver = name.toLowerCase().includes('jump over') || name.toLowerCase().includes('jump-over')
+
+  // Implement — jump-over movements append the object; all others prepend (BB silent for non-jump-over)
   if (move.implement) {
-    const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement] // BB is silent
-    if (prefix) display = `${prefix} ${display}`
+    if (isJumpOver) {
+      const suffix = { BB: 'BB', KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement]
+      if (suffix) display = `${display} ${suffix}`
+    } else {
+      const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement] // BB is silent
+      if (prefix) display = `${prefix} ${display}`
+    }
   } else if (normalized.implement) {
     const prefix = SESSION_PREFIX[normalized.implement]
-    if (prefix) display = `${prefix} ${display}`
+    if (prefix) {
+      display = isJumpOver ? `${display} ${prefix}` : `${prefix} ${display}`
+    }
   }
 
   // Single-arm — explicit field (new) or 'SA' modifier from alias (old data)
