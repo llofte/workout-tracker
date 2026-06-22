@@ -247,12 +247,19 @@ function calcAccessoryVol(block) {
   return v
 }
 
-function VolLabel({ vol }) {
-  if (!vol) return null
+function SummaryBox({ score, vol }) {
+  if (!score && !(vol > 0)) return null
   return (
-    <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 12, fontFamily: ff }}>
-      {vol.toLocaleString()} lbs
-    </span>
+    <div style={{
+      ...S.card,
+      backgroundColor: 'rgba(15,247,197,0.05)',
+      border: '0.5px solid rgba(15,247,197,0.15)',
+      padding: '10px 16px',
+    }}>
+      {score && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{score}</span>}
+      {score && vol > 0 && <span style={{ color: '#ffffff', fontSize: 15, fontWeight: 400, fontFamily: ff }}> | </span>}
+      {vol > 0 && <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{vol.toLocaleString()} lbs</span>}
+    </div>
   )
 }
 
@@ -363,11 +370,7 @@ function StrengthBlock({ block, allMovements }) {
   const subtitle = block.structure && block.structure !== 'Traditional' ? block.structure : null
   return (
     <>
-      <SectionHeader
-        title="Strength"
-        subtitle={subtitle}
-        right={<VolLabel vol={vol} />}
-      />
+      <SectionHeader title="Strength" subtitle={subtitle} />
       <div style={{ padding: '0 20px' }}>
         {block.movements?.map((move, i) => (
           <div key={i} style={S.card}>
@@ -375,6 +378,7 @@ function StrengthBlock({ block, allMovements }) {
             <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} />
           </div>
         ))}
+        <SummaryBox vol={vol} />
       </div>
     </>
   )
@@ -394,26 +398,8 @@ function MetconBlock({ block }) {
 
   return (
     <>
-      <SectionHeader
-        title="Metcon"
-        subtitle={subtitle}
-        right={block.score ? null : <VolLabel vol={vol} />}
-      />
+      <SectionHeader title="Metcon" subtitle={subtitle} />
       <div style={{ padding: '0 20px' }}>
-
-        {block.score && (
-          <div style={{
-            ...S.card,
-            backgroundColor: 'rgba(15,247,197,0.05)',
-            border: '0.5px solid rgba(15,247,197,0.15)',
-            padding: '10px 16px',
-          }}>
-            <span style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, fontFamily: ff }}>{block.score}</span>
-            {vol > 0 && (
-              <span style={{ color: 'rgba(245,240,232,0.38)', fontSize: 15, fontWeight: 600, fontFamily: ff }}> | {vol.toLocaleString()} lbs</span>
-            )}
-          </div>
-        )}
 
         {block.buyIn?.length > 0 && (
           <div style={{ ...S.card, borderLeft: '2px solid rgba(245,240,232,0.12)' }}>
@@ -456,6 +442,7 @@ function MetconBlock({ block }) {
             {block.buyOut.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
           </div>
         )}
+        <SummaryBox score={block.score} vol={vol} />
       </div>
     </>
   )
@@ -469,7 +456,6 @@ function AccessoryBlock({ block }) {
       <SectionHeader
         title="Accessory"
         subtitle={block.type && block.type !== 'Traditional' ? block.type : null}
-        right={<VolLabel vol={vol} />}
       />
       <div style={{ padding: '0 20px' }}>
         {block.movements?.map((move, i) => (
@@ -493,6 +479,7 @@ function AccessoryBlock({ block }) {
             )}
           </div>
         ))}
+        <SummaryBox vol={vol} />
       </div>
     </>
   )
