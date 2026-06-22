@@ -3,13 +3,17 @@ import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 import { toWorkoutDisplay } from '../utils/movements'
 
+const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i
+
 function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
   const s = String(reps)
   if (/[a-zA-Z]/.test(s)) return s
-  if (cardioUnit === 'm') return `${s} m`
-  if (cardioUnit === 'sec') return `${s} sec`
-  if (cardioUnit === 'cal' || /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i.test(moveName ?? '')) return `${s} cal`
+  if (CARDIO_RE.test(moveName ?? '')) {
+    if (cardioUnit === 'm') return `${s} m`
+    if (cardioUnit === 'sec') return `${s} sec`
+    return `${s} cal`
+  }
   const n = Number(s)
   return isNaN(n) ? s : `${n} ${n === 1 ? 'rep' : 'reps'}`
 }

@@ -1162,7 +1162,7 @@ Rules:
               side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
-              cardioUnit: m.cardioUnit || 'cal',
+              cardioUnit: isCardioName(m.name) ? (m.cardioUnit || 'cal') : null,
             }),
           })),
         } : null,

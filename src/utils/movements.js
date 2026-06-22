@@ -90,10 +90,10 @@ const ALIAS_MAP = {
   'KB SWING':         { name: 'KB Swing' },
   'BANDED SWING':     { name: 'KB Swing', modifier: 'Banded' },
   'BANDED SWINGS':    { name: 'KB Swing', modifier: 'Banded' },
-  'RUSSIAN SWING':    { name: 'Russian KB Swing' },
-  'RUSSIAN SWINGS':   { name: 'Russian KB Swing' },
-  'RUSSIAN KB SWING': { name: 'Russian KB Swing' },
-  'RUSSIAN KB SWINGS':{ name: 'Russian KB Swing' },
+  'RUSSIAN SWING':    { name: 'Russian Swing', implement: 'Kettlebell' },
+  'RUSSIAN SWINGS':   { name: 'Russian Swing', implement: 'Kettlebell' },
+  'RUSSIAN KB SWING': { name: 'Russian Swing', implement: 'Kettlebell' },
+  'RUSSIAN KB SWINGS':{ name: 'Russian Swing', implement: 'Kettlebell' },
 
   // ── Gorilla Row (always KB) / Devil Press ─────────────────────────────────
   'GORILLA ROW':      { name: 'Gorilla Row', implement: 'Kettlebell' },
