@@ -8,43 +8,40 @@ import { normalizeMovement, toLibraryDisplay } from '../utils/movements'
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 
-function best1RM(prs) {
+function bestPR(prs) {
   if (!prs?.length) return null
   return prs
-    .filter(pr => pr.reps === 1 && pr.weight != null)
+    .filter(pr => pr.weight != null)
     .reduce((best, pr) => (!best || pr.weight > best.weight ? pr : best), null)
 }
 
-function MovementRow({ movement, last, onClick, show1RM = false }) {
-  const pr = show1RM ? best1RM(movement.prs) : null
+function MovementRow({ movement, last, onClick }) {
+  const pr = bestPR(movement.prs)
   const { name, implement } = normalizeMovement(movement.name)
   const displayName = toLibraryDisplay(name, implement)
+  const repLabel = pr ? (pr.reps === 1 ? '1RM' : `${pr.reps}RM`) : null
   return (
     <div onClick={onClick} style={{
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       padding: '13px 16px',
-      borderBottom: last ? 'none' : '0.5px solid rgba(255,255,255,0.08)',
+      borderBottom: last ? 'none' : '0.5px solid rgba(255,255,255,0.07)',
       cursor: 'pointer',
     }}>
-      <p style={{ color: '#f5f0e8', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>
+      <p style={{ color: '#f5f0e8', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff, flex: 1 }}>
         {displayName}
       </p>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {pr && (
           <div style={{ textAlign: 'right' }}>
-            <span style={{
-              backgroundColor: 'rgba(192,57,43,0.2)', color: '#e05c4b',
-              borderRadius: 6, padding: '2px 7px', fontSize: 12, fontWeight: 600,
-              display: 'block', marginBottom: 2, fontFamily: ff,
-            }}>
-              {pr.weight} lbs · 1RM
-            </span>
-            <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontFamily: ff }}>
-              {new Date(pr.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </span>
+            <div style={{ color: '#f5f0e8', fontSize: 16, fontWeight: 700, letterSpacing: -0.5, lineHeight: 1, fontFamily: ff }}>
+              {pr.weight}<span style={{ fontSize: 11, fontWeight: 500, color: 'rgba(245,240,232,0.4)', marginLeft: 3 }}>lbs</span>
+            </div>
+            <div style={{ color: 'rgba(245,240,232,0.35)', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', marginTop: 3, fontFamily: ff }}>
+              {repLabel}
+            </div>
           </div>
         )}
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.22)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </div>
@@ -136,7 +133,7 @@ export default function MovementsScreen({ onEdit }) {
         ) : (
           <div style={{ margin: '0 20px', backgroundColor: '#201a2a', borderRadius: 14, overflow: 'hidden', border: '0.5px solid rgba(255,255,255,0.07)' }}>
             {list.map((m, i) => (
-              <MovementRow key={m.id} movement={m} last={i === list.length - 1} onClick={() => openMovement(m)} show1RM />
+              <MovementRow key={m.id} movement={m} last={i === list.length - 1} onClick={() => openMovement(m)} />
             ))}
           </div>
         )
