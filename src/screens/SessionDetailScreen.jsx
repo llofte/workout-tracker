@@ -156,6 +156,15 @@ const S = {
   },
 }
 
+function parseReps(reps) {
+  if (typeof reps === 'number') return reps
+  if (typeof reps === 'string') {
+    const nums = reps.split(/[-,]/).map(Number).filter(n => Number.isFinite(n) && n > 0)
+    return nums.length ? nums.reduce((a, b) => a + b, 0) : null
+  }
+  return null
+}
+
 function calcStrengthVol(block) {
   let v = 0
   for (const mv of block?.movements ?? []) {
@@ -173,13 +182,29 @@ function calcMetconVol(block) {
   for (const seg of block.segments ?? []) {
     const r = seg.rounds || 1
     for (const mv of seg.movements ?? []) {
-      if (mv.isRest || !mv.weight || typeof mv.reps !== 'number') continue
-      v += mv.reps * mv.weight * r
+      if (mv.isRest || !mv.weight) continue
+      const reps = parseReps(mv.reps)
+      if (reps) v += reps * mv.weight * r
     }
   }
-  for (const mv of [...(block.movements ?? []), ...(block.buyIn ?? []), ...(block.buyOut ?? [])]) {
-    if (mv.isRest || !mv.weight || typeof mv.reps !== 'number') continue
-    v += mv.reps * mv.weight
+  if (block.movements?.length) {
+    let rounds = block.rounds || 1
+    if (block.format === 'OTM' && block.duration && block.movements.some(mv => mv.minuteAssignment != null)) {
+      const slots = new Set(
+        block.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
+      ).size
+      if (slots > 0) rounds = Math.floor(block.duration / slots)
+    }
+    for (const mv of block.movements) {
+      if (mv.isRest || !mv.weight) continue
+      const reps = parseReps(mv.reps)
+      if (reps) v += reps * mv.weight * rounds
+    }
+  }
+  for (const mv of [...(block.buyIn ?? []), ...(block.buyOut ?? [])]) {
+    if (mv.isRest || !mv.weight) continue
+    const reps = parseReps(mv.reps)
+    if (reps) v += reps * mv.weight
   }
   return v
 }
