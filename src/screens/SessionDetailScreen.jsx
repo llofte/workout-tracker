@@ -424,7 +424,7 @@ function MetconBlock({ block }) {
 
   return (
     <>
-      <SectionHeader title="Metcon" subtitle={isMultiSeg ? subtitle : null} />
+      <SectionHeader title="Metcon" />
       <div style={{ padding: '0 20px' }}>
 
         {block.buyIn?.length > 0 && (
@@ -452,7 +452,7 @@ function MetconBlock({ block }) {
                 <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
               )}
               {isMultiSeg && (
-                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>
+                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, margin: '0 0 8px', fontFamily: ff }}>
                   {segmentLabel(seg, block)}
                 </p>
               )}
