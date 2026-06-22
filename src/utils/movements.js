@@ -16,13 +16,19 @@ const ALIAS_MAP = {
   'SIT UPS':         { name: 'Sit-Up' },
 
   // ── Overhead Lunge ────────────────────────────────────────────────────────
-  'SA OH LUNGE':           { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SA OVERHEAD LUNGE':     { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'OH LUNGE':              { name: 'Overhead Lunge' },
-  'OVERHEAD PLATE LUNGE':  { name: 'Overhead Lunge', implement: 'Plate' },
-  'OVERHEAD PLATE LUNGES': { name: 'Overhead Lunge', implement: 'Plate' },
-  'OH PLATE LUNGE':        { name: 'Overhead Lunge', implement: 'Plate' },
-  'PLATE OVERHEAD LUNGE':  { name: 'Overhead Lunge', implement: 'Plate' },
+  'SA OH LUNGE':                    { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SA OVERHEAD LUNGE':              { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE-ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE-ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SINGLE-ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'OH LUNGE':                       { name: 'Overhead Lunge' },
+  'OVERHEAD PLATE LUNGE':           { name: 'Overhead Lunge', implement: 'Plate' },
+  'OVERHEAD PLATE LUNGES':          { name: 'Overhead Lunge', implement: 'Plate' },
+  'OH PLATE LUNGE':                 { name: 'Overhead Lunge', implement: 'Plate' },
+  'PLATE OVERHEAD LUNGE':           { name: 'Overhead Lunge', implement: 'Plate' },
 
   // ── Front Rack Lunge → Walking Lunge ─────────────────────────────────────
   'FRONT RACK LUNGE':  { name: 'Walking Lunge' },

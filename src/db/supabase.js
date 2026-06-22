@@ -81,7 +81,7 @@ const PURGE_CANONICAL = new Set([
 
 // One-time migration: dedup, rename, purge, and fill missing baseline entries.
 export async function syncMovementLibrary() {
-  if (localStorage.getItem('movements_sync_v4')) return
+  if (localStorage.getItem('movements_sync_v5')) return
   try {
     const { data: all } = await supabase.from('movements').select('*')
     if (!all) return
@@ -153,7 +153,7 @@ export async function syncMovementLibrary() {
       )
     }
 
-    localStorage.setItem('movements_sync_v4', '1')
+    localStorage.setItem('movements_sync_v5', '1')
   } catch (e) {
     console.error('syncMovementLibrary failed:', e)
   }

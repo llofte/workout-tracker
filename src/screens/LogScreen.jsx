@@ -46,17 +46,19 @@ function parseStrengthStructure(structure) {
 
 function restoreStrengthMove(m) {
   let wn = 0, wkn = 0
-  // For old data without explicit fields, infer from the movement name
   let implement = m.implement ?? null
   let singleArm = m.singleArm ?? false
   let side = m.side ?? null
-  if (implement == null && m.name) {
-    const norm = normalizeMovement(m.name)
-    implement = IMPL_SHORT[norm.implement] ?? null
-    if (!singleArm && norm.modifier === 'SA') singleArm = true
+  const norm = m.name ? normalizeMovement(m.name) : null
+  const canonName = norm?.name || m.name || ''
+  if (implement == null && norm?.implement) implement = IMPL_SHORT[norm.implement] ?? null
+  if (!singleArm && norm?.modifier === 'SA') singleArm = true
+  if (!side && m.name) {
+    if (m.name.trim().endsWith('(L)')) side = 'L'
+    else if (m.name.trim().endsWith('(R)')) side = 'R'
   }
   return {
-    name: m.name || '',
+    name: canonName,
     sets: m.sets?.map(s => s.notation === 'warmup'
       ? { num: `W${++wn}`, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: true }
       : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
@@ -80,13 +82,16 @@ function restoreMetconMove(m) {
   let implement = m.implement ?? null
   let singleArm = m.singleArm ?? false
   let side = m.side ?? null
-  if (implement == null && m.name) {
-    const norm = normalizeMovement(m.name)
-    implement = IMPL_SHORT[norm.implement] ?? null
-    if (!singleArm && norm.modifier === 'SA') singleArm = true
+  const norm = m.name ? normalizeMovement(m.name) : null
+  const canonName = norm?.name || m.name || ''
+  if (implement == null && norm?.implement) implement = IMPL_SHORT[norm.implement] ?? null
+  if (!singleArm && norm?.modifier === 'SA') singleArm = true
+  if (!side && m.name) {
+    if (m.name.trim().endsWith('(L)')) side = 'L'
+    else if (m.name.trim().endsWith('(R)')) side = 'R'
   }
   return {
-    name: m.name || '', reps: m.reps?.toString() ?? '',
+    name: canonName, reps: m.reps?.toString() ?? '',
     weight: m.weight?.toString() ?? '',
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
