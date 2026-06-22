@@ -227,6 +227,13 @@ const ALIAS_MAP = {
   "DOUBLE UNDER'S": { name: 'Double Under' },
   'DOUBLE UNDERS':  { name: 'Double Under' },
 
+  // ── Hang Clean & Jerk ─────────────────────────────────────────────────────
+  'HANG C&J':              { name: 'Hang Clean & Jerk' },
+  'SA DB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Dumbbell', modifier: 'SA' },
+  'SA DB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Dumbbell', modifier: 'SA' },
+  'SA KB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Kettlebell', modifier: 'SA' },
+  'SA KB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Kettlebell', modifier: 'SA' },
+
   // ── Weightlifting abbreviations ───────────────────────────────────────────
   'DL':             { name: 'Deadlift' },
   'P.SN':           { name: 'Power Snatch' },

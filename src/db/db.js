@@ -219,6 +219,7 @@ export const MOVEMENTS_BASELINE = [
   { name: 'Clean & Jerk',         aliases: ['C&J'],                category: 'weightlifting', prs: [] },
   { name: 'Ground to Overhead',   aliases: ['G2OH'],               category: 'weightlifting', prs: [] },
   { name: 'Hang Clean',           aliases: [],                     category: 'weightlifting', prs: [] },
+  { name: 'Hang Clean & Jerk',    aliases: ['Hang C&J'],           category: 'weightlifting', prs: [] },
   { name: 'Hang Cluster',         aliases: [],                     category: 'weightlifting', prs: [] },
   { name: 'Hang Power Clean',     aliases: ['HPC'],                category: 'weightlifting', prs: [] },
   { name: 'Hang Power Snatch',    aliases: [],                     category: 'weightlifting', prs: [] },
