@@ -340,18 +340,33 @@ export function normalizeMovement(rawName) {
   return { name: trimmed }
 }
 
-// Session-detail (whiteboard) display: "DB Sit-Up", "Power Snatch", "KB Swing", "SA DB Overhead Lunge"
-// Checks move.implement first (explicit, from new log format) then falls back to name normalization.
+// Session-detail display: "SA KB Overhead Lunge (L)", "DB RDL", "Deficit Deadlift"
+// Explicit move.implement (short code: 'BB'|'KB'|'DB'|'Plate') takes precedence over normalized.
+// Explicit move.singleArm / move.side take precedence over 'SA' modifier from alias map (old data).
 export function toWorkoutDisplay(move) {
   if (!move?.name) return '—'
   const normalized = normalizeMovement(move.name)
-  const implement = move.implement ?? normalized.implement
   const { name, modifier } = normalized
+
   let display = SESSION_ABBREV[name] ?? name
-  if (implement && SESSION_PREFIX[implement]) {
-    display = `${SESSION_PREFIX[implement]} ${display}`
+
+  // Implement prefix
+  if (move.implement) {
+    const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate' }[move.implement] // BB is silent
+    if (prefix) display = `${prefix} ${display}`
+  } else if (normalized.implement) {
+    const prefix = SESSION_PREFIX[normalized.implement]
+    if (prefix) display = `${prefix} ${display}`
   }
-  if (modifier) display = `${modifier} ${display}`
+
+  // Single-arm — explicit field (new) or 'SA' modifier from alias (old data)
+  const isSA = move.singleArm != null ? move.singleArm : modifier === 'SA'
+  if (isSA) display = `SA ${display}`
+  if (move.side) display = `${display} (${move.side})`
+
+  // Non-SA modifiers (Deficit, Strict…) prepended
+  if (modifier && modifier !== 'SA') display = `${modifier} ${display}`
+
   return display
 }
 

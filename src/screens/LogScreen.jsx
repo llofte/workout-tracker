@@ -16,7 +16,7 @@ function formatDate(dateStr) {
 
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
-function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', dumbbellCount: null } }
+function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
 function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', dumbbellCount: null } }
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
@@ -49,6 +49,9 @@ function restoreStrengthMove(m) {
       : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
     ) ?? [newWorkingSet(1)],
     notes: m.notes || '',
+    implement: m.implement ?? null,
+    singleArm: m.singleArm ?? false,
+    side: m.side ?? null,
     dumbbellCount: m.dumbbellCount ?? null,
   }
 }
@@ -346,25 +349,34 @@ function SuggestButton({ name, sets }) {
   )
 }
 
-// ─── DB Toggle ────────────────────────────────────────────────────────
-function DbToggle({ value, onChange }) {
+// ─── Implement Selector ───────────────────────────────────────────────
+function ImplementSelector({ implement, singleArm, side, onChange }) {
+  const canBeSA = implement === 'KB' || implement === 'DB'
+  const pill = (active) => ({
+    backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
+    color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
+    border: 'none', borderRadius: 8, padding: '5px 11px',
+    fontSize: 12, fontWeight: active ? 700 : 500, letterSpacing: 0.2,
+    fontFamily: 'inherit', cursor: 'pointer',
+  })
   return (
-    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-      {[1, 2].map(n => (
-        <button
-          key={n}
-          onClick={() => onChange(value === n ? null : n)}
-          style={{
-            backgroundColor: value === n ? 'rgba(245,240,232,0.13)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${value === n ? 'rgba(245,240,232,0.28)' : 'transparent'}`,
-            borderRadius: 8, padding: '5px 11px',
-            fontSize: 12, fontWeight: 600, letterSpacing: 0.2,
-            color: value === n ? '#f5f0e8' : 'rgba(245,240,232,0.3)',
-            fontFamily: 'inherit', cursor: 'pointer',
-          }}
-        >
-          {n} DB
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      {['BB', 'KB', 'DB', 'Plate'].map(imp => (
+        <button key={imp}
+          onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
+          style={pill(implement === imp)}
+        >{imp}</button>
+      ))}
+      {canBeSA && (
+        <button onClick={() => onChange({ implement, singleArm: !singleArm, side: null })} style={pill(singleArm)}>
+          SA
         </button>
+      )}
+      {canBeSA && singleArm && ['L', 'R'].map(s => (
+        <button key={s}
+          onClick={() => onChange({ implement, singleArm, side: side === s ? null : s })}
+          style={pill(side === s)}
+        >{s}</button>
       ))}
     </div>
   )
@@ -1036,7 +1048,9 @@ Rules:
             : strengthType,
           movements: strengthMoves.map(m => ({
             name: m.name,
-            dumbbellCount: m.dumbbellCount ?? null,
+            implement: m.implement ?? null,
+            singleArm: m.singleArm ?? false,
+            side: m.side ?? null,
             sets: m.sets.map((s, idx) => ({
               setNumber: idx + 1,
               reps: s.reps !== '' ? Number(s.reps) : null,
@@ -1096,6 +1110,9 @@ Rules:
           movements: accessoryType === 'Traditional'
             ? accessoryTraditionalMoves.map(m => ({
                 name: m.name,
+                implement: m.implement ?? null,
+                singleArm: m.singleArm ?? false,
+                side: m.side ?? null,
                 sets: m.sets.map((s, idx) => ({
                   setNumber: idx + 1,
                   reps: s.reps !== '' ? Number(s.reps) : null,
@@ -1399,7 +1416,14 @@ Rules:
                   <button onClick={() => removeStrengthMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
                 </div>
                 <SuggestButton name={move.name} sets={move.sets} />
-                <DbToggle value={move.dumbbellCount} onChange={v => updateStrengthMove(mi, 'dumbbellCount', v)} />
+                <ImplementSelector
+                  implement={move.implement}
+                  singleArm={move.singleArm}
+                  side={move.side}
+                  onChange={({ implement, singleArm, side }) =>
+                    setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side } : m))
+                  }
+                />
                 <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
                   <span style={{ width: 28, flexShrink: 0 }} />
                   <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
@@ -1780,6 +1804,14 @@ Rules:
                         <button onClick={() => removeAccessoryTradMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
                       )}
                     </div>
+                    <ImplementSelector
+                      implement={move.implement}
+                      singleArm={move.singleArm}
+                      side={move.side}
+                      onChange={({ implement, singleArm, side }) =>
+                        setAccessoryTraditionalMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side } : m))
+                      }
+                    />
                     <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
                       <span style={{ width: 28, flexShrink: 0 }} />
                       <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
