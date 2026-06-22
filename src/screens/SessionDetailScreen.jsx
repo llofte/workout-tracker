@@ -414,13 +414,13 @@ function MetconBlock({ block }) {
 
         {block.score && (
           <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 4px 4px',
-            borderTop: '0.5px solid rgba(255,255,255,0.08)',
-            marginTop: 4,
+            ...S.card,
+            backgroundColor: 'rgba(15,247,197,0.05)',
+            border: '0.5px solid rgba(15,247,197,0.15)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
-            <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: ff }}>Result</span>
-            <span style={{ color: '#0ff7c5', fontSize: 20, fontWeight: 700, fontFamily: ff, letterSpacing: -0.5 }}>{block.score}</span>
+            <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: ff }}>Result</span>
+            <span style={{ color: '#0ff7c5', fontSize: 22, fontWeight: 700, fontFamily: ff, letterSpacing: -0.5 }}>{block.score}</span>
           </div>
         )}
       </div>
