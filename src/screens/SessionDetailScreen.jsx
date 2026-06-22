@@ -433,7 +433,7 @@ function MetconBlock({ block }) {
             )}
             <div style={S.card}>
               {si === 0 && subtitle && (
-                <p style={{ color: '#0ff7c5', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
+                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 15, fontWeight: 600, margin: '0 0 10px', fontFamily: ff }}>{subtitle}</p>
               )}
               {si > 0 && (seg.duration || seg.rounds) && (
                 <p style={S.metaLine}>
