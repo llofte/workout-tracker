@@ -339,7 +339,7 @@ function SwipeToDelete({ onDelete, children, borderRadius = 14, marginBottom = 0
           setDragging(false)
           setOffset(o => o < -REVEAL / 2 ? -REVEAL : 0)
         }}
-        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', borderRadius }}
+        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', borderRadius, backgroundColor: '#201a2a' }}
       >
         {children}
       </div>
@@ -1576,18 +1576,19 @@ Rules:
             </div>
 
             {strengthMoves.map((move, mi) => (
-              <SwipeToDelete key={mi} onDelete={() => removeStrengthMove(mi)} marginBottom={10} borderRadius={14}>
-              <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                  <input
-                    placeholder={`Movement ${mi + 1}…`} value={move.name}
-                    onChange={e => updateStrengthMove(mi, 'name', e.target.value)}
-                    style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                  />
-                  <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                    Library
-                  </button>
-                </div>
+              <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                <SwipeToDelete onDelete={() => removeStrengthMove(mi)} marginBottom={10} borderRadius={10}>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      placeholder={`Movement ${mi + 1}…`} value={move.name}
+                      onChange={e => updateStrengthMove(mi, 'name', e.target.value)}
+                      style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                    />
+                    <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                      Library
+                    </button>
+                  </div>
+                </SwipeToDelete>
                 <SuggestButton name={move.name} sets={move.sets} />
                 <ImplementSelector
                   implement={move.implement}
@@ -1601,17 +1602,18 @@ Rules:
                   <span style={{ width: 28, flexShrink: 0 }} />
                   <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
                   <span style={{ flex: 1.6, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>WEIGHT</span>
-                  <span style={{ width: 26, flexShrink: 0 }} /><span style={{ width: 26, flexShrink: 0 }} />
+                  <span style={{ width: 26, flexShrink: 0 }} />
                 </div>
                 {move.sets.map((set, si) => (
-                  <SetRow key={si} set={set} onChange={(f, v) => updateSet(mi, si, f, v)} onCheck={() => updateSet(mi, si, 'isCompleted', !set.isCompleted)} />
+                  <SwipeToDelete key={si} onDelete={() => deleteSet(mi, si)}>
+                    <SetRow set={set} onChange={(f, v) => updateSet(mi, si, f, v)} onCheck={() => updateSet(mi, si, 'isCompleted', !set.isCompleted)} />
+                  </SwipeToDelete>
                 ))}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <button onClick={() => addWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
                   <button onClick={() => addWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
                 </div>
               </div>
-              </SwipeToDelete>
             ))}
             <button onClick={addStrengthMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
               + Add Movement
@@ -1639,19 +1641,20 @@ Rules:
             {hasBuyIn && (
               <>
                 {buyInMoves.map((move, mi) => (
-                  <SwipeToDelete key={mi} onDelete={() => removeBuyInMove(mi)} marginBottom={10} borderRadius={14}>
-                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                      {move.isRest ? (
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
-                        </div>
-                      ) : (
-                        <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyInMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
-                      )}
-                      {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
-                      <button onClick={() => updateBuyInMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
-                    </div>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <SwipeToDelete onDelete={() => removeBuyInMove(mi)} marginBottom={10} borderRadius={10}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {move.isRest ? (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                            <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                          </div>
+                        ) : (
+                          <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyInMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
+                        )}
+                        {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                        <button onClick={() => updateBuyInMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
+                      </div>
+                    </SwipeToDelete>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
                         <>
@@ -1675,7 +1678,6 @@ Rules:
                       </div>
                     )}
                   </div>
-                  </SwipeToDelete>
                 ))}
                 <button onClick={addBuyInMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 16 }}>
                   + Add Movement
@@ -1783,32 +1785,33 @@ Rules:
 
                 {/* Movements */}
                 {seg.moves.map((move, mi) => (
-                  <SwipeToDelete key={mi} onDelete={() => removeSegMove(si, mi)} marginBottom={10} borderRadius={14}>
-                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                      {move.isRest ? (
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
-                        </div>
-                      ) : (
-                        <input
-                          placeholder={`Movement ${mi + 1}…`} value={move.name}
-                          onChange={e => updateSegMove(si, mi, 'name', e.target.value)}
-                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                      )}
-                      {!move.isRest && (
-                        <button onClick={() => openPicker('metcon', mi, si)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                          Library
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <SwipeToDelete onDelete={() => removeSegMove(si, mi)} marginBottom={10} borderRadius={10}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {move.isRest ? (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                            <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                          </div>
+                        ) : (
+                          <input
+                            placeholder={`Movement ${mi + 1}…`} value={move.name}
+                            onChange={e => updateSegMove(si, mi, 'name', e.target.value)}
+                            style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                          />
+                        )}
+                        {!move.isRest && (
+                          <button onClick={() => openPicker('metcon', mi, si)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                            Library
+                          </button>
+                        )}
+                        <button
+                          onClick={() => updateSegMove(si, mi, 'isRest', !move.isRest)}
+                          style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
+                        >
+                          Rest
                         </button>
-                      )}
-                      <button
-                        onClick={() => updateSegMove(si, mi, 'isRest', !move.isRest)}
-                        style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
-                      >
-                        Rest
-                      </button>
-                    </div>
+                      </div>
+                    </SwipeToDelete>
                     <div>
                       {!move.isRest && (
                         <ImplementSelector
@@ -1881,7 +1884,6 @@ Rules:
                       )}
                     </div>
                   </div>
-                  </SwipeToDelete>
                 ))}
 
                 <button onClick={() => addSegMove(si)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -1928,19 +1930,20 @@ Rules:
             {hasBuyOut && (
               <>
                 {buyOutMoves.map((move, mi) => (
-                  <SwipeToDelete key={mi} onDelete={() => removeBuyOutMove(mi)} marginBottom={10} borderRadius={14}>
-                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                      {move.isRest ? (
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
-                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
-                        </div>
-                      ) : (
-                        <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyOutMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
-                      )}
-                      {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
-                      <button onClick={() => updateBuyOutMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
-                    </div>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <SwipeToDelete onDelete={() => removeBuyOutMove(mi)} marginBottom={10} borderRadius={10}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {move.isRest ? (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                            <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                          </div>
+                        ) : (
+                          <input placeholder={`Movement ${mi + 1}…`} value={move.name} onChange={e => updateBuyOutMove(mi, 'name', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }} />
+                        )}
+                        {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
+                        <button onClick={() => updateBuyOutMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
+                      </div>
+                    </SwipeToDelete>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
                         <>
@@ -1964,7 +1967,6 @@ Rules:
                       </div>
                     )}
                   </div>
-                  </SwipeToDelete>
                 ))}
                 <button onClick={addBuyOutMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
                   + Add Movement
@@ -1995,18 +1997,19 @@ Rules:
             {accessoryType === 'Traditional' && (
               <>
                 {accessoryTraditionalMoves.map((move, mi) => (
-                  <SwipeToDelete key={mi} onDelete={() => removeAccessoryTradMove(mi)} marginBottom={10} borderRadius={14}>
-                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                      <input
-                        placeholder={`Movement ${mi + 1}…`} value={move.name}
-                        onChange={e => updateAccessoryTradMove(mi, 'name', e.target.value)}
-                        style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                      />
-                      <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                        Library
-                      </button>
-                    </div>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <SwipeToDelete onDelete={() => removeAccessoryTradMove(mi)} marginBottom={10} borderRadius={10}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          placeholder={`Movement ${mi + 1}…`} value={move.name}
+                          onChange={e => updateAccessoryTradMove(mi, 'name', e.target.value)}
+                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                        <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                          Library
+                        </button>
+                      </div>
+                    </SwipeToDelete>
                     <ImplementSelector
                       implement={move.implement}
                       singleArm={move.singleArm}
@@ -2019,17 +2022,18 @@ Rules:
                       <span style={{ width: 28, flexShrink: 0 }} />
                       <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
                       <span style={{ flex: 1.6, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>WEIGHT</span>
-                      <span style={{ width: 26, flexShrink: 0 }} /><span style={{ width: 26, flexShrink: 0 }} />
+                      <span style={{ width: 26, flexShrink: 0 }} />
                     </div>
                     {move.sets.map((set, si) => (
-                      <SetRow key={si} set={set} onChange={(f, v) => updateAccessoryTradSet(mi, si, f, v)} onDelete={() => deleteAccessoryTradSet(mi, si)} />
+                      <SwipeToDelete key={si} onDelete={() => deleteAccessoryTradSet(mi, si)}>
+                        <SetRow set={set} onChange={(f, v) => updateAccessoryTradSet(mi, si, f, v)} onDelete={() => deleteAccessoryTradSet(mi, si)} />
+                      </SwipeToDelete>
                     ))}
                     <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                       <button onClick={() => addAccessoryTradWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
                       <button onClick={() => addAccessoryTradWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
                     </div>
                   </div>
-                  </SwipeToDelete>
                 ))}
                 <button onClick={addAccessoryTradMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
                   + Add Movement
@@ -2050,18 +2054,19 @@ Rules:
                   </div>
                 </div>
                 {accessoryTabataMoves.map((move, mi) => (
-                  <SwipeToDelete key={mi} onDelete={() => removeAccessoryTabataMove(mi)} marginBottom={10} borderRadius={14}>
-                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                      <input
-                        placeholder={`Movement ${mi + 1}…`} value={move.name}
-                        onChange={e => updateAccessoryTabataMove(mi, 'name', e.target.value)}
-                        style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                      />
-                      <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                        Library
-                      </button>
-                    </div>
+                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                    <SwipeToDelete onDelete={() => removeAccessoryTabataMove(mi)} marginBottom={12} borderRadius={10}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          placeholder={`Movement ${mi + 1}…`} value={move.name}
+                          onChange={e => updateAccessoryTabataMove(mi, 'name', e.target.value)}
+                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                        />
+                        <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                          Library
+                        </button>
+                      </div>
+                    </SwipeToDelete>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <div style={{ flex: 1 }}>
                         <p style={labelStyle}>Rounds</p>
@@ -2077,7 +2082,6 @@ Rules:
                       </div>
                     </div>
                   </div>
-                  </SwipeToDelete>
                 ))}
                 <button onClick={addAccessoryTabataMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
                   + Add Movement
