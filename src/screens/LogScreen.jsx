@@ -501,7 +501,7 @@ function ImplementSelector({ implement, singleArm, side, onChange }) {
   })
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-      {['BB', 'KB', 'DB', 'Plate', 'Rower'].map(imp => (
+      {['BB', 'KB', 'DB', 'Plate'].map(imp => (
         <button key={imp}
           onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
           style={pill(implement === imp)}
