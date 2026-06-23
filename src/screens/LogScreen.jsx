@@ -24,15 +24,15 @@ function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWa
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
 function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
 
-const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i
+const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
 
 function parseCardioReps(repsVal) {
   const s = String(repsVal ?? '').trim()
-  const m = s.match(/^(\d+(?:\.\d+)?)\s*(cal|cals?|calories?|m|meters?|metres?|sec|secs?|seconds?)$/i)
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(cal|cals?|calories?|mi|miles?|m|meters?|metres?|sec|secs?|seconds?)$/i)
   if (!m) return { reps: s, cardioUnit: 'cal' }
   const unit = m[2].toLowerCase()
-  const cardioUnit = /^m(eters?|etres?)?$/.test(unit) ? 'm' : /^(sec|secs?|seconds?)$/.test(unit) ? 'sec' : 'cal'
+  const cardioUnit = /^mi(les?)?$/.test(unit) ? 'mi' : /^m(eters?|etres?)?$/.test(unit) ? 'm' : /^(sec|secs?|seconds?)$/.test(unit) ? 'sec' : 'cal'
   return { reps: m[1], cardioUnit }
 }
 
@@ -214,17 +214,36 @@ const labelStyle = {
 // ─── Library Sheet ────────────────────────────────────────────────────
 function LibrarySheet({ movements, onSelect, onClose }) {
   const [query, setQuery] = useState('')
+  const [sheetBottom, setSheetBottom] = useState(0)
+  const [sheetMaxH, setSheetMaxH] = useState('75vh')
   const isLoading = movements === null
   const filtered = (movements ?? []).filter(m =>
     m.name.toLowerCase().includes(query.toLowerCase())
   )
+
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+    const update = () => {
+      const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      setSheetBottom(kbH)
+      setSheetMaxH(`${Math.round(vv.height * 0.9)}px`)
+    }
+    vv.addEventListener('resize', update)
+    vv.addEventListener('scroll', update)
+    return () => {
+      vv.removeEventListener('resize', update)
+      vv.removeEventListener('scroll', update)
+    }
+  }, [])
+
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200 }} />
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
+        position: 'fixed', bottom: sheetBottom, left: 0, right: 0,
         backgroundColor: '#201a2a', borderRadius: '20px 20px 0 0', zIndex: 201,
-        maxHeight: '75vh', display: 'flex', flexDirection: 'column',
+        maxHeight: sheetMaxH, display: 'flex', flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 0' }}>
@@ -1854,7 +1873,7 @@ Rules:
                                 <input placeholder="—" value={move.reps} onChange={e => updateSegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
                                 {isCardioName(move.name) ? (
                                   <div style={{ display: 'flex', gap: 3, marginTop: 1 }}>
-                                    {['cal', 'm', 'sec'].map(u => (
+                                    {['cal', 'm', 'mi', 'sec'].map(u => (
                                       <button key={u} onClick={() => updateSegMove(si, mi, 'cardioUnit', u)} style={{
                                         flex: 1, backgroundColor: (move.cardioUnit || 'cal') === u ? 'rgba(15,247,197,0.18)' : 'rgba(255,255,255,0.05)',
                                         color: (move.cardioUnit || 'cal') === u ? '#0ff7c5' : 'rgba(245,240,232,0.35)',
