@@ -115,7 +115,7 @@ export default function App() {
                 position: 'absolute',
                 bottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 61px)',
                 left: 12, right: 12, zIndex: 99,
-                backgroundColor: 'rgba(15,247,197,0.05)',
+                backgroundColor: '#0d2820',
                 borderRadius: 16,
                 border: '1.5px solid #e05c4b',
                 padding: '13px 16px',
