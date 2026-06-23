@@ -253,9 +253,6 @@ function LibrarySheet({ movements, onSelect, onClose }) {
               borderBottom: '0.5px solid rgba(255,255,255,0.07)', cursor: 'pointer', textAlign: 'left',
             }}>
               <span style={{ color: '#f5f0e8', fontSize: 16, fontFamily: 'inherit' }}>{m.name}</span>
-              {m.prs?.length > 0 && (
-                <span style={{ backgroundColor: 'rgba(192,57,43,0.2)', color: '#e05c4b', borderRadius: 6, padding: '2px 7px', fontSize: 11, fontWeight: 600, fontFamily: 'inherit' }}>PR</span>
-              )}
             </button>
           ))}
         </div>
