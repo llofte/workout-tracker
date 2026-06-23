@@ -323,7 +323,7 @@ function SwipeToDelete({ onDelete, children, borderRadius = 14, marginBottom = 0
   return (
     <div style={{ position: 'relative', borderRadius, marginBottom, overflow: 'hidden' }}>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: REVEAL, backgroundColor: '#e05c4b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', right: 0, top: 2, bottom: 2, width: REVEAL, backgroundColor: '#e05c4b', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '0 6px 6px 0' }}>
           <button
             onClick={() => { setOffset(0); onDelete() }}
             style={{ background: 'none', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', letterSpacing: 0.3 }}
