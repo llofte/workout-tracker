@@ -4,6 +4,8 @@ import HomeScreen from './screens/HomeScreen'
 import LogScreen from './screens/LogScreen'
 import MovementsScreen from './screens/MovementsScreen'
 import CalcScreen from './screens/CalcScreen'
+import SessionDetailScreen from './screens/SessionDetailScreen'
+import SwipeBack from './components/shared/SwipeBack'
 import { useSessions } from './hooks/useSession'
 import { PILL_BOTTOM, TAB_HEIGHT } from './utils/pwa'
 
@@ -15,6 +17,7 @@ export default function App() {
   const [kbOpen, setKbOpen] = useState(false)
   const [logging, setLogging] = useState(false)
   const [editingSession, setEditingSession] = useState(null)
+  const [savedSession, setSavedSession] = useState(null)
   const [logMinimized, setLogMinimized] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const { sessions, refetch } = useSessions()
@@ -47,6 +50,15 @@ export default function App() {
     setEditingSession(null)
     setLogMinimized(false)
     setDragOffset(0)
+  }
+
+  const handleSave = (session) => {
+    refetch()
+    setLogging(false)
+    setEditingSession(null)
+    setLogMinimized(false)
+    setDragOffset(0)
+    if (session) setSavedSession(session)
   }
 
   const minimizeLog = () => {
@@ -88,7 +100,7 @@ export default function App() {
           }}>
             <LogScreen
               initialSession={editingSession}
-              onSave={closeLog}
+              onSave={handleSave}
               onClose={closeLog}
               onMinimize={minimizeLog}
               onDragProgress={handleDragProgress}
@@ -130,6 +142,20 @@ export default function App() {
             </div>
           )}
         </>
+      )}
+      {savedSession && (
+        <div style={{
+          position: 'absolute', inset: 0, backgroundColor: '#120c18', zIndex: 100,
+          overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
+        }}>
+          <SwipeBack onBack={() => setSavedSession(null)}>
+            <SessionDetailScreen
+              session={savedSession}
+              onBack={() => setSavedSession(null)}
+              onEdit={s => { setSavedSession(null); setEditingSession(s) }}
+            />
+          </SwipeBack>
+        </div>
       )}
     </div>
   )

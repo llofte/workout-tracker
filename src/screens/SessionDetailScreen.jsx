@@ -265,8 +265,17 @@ function calcAccessoryVol(block) {
 
 function formatScore(score) {
   if (!score) return null
-  const amrap = parseAmrapScore(String(score).trim())
-  if (!amrap) return String(score)
+  const s = String(score).trim()
+  const timeMatch = s.match(/^(\d+):(\d{2})$/)
+  if (timeMatch) {
+    const min = parseInt(timeMatch[1], 10)
+    const sec = parseInt(timeMatch[2], 10)
+    if (min && sec) return `${min} min ${sec} sec`
+    if (min) return `${min} min`
+    return `${sec} sec`
+  }
+  const amrap = parseAmrapScore(s)
+  if (!amrap) return s
   const roundsPart = `${amrap.completedRounds} ${amrap.completedRounds === 1 ? 'round' : 'rounds'}`
   if (!amrap.extraReps) return roundsPart
   return `${roundsPart} + ${amrap.extraReps} ${amrap.extraReps === 1 ? 'rep' : 'reps'}`

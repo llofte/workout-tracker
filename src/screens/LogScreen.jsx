@@ -1209,10 +1209,11 @@ Rules:
 
       // PR detection on new sessions only
       let gotPR = false
+      let updatedStrengthBlock = null
       if (!initialSession?.id && sessionData.strengthBlock) {
-        const updatedBlock = await detectPRs(savedId, sessionData.date, sessionData.strengthBlock)
-        if (updatedBlock) {
-          await supabase.from('sessions').update({ strength_block: updatedBlock }).eq('id', savedId)
+        updatedStrengthBlock = await detectPRs(savedId, sessionData.date, sessionData.strengthBlock)
+        if (updatedStrengthBlock) {
+          await supabase.from('sessions').update({ strength_block: updatedStrengthBlock }).eq('id', savedId)
           gotPR = true
         }
       }
@@ -1230,11 +1231,12 @@ Rules:
         if (!count) await supabase.from('movements').insert({ id: crypto.randomUUID(), name, aliases: [], category: 'other', prs: [] })
       }
 
+      const savedSession = { ...fullSession, strengthBlock: updatedStrengthBlock ?? fullSession.strengthBlock }
       if (gotPR) {
         setShowPR(true)
-        setTimeout(() => { setShowPR(false); onSave?.() }, 2200)
+        setTimeout(() => { setShowPR(false); onSave?.(savedSession) }, 2200)
       } else {
-        onSave?.()
+        onSave?.(savedSession)
       }
     } catch (err) {
       console.error(err)
