@@ -35,6 +35,29 @@ function parseCardioReps(repsVal) {
   const cardioUnit = /^m(eters?|etres?)?$/.test(unit) ? 'm' : /^(sec|secs?|seconds?)$/.test(unit) ? 'sec' : 'cal'
   return { reps: m[1], cardioUnit }
 }
+
+// If reps are "X/Y" (Rx/scaled split on whiteboard), take Y (women's/scaled)
+function pickScaledReps(val) {
+  const s = String(val ?? '').trim()
+  const m = s.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
+  return m ? m[2] : s
+}
+
+// If weight is "X/Y" (Rx/scaled split), clear it — user never does prescribed weight
+function clearSlashWeight(val) {
+  const s = String(val ?? '').trim()
+  return /^\d+(?:\.\d+)?\/\d+(?:\.\d+)?$/.test(s) ? '' : s
+}
+
+// Barbell movements assumed when not otherwise specified in a strength block
+const BB_STRENGTH_MOVEMENTS = new Set([
+  'Back Squat', 'Front Squat', 'Overhead Squat',
+  'Deadlift', 'Romanian Deadlift', 'Snatch Grip Deadlift', 'Sumo Deadlift High Pull',
+  'Power Snatch', 'Hang Power Snatch', 'Snatch', 'Muscle Snatch',
+  'Power Clean', 'Hang Power Clean', 'Clean', 'Clean & Jerk', 'Hang Clean & Jerk',
+  'Push Press', 'Push Jerk', 'Strict Press', 'Split Jerk', 'Jerk',
+  'Thruster', 'Good Morning', 'Bent-Over Row', 'Ground to Overhead',
+])
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
   return {
@@ -72,7 +95,7 @@ function restoreStrengthMove(m) {
   }
   return {
     name: canonName,
-    sets: m.sets?.map(s => s.notation === 'warmup'
+    sets: m.sets?.map(s => (s.notation === 'warmup' || s.isWarmup === true)
       ? { num: `W${++wn}`, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: true }
       : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
     ) ?? [newWorkingSet(1)],
@@ -695,7 +718,14 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         setStrengthType(result.strengthBlock.type || 'Traditional')
         setStrengthDuration(result.strengthBlock.duration != null ? String(result.strengthBlock.duration) : '')
         setStrengthInterval(result.strengthBlock.interval != null ? String(result.strengthBlock.interval) : '1')
-        if (result.strengthBlock.movements?.length) setStrengthMoves(result.strengthBlock.movements)
+        if (result.strengthBlock.movements?.length) {
+          setStrengthMoves(result.strengthBlock.movements.map(m => {
+            const restored = restoreStrengthMove(m)
+            const sets = restored.sets.map(s => ({ ...s, weight: clearSlashWeight(s.weight) }))
+            const implement = restored.implement ?? (BB_STRENGTH_MOVEMENTS.has(restored.name) ? 'BB' : null)
+            return { ...restored, sets, implement }
+          }))
+        }
       } else {
         setHasStrength(false)
       }
@@ -710,15 +740,22 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
             ...seg,
             moves: (seg.moves ?? []).map(m => {
               if (!m || m.isRest) return { ...newMetconMove(), ...m }
-              const parsed = parseCardioReps(m.reps)
-              return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit }
+              const rawReps = pickScaledReps(m.reps)
+              const parsed = parseCardioReps(rawReps)
+              return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
             }),
           })))
         }
+        const processMetconMove = m => {
+          if (!m || m.isRest) return { ...newMetconMove(), ...m }
+          const rawReps = pickScaledReps(m.reps)
+          const parsed = parseCardioReps(rawReps)
+          return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
+        }
         setHasBuyIn(!!result.hasBuyIn)
-        if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves)
+        if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves.map(processMetconMove))
         setHasBuyOut(!!result.hasBuyOut)
-        if (result.hasBuyOut && result.buyOutMoves?.length) setBuyOutMoves(result.buyOutMoves)
+        if (result.hasBuyOut && result.buyOutMoves?.length) setBuyOutMoves(result.buyOutMoves.map(processMetconMove))
       }
 
       setStep(2)
