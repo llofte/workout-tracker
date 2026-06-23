@@ -19,8 +19,8 @@ function formatDate(dateStr) {
   return `${weekday} · ${month} ${day}`
 }
 
-function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false } }
-function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true } }
+function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false, isCompleted: false } }
+function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true, isCompleted: false } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
 function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
 
@@ -262,18 +262,23 @@ function LibrarySheet({ movements, onSelect, onClose }) {
 }
 
 // ─── Set Row ──────────────────────────────────────────────────────────
-function SetRow({ set, onChange, onDelete }) {
-  const dimColor = set.isWarmup ? 'rgba(245,240,232,0.22)' : 'rgba(245,240,232,0.3)'
+function SetRow({ set, onChange, onCheck, onDelete }) {
+  const done = !!set.isCompleted
+  const baseInputBg = set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)'
+  const inputBg = done ? 'rgba(15,247,197,0.07)' : baseInputBg
+  const inputColor = done ? 'rgba(15,247,197,0.9)' : (set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8')
+  const dimColor = done ? 'rgba(15,247,197,0.45)' : (set.isWarmup ? 'rgba(245,240,232,0.22)' : 'rgba(245,240,232,0.3)')
+  const numColor = done ? 'rgba(15,247,197,0.7)' : (set.isWarmup ? 'rgba(245,240,232,0.28)' : 'rgba(245,240,232,0.45)')
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 6, paddingBottom: 6, borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-      <span style={{ width: 28, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: set.isWarmup ? 'rgba(245,240,232,0.28)' : 'rgba(245,240,232,0.45)' }}>
+      <span style={{ width: 28, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: numColor }}>
         {set.isWarmup ? 'W' : set.num}
       </span>
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
         <input
           type="number" inputMode="numeric" placeholder="—" value={set.reps}
           onChange={e => onChange('reps', e.target.value)}
-          style={{ width: '100%', backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+          style={{ width: '100%', backgroundColor: inputBg, border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: inputColor, fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box', transition: 'background-color 0.2s ease, color 0.2s ease' }}
         />
         <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: dimColor, fontFamily: 'inherit' }}>reps</span>
       </div>
@@ -281,15 +286,63 @@ function SetRow({ set, onChange, onDelete }) {
         <input
           type="number" inputMode="decimal" placeholder="—" value={set.weight}
           onChange={e => onChange('weight', e.target.value)}
-          style={{ width: '100%', backgroundColor: set.isWarmup ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: set.isWarmup ? 'rgba(245,240,232,0.5)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+          style={{ width: '100%', backgroundColor: inputBg, border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 16, color: inputColor, fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box', transition: 'background-color 0.2s ease, color 0.2s ease' }}
         />
         <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: dimColor, fontFamily: 'inherit' }}>lbs</span>
       </div>
-      <button onClick={onDelete} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.5)" strokeWidth="2.5" strokeLinecap="round">
-          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-      </button>
+      {onCheck ? (
+        <button
+          onClick={onCheck}
+          style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: done ? '#0ff7c5' : 'transparent', border: done ? 'none' : '2px solid rgba(245,240,232,0.2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, transition: 'all 0.15s ease' }}
+        >
+          {done && (
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a1a10" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          )}
+        </button>
+      ) : (
+        <button onClick={onDelete} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(245,240,232,0.5)" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+}
+
+// ─── Swipe To Delete ──────────────────────────────────────────────────
+function SwipeToDelete({ onDelete, children, borderRadius = 14, marginBottom = 0 }) {
+  const [offset, setOffset] = useState(0)
+  const [dragging, setDragging] = useState(false)
+  const startX = useRef(0)
+  const baseOffset = useRef(0)
+  const REVEAL = 80
+  return (
+    <div style={{ position: 'relative', overflow: 'hidden', borderRadius, marginBottom }}>
+      <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: REVEAL, backgroundColor: '#e05c4b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <button
+          onClick={() => { setOffset(0); onDelete() }}
+          style={{ background: 'none', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', letterSpacing: 0.3 }}
+        >
+          Delete
+        </button>
+      </div>
+      <div
+        onTouchStart={e => { setDragging(true); startX.current = e.touches[0].clientX; baseOffset.current = offset }}
+        onTouchMove={e => {
+          const dx = e.touches[0].clientX - startX.current
+          setOffset(Math.min(0, Math.max(-REVEAL, baseOffset.current + dx)))
+        }}
+        onTouchEnd={() => {
+          setDragging(false)
+          setOffset(o => o < -REVEAL / 2 ? -REVEAL : 0)
+        }}
+        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', borderRadius }}
+      >
+        {children}
+      </div>
     </div>
   )
 }
@@ -1523,7 +1576,8 @@ Rules:
             </div>
 
             {strengthMoves.map((move, mi) => (
-              <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+              <SwipeToDelete key={mi} onDelete={() => removeStrengthMove(mi)} marginBottom={10} borderRadius={14}>
+              <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   <input
                     placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -1533,7 +1587,6 @@ Rules:
                   <button onClick={() => openPicker('strength', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                     Library
                   </button>
-                  <button onClick={() => removeStrengthMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
                 </div>
                 <SuggestButton name={move.name} sets={move.sets} />
                 <ImplementSelector
@@ -1551,13 +1604,14 @@ Rules:
                   <span style={{ width: 26, flexShrink: 0 }} /><span style={{ width: 26, flexShrink: 0 }} />
                 </div>
                 {move.sets.map((set, si) => (
-                  <SetRow key={si} set={set} onChange={(f, v) => updateSet(mi, si, f, v)} onDelete={() => deleteSet(mi, si)} />
+                  <SetRow key={si} set={set} onChange={(f, v) => updateSet(mi, si, f, v)} onCheck={() => updateSet(mi, si, 'isCompleted', !set.isCompleted)} />
                 ))}
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <button onClick={() => addWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
                   <button onClick={() => addWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
                 </div>
               </div>
+              </SwipeToDelete>
             ))}
             <button onClick={addStrengthMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
               + Add Movement
@@ -1585,7 +1639,8 @@ Rules:
             {hasBuyIn && (
               <>
                 {buyInMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <SwipeToDelete key={mi} onDelete={() => removeBuyInMove(mi)} marginBottom={10} borderRadius={14}>
+                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1596,7 +1651,6 @@ Rules:
                       )}
                       {!move.isRest && <button onClick={() => openPicker('buyIn', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
                       <button onClick={() => updateBuyInMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
-                      {buyInMoves.length > 1 && <button onClick={() => removeBuyInMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
@@ -1621,6 +1675,7 @@ Rules:
                       </div>
                     )}
                   </div>
+                  </SwipeToDelete>
                 ))}
                 <button onClick={addBuyInMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 16 }}>
                   + Add Movement
@@ -1728,7 +1783,8 @@ Rules:
 
                 {/* Movements */}
                 {seg.moves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <SwipeToDelete key={mi} onDelete={() => removeSegMove(si, mi)} marginBottom={10} borderRadius={14}>
+                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1752,9 +1808,6 @@ Rules:
                       >
                         Rest
                       </button>
-                      {seg.moves.length > 1 && (
-                        <button onClick={() => removeSegMove(si, mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
-                      )}
                     </div>
                     <div>
                       {!move.isRest && (
@@ -1828,6 +1881,7 @@ Rules:
                       )}
                     </div>
                   </div>
+                  </SwipeToDelete>
                 ))}
 
                 <button onClick={() => addSegMove(si)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
@@ -1874,7 +1928,8 @@ Rules:
             {hasBuyOut && (
               <>
                 {buyOutMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <SwipeToDelete key={mi} onDelete={() => removeBuyOutMove(mi)} marginBottom={10} borderRadius={14}>
+                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       {move.isRest ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
@@ -1885,7 +1940,6 @@ Rules:
                       )}
                       {!move.isRest && <button onClick={() => openPicker('buyOut', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Library</button>}
                       <button onClick={() => updateBuyOutMove(mi, 'isRest', !move.isRest)} style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>Rest</button>
-                      {buyOutMoves.length > 1 && <button onClick={() => removeBuyOutMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>}
                     </div>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
@@ -1910,6 +1964,7 @@ Rules:
                       </div>
                     )}
                   </div>
+                  </SwipeToDelete>
                 ))}
                 <button onClick={addBuyOutMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
                   + Add Movement
@@ -1940,7 +1995,8 @@ Rules:
             {accessoryType === 'Traditional' && (
               <>
                 {accessoryTraditionalMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <SwipeToDelete key={mi} onDelete={() => removeAccessoryTradMove(mi)} marginBottom={10} borderRadius={14}>
+                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                       <input
                         placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -1950,9 +2006,6 @@ Rules:
                       <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                         Library
                       </button>
-                      {accessoryTraditionalMoves.length > 1 && (
-                        <button onClick={() => removeAccessoryTradMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
-                      )}
                     </div>
                     <ImplementSelector
                       implement={move.implement}
@@ -1976,6 +2029,7 @@ Rules:
                       <button onClick={() => addAccessoryTradWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
                     </div>
                   </div>
+                  </SwipeToDelete>
                 ))}
                 <button onClick={addAccessoryTradMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
                   + Add Movement
@@ -1996,7 +2050,8 @@ Rules:
                   </div>
                 </div>
                 {accessoryTabataMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
+                  <SwipeToDelete key={mi} onDelete={() => removeAccessoryTabataMove(mi)} marginBottom={10} borderRadius={14}>
+                  <div style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', border: '0.5px solid rgba(255,255,255,0.07)' }}>
                     <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                       <input
                         placeholder={`Movement ${mi + 1}…`} value={move.name}
@@ -2006,9 +2061,6 @@ Rules:
                       <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
                         Library
                       </button>
-                      {accessoryTabataMoves.length > 1 && (
-                        <button onClick={() => removeAccessoryTabataMove(mi)} style={{ backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 13, color: '#ff6b5e', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>×</button>
-                      )}
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
                       <div style={{ flex: 1 }}>
@@ -2025,6 +2077,7 @@ Rules:
                       </div>
                     </div>
                   </div>
+                  </SwipeToDelete>
                 ))}
                 <button onClick={addAccessoryTabataMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
                   + Add Movement
