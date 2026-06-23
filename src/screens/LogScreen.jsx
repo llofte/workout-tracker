@@ -339,7 +339,7 @@ function SwipeToDelete({ onDelete, children, borderRadius = 14, marginBottom = 0
           setDragging(false)
           setOffset(o => o < -REVEAL / 2 ? -REVEAL : 0)
         }}
-        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', borderRadius, backgroundColor: '#201a2a' }}
+        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : 'transform 0.25s ease', backgroundColor: '#201a2a' }}
       >
         {children}
       </div>
