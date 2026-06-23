@@ -115,10 +115,9 @@ export default function App() {
                 position: 'absolute',
                 bottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 61px)',
                 left: 12, right: 12, zIndex: 99,
-                background: 'linear-gradient(160deg, #261f30 0%, #201a2a 100%)',
+                backgroundColor: 'rgba(15,247,197,0.05)',
                 borderRadius: 16,
-                border: '0.5px solid rgba(255,255,255,0.07)',
-                borderLeft: '2.5px solid #0ff7c5',
+                border: '1.5px solid #e05c4b',
                 padding: '13px 16px',
                 display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer',
               }}
