@@ -42,7 +42,7 @@ const TABS = [
 export default function TabBar({ activeTab, onTabChange, hidden }) {
   return (
     <nav style={{
-      position: 'absolute',
+      position: 'fixed',
       bottom: 0,
       left: 0,
       right: 0,
@@ -50,7 +50,7 @@ export default function TabBar({ activeTab, onTabChange, hidden }) {
       backgroundColor: '#0e0912',
       borderTop: '0.5px solid rgba(255,255,255,0.1)',
       display: 'flex',
-      zIndex: 50,
+      zIndex: 150,
       transform: hidden ? 'translateY(100%)' : 'translateY(0)',
       transition: 'transform 0.25s ease',
     }}>

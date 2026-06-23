@@ -86,7 +86,7 @@ export default function App() {
 
       {logOpen && (
         <div style={{
-          position: 'absolute', inset: 0, backgroundColor: '#120c18', zIndex: 100,
+          position: 'absolute', inset: 0, backgroundColor: '#120c18', zIndex: 200,
           overflowY: logMinimized || dragOffset > 0 ? 'hidden' : 'auto',
           overscrollBehavior: 'contain',
           WebkitOverflowScrolling: 'touch',
@@ -114,7 +114,7 @@ export default function App() {
           style={{
             position: 'absolute',
             bottom: 'calc(max(env(safe-area-inset-bottom), 8px) + 61px)',
-            left: 12, right: 12, zIndex: 150,
+            left: 12, right: 12, zIndex: 160,
             backgroundColor: '#131820',
             borderRadius: 16,
             border: '1.5px solid #e05c4b',

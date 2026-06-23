@@ -348,7 +348,7 @@ export default function MovementDetailScreen({ movement: init, onBack, onEdit })
   }
 
   return (
-    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 60 }}>
+    <div style={{ paddingTop: 'max(env(safe-area-inset-top), 16px)', paddingBottom: 'calc(env(safe-area-inset-bottom) + 85px)' }}>
 
       {/* Header */}
       <div style={{ padding: '12px 20px 20px' }}>
