@@ -741,28 +741,33 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     setPhotoError('')
     try {
       const base64 = await fileToJpegBase64(file)
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          messages: [{ role: 'user', content: [
-            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
-            { type: 'text', text: buildPhotoPrompt() },
-          ]}],
-        }),
+      const reqHeaders = {
+        'Content-Type': 'application/json',
+        'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      }
+      const reqBody = JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: buildPhotoPrompt() },
+        ]}],
       })
-      if (!res.ok) {
+      let data
+      for (let attempt = 0; attempt <= 2; attempt++) {
+        if (attempt > 0) {
+          setPhotoError(`Server busy — retrying (${attempt}/2)…`)
+          await new Promise(r => setTimeout(r, 2500))
+          setPhotoError('')
+        }
+        const res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers: reqHeaders, body: reqBody })
+        if (res.ok) { data = await res.json(); break }
         const errBody = await res.json().catch(() => ({}))
+        if ((res.status === 500 || res.status === 529 || res.status === 503) && attempt < 2) continue
         throw new Error(`API ${res.status}: ${errBody.error?.message || res.statusText}`)
       }
-      const data = await res.json()
       const raw = data.content[0].text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim()
       const result = JSON.parse(raw)
 
