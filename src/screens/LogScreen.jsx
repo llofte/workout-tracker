@@ -26,6 +26,15 @@ function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssign
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
+
+function parseCardioReps(repsVal) {
+  const s = String(repsVal ?? '').trim()
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*(cal|cals?|calories?|m|meters?|metres?|sec|secs?|seconds?)$/i)
+  if (!m) return { reps: s, cardioUnit: 'cal' }
+  const unit = m[2].toLowerCase()
+  const cardioUnit = /^m(eters?|etres?)?$/.test(unit) ? 'm' : /^(sec|secs?|seconds?)$/.test(unit) ? 'sec' : 'cal'
+  return { reps: m[1], cardioUnit }
+}
 function newTabataMove() { return { name: '', rounds: '8', reps: '', weight: '', notes: '' } }
 function newMetconSegment(withRest) {
   return {
@@ -94,13 +103,14 @@ function restoreMetconMove(m) {
     if (m.name.trim().endsWith('(L)')) side = 'L'
     else if (m.name.trim().endsWith('(R)')) side = 'R'
   }
+  const parsed = parseCardioReps(m.reps)
   return {
-    name: canonName, reps: m.reps?.toString() ?? '',
+    name: canonName, reps: parsed.reps,
     weight: m.weight?.toString() ?? '',
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
     implement, singleArm, side,
-    cardioUnit: m.cardioUnit ?? 'cal',
+    cardioUnit: m.cardioUnit ?? parsed.cardioUnit,
   }
 }
 
@@ -695,7 +705,16 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       } else {
         setHasMetcon(true)
         if (result.metconFormat) setMetconFormat(result.metconFormat)
-        if (result.metconSegments?.length) setMetconSegments(result.metconSegments)
+        if (result.metconSegments?.length) {
+          setMetconSegments(result.metconSegments.map(seg => ({
+            ...seg,
+            moves: (seg.moves ?? []).map(m => {
+              if (!m || m.isRest) return { ...newMetconMove(), ...m }
+              const parsed = parseCardioReps(m.reps)
+              return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit }
+            }),
+          })))
+        }
         setHasBuyIn(!!result.hasBuyIn)
         if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves)
         setHasBuyOut(!!result.hasBuyOut)
@@ -1718,7 +1737,7 @@ Rules:
                           }
                         />
                       )}
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                         {move.isRest ? (
                           <>
                             <input placeholder="0" value={move.restMin} onChange={e => updateSegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
