@@ -714,7 +714,7 @@ function AskClaude({ sessions }) {
 
 const RECENT_LIMIT = 7
 
-export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
+export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, logInProgress }) {
   const [selectedSession, setSelectedSession] = useState(null)
   const [viewAll, setViewAll] = useState(false)
   const { thisWeek, weekStreak } = computeStats(sessions)
@@ -787,7 +787,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v135</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v136</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
@@ -806,7 +806,11 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen }) {
       </div>
 
       <div style={S.ctaWrap}>
-        <button style={S.cta} onClick={onLogWorkout}>
+        <button
+          disabled={logInProgress}
+          onClick={onLogWorkout}
+          style={{ ...S.cta, ...(logInProgress && { opacity: 0.3, cursor: 'default' }) }}
+        >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0ff7c5" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
           </svg>
