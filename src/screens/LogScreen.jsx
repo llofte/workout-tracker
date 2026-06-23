@@ -1396,6 +1396,7 @@ Rules:
       )}
 
       <div style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)', paddingBottom: 100 }}>
+        <style>{`.log-hint::placeholder{color:rgba(245,240,232,0.2);font-style:italic}.log-hint:focus::placeholder{color:transparent}`}</style>
         <DragHandle onMinimize={onMinimize} onDragProgress={onDragProgress} onDragEnd={onDragEnd} />
 
         {/* Header */}
@@ -1823,6 +1824,7 @@ Rules:
                 {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? 'Time (MM:SS)' : 'Score'}
               </p>
               <input
+                className="log-hint"
                 placeholder={metconFormat === 'AMRAP' ? '12 rounds + 5 reps' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? '14:32' : ''}
                 value={metconScore} onChange={e => setMetconScore(e.target.value)} style={inputBase}
               />
@@ -2001,7 +2003,7 @@ Rules:
         {/* ── NOTES ── */}
         <div style={{ padding: '20px 20px 0' }}>
           <p style={labelStyle}>Notes</p>
-          <textarea placeholder="How did it feel? Any mods?" value={sessionNotes} onChange={e => setSessionNotes(e.target.value)} rows={3} style={{ ...inputBase, resize: 'none', lineHeight: 1.5 }} />
+          <textarea className="log-hint" placeholder="How did it feel? Any mods?" value={sessionNotes} onChange={e => setSessionNotes(e.target.value)} rows={3} style={{ ...inputBase, resize: 'none', lineHeight: 1.5 }} />
         </div>
 
       </div>
