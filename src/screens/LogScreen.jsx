@@ -1868,7 +1868,7 @@ Rules:
                                     ))}
                                   </div>
                                 ) : (
-                                  <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                                  <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>{/\bplank\b/i.test(move.name) ? 'sec' : 'reps'}</span>
                                 )}
                               </div>
                             )}
@@ -2135,7 +2135,7 @@ Rules:
                                   ))}
                                 </div>
                               ) : (
-                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>{/\bplank\b/i.test(move.name) ? 'sec' : 'reps'}</span>
                               )}
                             </div>
                           )}

@@ -4,6 +4,7 @@ import { useMovements } from '../hooks/useMovements'
 import { toWorkoutDisplay } from '../utils/movements'
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running/i
+const TIMED_RE = /\bplank\b/i
 
 function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
@@ -16,7 +17,9 @@ function formatReps(moveName, reps, cardioUnit) {
     return `${s} cal`
   }
   const n = Number(s)
-  return isNaN(n) ? s : `${n} ${n === 1 ? 'rep' : 'reps'}`
+  if (isNaN(n)) return s
+  if (TIMED_RE.test(moveName ?? '')) return `${n} sec`
+  return `${n} ${n === 1 ? 'rep' : 'reps'}`
 }
 
 function formatRestSeconds(secs) {
