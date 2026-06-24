@@ -1542,10 +1542,10 @@ Rules:
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
               <style>{`.title-field::placeholder{color:rgba(245,240,232,0.25);font-style:italic}.title-field:focus::placeholder{color:transparent}`}</style>
               {[
-                hasStrength && { emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
-                hasMetcon   && { emoji: '⚡', value: titleMetcon,   set: setTitleMetcon,   ph: 'Metcon title…' },
-                hasAccessory && { emoji: '⭐', value: titleAccessory, set: setTitleAccessory, ph: 'Accessory' },
-              ].filter(Boolean).map(({ emoji, value, set, ph }) => (
+                { emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
+                { emoji: '⚡', value: titleMetcon,   set: setTitleMetcon,   ph: 'Metcon title…' },
+                { emoji: '⭐', value: titleAccessory, set: setTitleAccessory, ph: 'Accessory' },
+              ].map(({ emoji, value, set, ph }) => (
                 <div key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, userSelect: 'none' }}>{emoji}</span>
                   <input
