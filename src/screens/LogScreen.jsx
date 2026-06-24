@@ -2000,7 +2000,7 @@ Rules:
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
               {FORMATS.map(fmt => (
                 <button key={fmt} onClick={() => setAccessoryFormat(fmt)} style={{ flexShrink: 0, backgroundColor: accessoryFormat === fmt ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: accessoryFormat === fmt ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: accessoryFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {fmt}
+                  {fmt === 'For Time' ? 'Rounds' : fmt}
                 </button>
               ))}
             </div>
@@ -2184,17 +2184,6 @@ Rules:
               </button>
             </div>
 
-            {/* Score */}
-            <div style={{ marginTop: 16 }}>
-              <p style={labelStyle}>
-                {accessoryFormat === 'AMRAP' ? 'Score (rounds + reps)' : (accessoryFormat === 'For Time' || accessoryFormat === 'Ladder') ? 'Time (MM:SS)' : 'Score'}
-              </p>
-              <input
-                className="log-hint"
-                placeholder={accessoryFormat === 'AMRAP' ? '12 rounds + 5 reps' : (accessoryFormat === 'For Time' || accessoryFormat === 'Ladder') ? '14:32' : ''}
-                value={accessoryScore} onChange={e => setAccessoryScore(e.target.value)} style={inputBase}
-              />
-            </div>
           </div>
         )}
 
