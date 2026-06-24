@@ -534,38 +534,50 @@ function MetconBlock({ block }) {
 
 function AccessoryBlock({ block }) {
   if (!block) return null
-  const vol = calcAccessoryVol(block)
+  const isTraditional = !block.type || block.type === 'Traditional'
   return (
-    <>
-      <SectionHeader
-        title="Accessory"
-        subtitle={block.type && block.type !== 'Traditional' ? block.type : null}
-      />
-      <div style={{ padding: '0 20px' }}>
-        {block.movements?.map((move, i) => (
-          <div key={i} style={S.card}>
-            <p style={S.moveName}>{toWorkoutDisplay(move)}</p>
-            {block.type === 'Traditional' ? (
-              <SetRows sets={move.sets} />
+    <div style={{ padding: '22px 20px 0' }}>
+      {block.movements?.map((move, i) => {
+        const moveVol = isTraditional
+          ? (move.sets ?? []).reduce((sum, s) => {
+              if (s.notation === 'warmup') return sum
+              return s.reps && s.weight ? sum + s.reps * s.weight : sum
+            }, 0)
+          : (move.weight && move.reps ? move.weight * Number(move.reps) * (move.rounds || 8) : 0)
+        return (
+          <div key={i} style={{
+            backgroundColor: '#201a2a', borderRadius: 14,
+            border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden',
+            marginBottom: i < (block.movements?.length ?? 1) - 1 ? 12 : 0,
+          }}>
+            <div style={{ padding: '14px 16px 8px' }}>
+              <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Accessory</p>
+              <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{toWorkoutDisplay(move)}</p>
+            </div>
+            {isTraditional ? (
+              <SetRows sets={move.sets} moveName={move.name} inlineLayout />
             ) : (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
                 <span style={{ flex: 1, color: 'rgba(245,240,232,0.6)', fontSize: 14, fontFamily: ff }}>
                   {move.rounds ? `${move.rounds} rounds` : '8 rounds'}
                   {move.reps ? ` · ${move.reps} reps` : ''}
                 </span>
-                <span style={{
-                  minWidth: 64, textAlign: 'right', fontSize: 14, fontFamily: ff,
-                  color: move.weight ? 'rgba(245,240,232,0.65)' : 'rgba(245,240,232,0.22)',
-                }}>
+                <span style={{ minWidth: 64, textAlign: 'right', fontSize: 14, fontFamily: ff, color: move.weight ? 'rgba(245,240,232,0.65)' : 'rgba(245,240,232,0.22)' }}>
                   {move.weight ? `${move.weight} lbs` : '—'}
                 </span>
               </div>
             )}
+            {moveVol > 0 && (
+              <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
+                  {moveVol.toLocaleString()} lbs
+                </span>
+              </div>
+            )}
           </div>
-        ))}
-        <SummaryBox vol={vol} />
-      </div>
-    </>
+        )
+      })}
+    </div>
   )
 }
 

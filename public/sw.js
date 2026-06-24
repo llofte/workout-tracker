@@ -1,4 +1,4 @@
-const CACHE = 'bb-wod-v125'
+const CACHE = 'bb-wod-v126'
 
 self.addEventListener('install', e => {
   e.waitUntil(self.skipWaiting())
