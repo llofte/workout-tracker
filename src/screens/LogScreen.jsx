@@ -694,6 +694,15 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     }
     return format || ''
   })
+  const [titleAccessory, setTitleAccessory] = useState(() => {
+    if (!s?.accessoryBlock) return 'Accessory'
+    if (s.title) {
+      const raw = s.title.split(' / ')
+      const idx = (s.strengthBlock ? 1 : 0) + (s.metconBlock ? 1 : 0)
+      return raw[idx] ?? 'Accessory'
+    }
+    return 'Accessory'
+  })
   const movements = useMovements()
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(s?.date ?? new Date().toISOString().split('T')[0])
@@ -1206,7 +1215,7 @@ Rules:
       parts.push(label)
     }
 
-    if (hasAccessory) parts.push('Accessory')
+    if (hasAccessory) parts.push(titleAccessory || 'Accessory')
 
     return parts.join(' / ') || 'BB WOD'
   }
@@ -1535,7 +1544,7 @@ Rules:
               {[
                 hasStrength && { emoji: '💪', value: titleStrength, set: setTitleStrength, ph: 'Strength title…' },
                 hasMetcon   && { emoji: '⚡', value: titleMetcon,   set: setTitleMetcon,   ph: 'Metcon title…' },
-                hasAccessory && { emoji: '⭐', value: 'Accessory', set: () => {}, ph: 'Accessory' },
+                hasAccessory && { emoji: '⭐', value: titleAccessory, set: setTitleAccessory, ph: 'Accessory' },
               ].filter(Boolean).map(({ emoji, value, set, ph }) => (
                 <div key={emoji} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontSize: 15, lineHeight: 1, flexShrink: 0, userSelect: 'none' }}>{emoji}</span>
@@ -1544,8 +1553,7 @@ Rules:
                     value={value}
                     onChange={e => set(e.target.value)}
                     placeholder={ph}
-                    readOnly={emoji === '⭐'}
-                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 14, color: emoji === '⭐' ? 'rgba(245,240,232,0.4)' : '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 14, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
                   />
                 </div>
               ))}
