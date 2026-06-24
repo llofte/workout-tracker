@@ -545,7 +545,8 @@ function AccessoryBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
   const vol = calcAccessoryVol(block)
-  const subtitle = metconSubtitle(block)
+  const rawSubtitle = metconSubtitle(block)
+  const subtitle = rawSubtitle === 'For Time' ? 'Rounds' : rawSubtitle.replace(' For Time', '')
   const displayScore = block.score ? formatScore(block.score) : null
 
   const segments = block.segments?.length
