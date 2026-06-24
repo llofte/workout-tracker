@@ -299,7 +299,7 @@ function SummaryBox({ score, vol }) {
   )
 }
 
-function SetRows({ sets, moveName, allMovements }) {
+function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   function prStatus(set) {
     if (!set.isPR) return null
     const record = allMovements?.find(m => m.name === moveName)
@@ -320,8 +320,10 @@ function SetRows({ sets, moveName, allMovements }) {
     return (
       <div key={si} style={{
         display: 'flex', gap: 8, alignItems: 'center',
-        padding: '7px 0',
-        borderBottom: si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
+        padding: inlineLayout ? '8px 16px' : '7px 0',
+        borderBottom: inlineLayout
+          ? '0.5px solid rgba(255,255,255,0.05)'
+          : si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
         <span style={S.setNum(isWarmup)}>{isWarmup ? 'W' : workNum}</span>
         <span style={{
@@ -355,7 +357,7 @@ function SetRows({ sets, moveName, allMovements }) {
 function MetconMoveRow({ move, isOTM }) {
   if (move.isRest) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
         <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: ff }}>Rest</span>
         {!!move.restSeconds && (
           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: ff }}>{formatRestSeconds(move.restSeconds)}</span>
@@ -366,7 +368,7 @@ function MetconMoveRow({ move, isOTM }) {
   const repsText = formatReps(move.name, move.reps, move.cardioUnit)
   const weightText = move.weight ? `${move.weight} lbs` : '—'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
       {isOTM && move.minuteAssignment != null && (
         <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 34, flexShrink: 0 }}>
           Min {move.minuteAssignment}
@@ -402,36 +404,47 @@ function SectionHeader({ title, subtitle, right }) {
 
 function StrengthBlock({ block, allMovements }) {
   if (!block) return null
-  const vol = calcStrengthVol(block)
-  const subtitle = block.structure && block.structure !== 'Traditional' ? block.structure : null
   return (
-    <>
-      <SectionHeader title="Strength" subtitle={subtitle} />
-      <div style={{ padding: '0 20px' }}>
-        {block.movements?.map((move, i) => (
-          <div key={i} style={S.card}>
-            <p style={S.moveName}>{toWorkoutDisplay(move)}</p>
-            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} />
+    <div style={{ padding: '0 20px' }}>
+      {block.movements?.map((move, i) => {
+        const moveVol = (move.sets ?? []).reduce((sum, s) => {
+          if (s.notation === 'warmup') return sum
+          return s.reps && s.weight ? sum + s.reps * s.weight : sum
+        }, 0)
+        return (
+          <div key={i} style={{
+            backgroundColor: '#201a2a', borderRadius: 14,
+            border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden',
+            marginBottom: i < (block.movements?.length ?? 1) - 1 ? 12 : 0,
+          }}>
+            <div style={{ padding: '14px 16px 8px' }}>
+              <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Strength</p>
+              <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{toWorkoutDisplay(move)}</p>
+            </div>
+            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout />
+            {moveVol > 0 && (
+              <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
+                  {moveVol.toLocaleString()} lbs
+                </span>
+              </div>
+            )}
           </div>
-        ))}
-        <SummaryBox vol={vol} />
-      </div>
-    </>
+        )
+      })}
+    </div>
   )
 }
 
 function segmentLabel(seg, block) {
-  const parts = []
-  if (seg.rounds) parts.push(`${seg.rounds} Rounds`)
   if (block.format === 'OTM') {
     const iv = seg.interval || 1
-    parts.push(iv === 1 ? 'EMOM' : `E${iv}MOM`)
-  } else if (seg.duration) {
-    parts.push(`${seg.duration} min`)
-  } else if (block.format) {
-    parts.push(block.format)
+    const label = iv === 1 ? 'EMOM' : `E${iv}MOM`
+    return seg.rounds ? `${seg.rounds} Rounds · ${label}` : label
   }
-  return parts.join(' · ')
+  if (seg.rounds) return `${seg.rounds} Rounds`
+  if (seg.duration) return `${seg.duration} min`
+  return ''
 }
 
 function MetconBlock({ block }) {
@@ -439,6 +452,7 @@ function MetconBlock({ block }) {
   const isOTM = block.format === 'OTM'
   const vol = calcMetconVol(block)
   const subtitle = metconSubtitle(block)
+  const displayScore = block.score ? formatScore(block.score) : null
 
   const segments = block.segments?.length
     ? block.segments
@@ -449,53 +463,72 @@ function MetconBlock({ block }) {
   const isMultiSeg = segments.length > 1
 
   return (
-    <>
-      <SectionHeader title="Metcon" />
-      <div style={{ padding: '0 20px' }}>
+    <div style={{ padding: '22px 20px 0' }}>
+      <div style={{ backgroundColor: '#201a2a', borderRadius: 14, border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+
+        <div style={{ padding: '14px 16px 8px' }}>
+          <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Metcon</p>
+          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
+        </div>
 
         {block.buyIn?.length > 0 && (
-          <div style={{ ...S.card, borderLeft: '2px solid rgba(245,240,232,0.12)' }}>
-            <p style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 8px', fontFamily: ff }}>Buy In</p>
+          <>
+            <div style={{ padding: '4px 16px 2px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>Buy In</span>
+            </div>
             {block.buyIn.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
-          </div>
+          </>
         )}
 
         {segments.map((seg, si) => (
           <div key={si}>
             {si > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 10px' }}>
-                <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
                 {seg.restBefore != null && (
-                  <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 12, fontFamily: ff }}>
-                    Rest {formatRestSeconds(seg.restBefore)}
+                  <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 11, fontWeight: 600, letterSpacing: 0.4, fontFamily: ff, whiteSpace: 'nowrap' }}>
+                    {formatRestSeconds(seg.restBefore)} rest
                   </span>
                 )}
-                <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
               </div>
             )}
-            <div style={S.card}>
-              {!isMultiSeg && si === 0 && subtitle && (
-                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, margin: '0 0 8px', fontFamily: ff }}>{subtitle}</p>
-              )}
-              {isMultiSeg && (
-                <p style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, margin: '0 0 8px', fontFamily: ff }}>
+            {isMultiSeg && (
+              <div style={{ padding: '4px 16px 2px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>
                   {segmentLabel(seg, block)}
-                </p>
-              )}
-              {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
-            </div>
+                </span>
+              </div>
+            )}
+            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
           </div>
         ))}
 
         {block.buyOut?.length > 0 && (
-          <div style={{ ...S.card, borderLeft: '2px solid rgba(245,240,232,0.12)' }}>
-            <p style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 8px', fontFamily: ff }}>Buy Out</p>
+          <>
+            <div style={{ padding: '8px 16px 2px' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>Buy Out</span>
+            </div>
             {block.buyOut.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
+          </>
+        )}
+
+        {(displayScore || vol > 0) && (
+          <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {displayScore
+              ? <span style={{ color: '#0ff7c5', fontSize: 16, fontWeight: 600, flex: 1, fontFamily: ff }}>{displayScore}</span>
+              : <span style={{ flex: 1 }} />
+            }
+            {vol > 0 && (
+              <span style={{ textAlign: 'right', color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
+                {vol.toLocaleString()} lbs
+              </span>
+            )}
           </div>
         )}
-        <SummaryBox score={block.score} vol={vol} />
+
       </div>
-    </>
+    </div>
   )
 }
 
@@ -563,17 +596,17 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
             Edit
           </button>
         </div>
-        <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 8px', fontFamily: ff }}>
+        <p style={{ color: '#0ff7c5', fontSize: 10, fontWeight: 700, letterSpacing: 0.8, opacity: 0.85, margin: '0 0 14px', fontFamily: ff }}>
           {formatDate(date)}
         </p>
         {titleParts.map((part, i) => (
-          <p key={i} style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: i < titleParts.length - 1 ? '0 0 3px' : '0 0 8px', fontFamily: ff }}>
+          <p key={i} style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: i < titleParts.length - 1 ? '0 0 3px' : '0 0 12px', fontFamily: ff }}>
             {part}
           </p>
         ))}
         {totalVol > 0 && (
-          <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, margin: 0, fontFamily: ff }}>
-            {totalVol.toLocaleString()} lbs total volume
+          <p style={{ color: '#0ff7c5', fontSize: 22, fontWeight: 800, letterSpacing: -0.3, margin: 0, fontFamily: ff }}>
+            {totalVol.toLocaleString()} lbs
           </p>
         )}
       </div>
