@@ -894,7 +894,16 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function updateSet(mi, si, field, val) {
     setStrengthMoves(prev => prev.map((m, i) => {
       if (i !== mi) return m
-      return { ...m, sets: m.sets.map((s, j) => j === si ? { ...s, [field]: val } : s) }
+      const isWorkingSet = !m.sets[si]?.isWarmup
+      return {
+        ...m,
+        sets: m.sets.map((s, j) => {
+          if (j === si) return { ...s, [field]: val }
+          // Propagate forward to subsequent uncompleted working sets
+          if (isWorkingSet && j > si && !s.isWarmup && !s.isCompleted) return { ...s, [field]: val }
+          return s
+        }),
+      }
     }))
   }
   function deleteSet(mi, si) {
