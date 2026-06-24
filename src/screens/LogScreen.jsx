@@ -637,22 +637,13 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   )
 
   const [hasAccessory, setHasAccessory] = useState(s ? !!s.accessoryBlock : false)
-  const [accessoryType, setAccessoryType] = useState(s?.accessoryBlock?.type ?? 'Traditional')
-  const [accessoryTraditionalMoves, setAccessoryTraditionalMoves] = useState(() =>
-    s?.accessoryBlock?.type === 'Traditional' && s.accessoryBlock.movements?.length
-      ? s.accessoryBlock.movements.map(restoreStrengthMove) : [newStrengthMove()]
+  const [accessoryFormat, setAccessoryFormat] = useState(s?.accessoryBlock?.format ?? 'For Time')
+  const [accessorySegments, setAccessorySegments] = useState(() =>
+    s?.accessoryBlock?.segments?.length
+      ? s.accessoryBlock.segments.map(seg => restoreSegment(seg, s.accessoryBlock.format))
+      : [newMetconSegment(false)]
   )
-  const [accessoryTabataMoves, setAccessoryTabataMoves] = useState(() =>
-    s?.accessoryBlock?.type === 'Tabata' && s.accessoryBlock.movements?.length
-      ? s.accessoryBlock.movements.map(m => ({ name: m.name || '', rounds: m.rounds?.toString() ?? '8', reps: m.reps?.toString() ?? '', weight: m.weight?.toString() ?? '', notes: m.notes || '' }))
-      : [newTabataMove()]
-  )
-  const [accessoryTabataWork, setAccessoryTabataWork] = useState(
-    s?.accessoryBlock?.type === 'Tabata' ? (s.accessoryBlock.movements?.[0]?.work?.toString() ?? '20') : '20'
-  )
-  const [accessoryTabataRest, setAccessoryTabataRest] = useState(
-    s?.accessoryBlock?.type === 'Tabata' ? (s.accessoryBlock.movements?.[0]?.rest?.toString() ?? '10') : '10'
-  )
+  const [accessoryScore, setAccessoryScore] = useState(s?.accessoryBlock?.score ?? '')
 
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
   const [titleStrength, setTitleStrength] = useState(() => {
@@ -861,10 +852,11 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       setBuyInMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
     } else if (block === 'buyOut') {
       setBuyOutMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
-    } else if (block === 'accessoryTraditional') {
-      setAccessoryTraditionalMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
-    } else if (block === 'accessoryTabata') {
-      setAccessoryTabataMoves(prev => prev.map((m, i) => i === index ? { ...m, name } : m))
+    } else if (block === 'accessory') {
+      setAccessorySegments(prev => prev.map((seg, si) => {
+        if (si !== segIndex) return seg
+        return { ...seg, moves: seg.moves.map((m, mi) => mi === index ? { ...m, name } : m) }
+      }))
     }
     setPickerTarget(null)
   }
@@ -953,47 +945,33 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     setMetconSegments(prev => prev.filter((_, i) => i !== si))
   }
 
-  // ── accessory traditional helpers ──
-  function updateAccessoryTradMove(i, field, val) {
-    setAccessoryTraditionalMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
+  // ── accessory segment helpers ──
+  function updateAccessorySegField(si, field, val) {
+    setAccessorySegments(prev => prev.map((s, i) => i === si ? { ...s, [field]: val } : s))
   }
-  function addAccessoryTradMove() { setAccessoryTraditionalMoves(prev => [...prev, newStrengthMove()]) }
-  function removeAccessoryTradMove(i) { setAccessoryTraditionalMoves(prev => prev.filter((_, j) => j !== i)) }
-  function addAccessoryTradWorkingSet(mi) {
-    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
-      if (i !== mi) return m
-      const n = m.sets.filter(s => !s.isWarmup).length
-      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+  function updateAccessorySegMove(si, mi, field, val) {
+    setAccessorySegments(prev => prev.map((s, i) => {
+      if (i !== si) return s
+      return { ...s, moves: s.moves.map((m, j) => j === mi ? { ...m, [field]: val } : m) }
     }))
   }
-  function addAccessoryTradWarmupSet(mi) {
-    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
-      if (i !== mi) return m
-      const wn = m.sets.filter(s => s.isWarmup).length
-      const warm = m.sets.filter(s => s.isWarmup)
-      const work = m.sets.filter(s => !s.isWarmup)
-      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+  function addAccessorySegMove(si) {
+    setAccessorySegments(prev => prev.map((s, i) =>
+      i === si ? { ...s, moves: [...s.moves, newMetconMove()] } : s
+    ))
+  }
+  function removeAccessorySegMove(si, mi) {
+    setAccessorySegments(prev => prev.map((s, i) => {
+      if (i !== si) return s
+      return { ...s, moves: s.moves.filter((_, j) => j !== mi) }
     }))
   }
-  function updateAccessoryTradSet(mi, si, field, val) {
-    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
-      if (i !== mi) return m
-      return { ...m, sets: m.sets.map((s, j) => j === si ? { ...s, [field]: val } : s) }
-    }))
+  function addAccessorySegment(withRest = true) {
+    setAccessorySegments(prev => [...prev, newMetconSegment(withRest)])
   }
-  function deleteAccessoryTradSet(mi, si) {
-    setAccessoryTraditionalMoves(prev => prev.map((m, i) => {
-      if (i !== mi) return m
-      return { ...m, sets: m.sets.filter((_, j) => j !== si) }
-    }))
+  function removeAccessorySegment(si) {
+    setAccessorySegments(prev => prev.filter((_, i) => i !== si))
   }
-
-  // ── accessory tabata helpers ──
-  function updateAccessoryTabataMove(i, field, val) {
-    setAccessoryTabataMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
-  }
-  function addAccessoryTabataMove() { setAccessoryTabataMoves(prev => [...prev, newTabataMove()]) }
-  function removeAccessoryTabataMove(i) { setAccessoryTabataMoves(prev => prev.filter((_, j) => j !== i)) }
 
   function buildPhotoPrompt() {
     return `You are parsing a CrossFit/BB WOD whiteboard photo for a workout tracker. Extract the workout exactly as written on the board.
@@ -1309,32 +1287,29 @@ Rules:
           })),
         } : null,
         accessoryBlock: hasAccessory ? {
-          type: accessoryType,
-          movements: accessoryType === 'Traditional'
-            ? accessoryTraditionalMoves.map(m => ({
-                name: m.name,
-                implement: m.implement ?? null,
-                singleArm: m.singleArm ?? false,
-                side: m.side ?? null,
-                sets: m.sets.map((s, idx) => ({
-                  setNumber: idx + 1,
-                  reps: s.reps !== '' ? Number(s.reps) : null,
-                  weight: s.weight !== '' ? Number(s.weight) : null,
-                  weightUnit: 'lbs',
-                  notation: s.isWarmup ? 'warmup' : null,
-                })),
-                notes: m.notes || '',
-              }))
-            : accessoryTabataMoves.map(m => ({
-                name: m.name,
-                rounds: m.rounds !== '' ? Number(m.rounds) : 8,
-                reps: m.reps || null,
-                weight: m.weight !== '' ? Number(m.weight) : null,
-                weightUnit: 'lbs',
-                work: accessoryTabataWork !== '' ? Number(accessoryTabataWork) : 20,
-                rest: accessoryTabataRest !== '' ? Number(accessoryTabataRest) : 10,
-                notes: m.notes || null,
-              })),
+          format: accessoryFormat,
+          score: accessoryScore || null,
+          segments: accessorySegments.map(seg => ({
+            restBefore: (seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (Number(seg.restBeforeMin || 0) * 60 + Number(seg.restBeforeSec || 0)) : null,
+            duration: accessoryFormat !== 'For Time' && accessoryFormat !== 'Ladder' && accessoryFormat !== 'Tabata' && seg.duration !== '' ? Number(seg.duration) : null,
+            rounds: (accessoryFormat === 'For Time' || accessoryFormat === 'OTM' || accessoryFormat === 'Tabata') && seg.rounds !== '' ? Number(seg.rounds) : null,
+            interval: accessoryFormat === 'OTM' && seg.interval !== '' ? Number(seg.interval) : null,
+            work: accessoryFormat === 'Tabata' ? (seg.tabataWork !== '' ? Number(seg.tabataWork) : 20) : null,
+            rest: accessoryFormat === 'Tabata' ? (seg.tabataRest !== '' ? Number(seg.tabataRest) : 10) : null,
+            movements: seg.moves.map(m => m.isRest ? {
+              isRest: true,
+              restSeconds: (m.restMin !== '' ? Number(m.restMin) * 60 : 0) + (m.restSec !== '' ? Number(m.restSec) : 0),
+              minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+            } : {
+              name: m.name,
+              reps: (accessoryFormat === 'Ladder' && seg.ladderScheme) ? seg.ladderScheme : (m.reps || null),
+              weight: m.weight !== '' ? Number(m.weight) : null,
+              weightUnit: 'lbs',
+              minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+              notes: m.notes || null,
+              cardioUnit: isCardioName(m.name) ? (m.cardioUnit || 'cal') : null,
+            }),
+          })),
         } : null,
         notes: sessionNotes,
         whiteboardPhotoUrl: null,
@@ -1365,8 +1340,7 @@ Rules:
         ...(hasMetcon ? metconSegments.flatMap(s => s.moves.filter(m => !m.isRest).map(m => m.name.trim())) : []),
         ...(hasMetcon && hasBuyIn ? buyInMoves.filter(m => !m.isRest).map(m => m.name.trim()) : []),
         ...(hasMetcon && hasBuyOut ? buyOutMoves.filter(m => !m.isRest).map(m => m.name.trim()) : []),
-        ...(hasAccessory && accessoryType === 'Traditional' ? accessoryTraditionalMoves.map(m => m.name.trim()) : []),
-        ...(hasAccessory && accessoryType === 'Tabata' ? accessoryTabataMoves.map(m => m.name.trim()) : []),
+        ...(hasAccessory ? accessorySegments.flatMap(s => s.moves.filter(m => !m.isRest).map(m => m.name.trim())) : []),
       ].filter(Boolean)
       for (const name of allNames) {
         const { count } = await supabase.from('movements').select('*', { count: 'exact', head: true }).eq('name', name)
@@ -2022,108 +1996,205 @@ Rules:
 
         {hasAccessory && (
           <div style={{ padding: '0 20px' }}>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-              {['Traditional', 'Tabata'].map(type => (
-                <button key={type} onClick={() => setAccessoryType(type)} style={{ flexShrink: 0, backgroundColor: accessoryType === type ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: accessoryType === type ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: accessoryType === type ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {type}
+            {/* Format pills */}
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
+              {FORMATS.map(fmt => (
+                <button key={fmt} onClick={() => setAccessoryFormat(fmt)} style={{ flexShrink: 0, backgroundColor: accessoryFormat === fmt ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: accessoryFormat === fmt ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: accessoryFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                  {fmt}
                 </button>
               ))}
             </div>
 
-            {accessoryType === 'Traditional' && (
-              <>
-                {accessoryTraditionalMoves.map((move, mi) => (
-                  <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <SwipeToDelete onDelete={() => removeAccessoryTradMove(mi)} marginBottom={10} borderRadius={10}>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          placeholder={`Movement ${mi + 1}…`} value={move.name}
-                          onChange={e => updateAccessoryTradMove(mi, 'name', e.target.value)}
-                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                        <button onClick={() => openPicker('accessoryTraditional', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                          Library
-                        </button>
+            {/* Segments */}
+            {accessorySegments.map((seg, si) => (
+              <div key={si}>
+                {si > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px' }}>
+                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                    {(seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '7px 12px' }}>
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'inherit' }}>Rest</span>
+                        <input value={seg.restBeforeMin} onChange={e => updateAccessorySegField(si, 'restBeforeMin', e.target.value)} type="number" inputMode="numeric" placeholder="2" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
+                        <input value={seg.restBeforeSec} onChange={e => updateAccessorySegField(si, 'restBeforeSec', e.target.value)} type="number" inputMode="numeric" placeholder="0" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
+                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
                       </div>
-                    </SwipeToDelete>
-                    <ImplementSelector
-                      implement={move.implement}
-                      singleArm={move.singleArm}
-                      side={move.side}
-                      onChange={({ implement, singleArm, side }) =>
-                        setAccessoryTraditionalMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side } : m))
-                      }
-                    />
-                    <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
-                      <span style={{ width: 28, flexShrink: 0 }} />
-                      <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
-                      <span style={{ flex: 1.6, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>WEIGHT</span>
-                      <span style={{ width: 26, flexShrink: 0 }} />
-                    </div>
-                    {move.sets.map((set, si) => (
-                      <SwipeToDelete key={si} onDelete={() => deleteAccessoryTradSet(mi, si)}>
-                        <SetRow set={set} onChange={(f, v) => updateAccessoryTradSet(mi, si, f, v)} onDelete={() => deleteAccessoryTradSet(mi, si)} />
-                      </SwipeToDelete>
-                    ))}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                      <button onClick={() => addAccessoryTradWarmupSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
-                      <button onClick={() => addAccessoryTradWorkingSet(mi)} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
-                    </div>
+                    ) : (
+                      <div style={{ flexShrink: 0 }} />
+                    )}
+                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                    <button onClick={() => removeAccessorySegment(si)} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff6b5e" strokeWidth="2.5" strokeLinecap="round">
+                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
                   </div>
-                ))}
-                <button onClick={addAccessoryTradMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
-                  + Add Movement
-                </button>
-              </>
-            )}
+                )}
 
-            {accessoryType === 'Tabata' && (
-              <>
+                {/* Per-segment fields */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
-                  <div style={{ flex: 1 }}>
-                    <p style={labelStyle}>Work (sec)</p>
-                    <input placeholder="20" value={accessoryTabataWork} onChange={e => setAccessoryTabataWork(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={labelStyle}>Rest (sec)</p>
-                    <input placeholder="10" value={accessoryTabataRest} onChange={e => setAccessoryTabataRest(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
-                  </div>
+                  {accessoryFormat !== 'For Time' && accessoryFormat !== 'Ladder' && accessoryFormat !== 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Duration (min)</p>
+                      <input placeholder="20" value={seg.duration} onChange={e => updateAccessorySegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {(accessoryFormat === 'For Time' || accessoryFormat === 'OTM' || accessoryFormat === 'Tabata') && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Rounds</p>
+                      <input placeholder={accessoryFormat === 'Tabata' ? '8' : '4'} value={seg.rounds} onChange={e => updateAccessorySegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {accessoryFormat === 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Work (sec)</p>
+                      <input placeholder="20" value={seg.tabataWork} onChange={e => updateAccessorySegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {accessoryFormat === 'Tabata' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Rest (sec)</p>
+                      <input placeholder="10" value={seg.tabataRest} onChange={e => updateAccessorySegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
+                  {accessoryFormat === 'OTM' && (
+                    <div style={{ flex: 1 }}>
+                      <p style={labelStyle}>Every (min)</p>
+                      <input placeholder="1" value={seg.interval} onChange={e => updateAccessorySegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    </div>
+                  )}
                 </div>
-                {accessoryTabataMoves.map((move, mi) => (
+
+                {accessoryFormat === 'Ladder' && (
+                  <div style={{ marginBottom: 14 }}>
+                    <p style={labelStyle}>Rep Scheme</p>
+                    <input placeholder="e.g. 27-21-15-9" value={seg.ladderScheme} onChange={e => updateAccessorySegField(si, 'ladderScheme', e.target.value)} style={inputBase} />
+                    {seg.ladderScheme && isLadder(seg.ladderScheme) && (
+                      <p style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, margin: '6px 0 0', fontFamily: 'inherit' }}>
+                        {parseLadder(seg.ladderScheme).join(' → ')}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {seg.moves.map((move, mi) => (
                   <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
-                    <SwipeToDelete onDelete={() => removeAccessoryTabataMove(mi)} marginBottom={12} borderRadius={10}>
+                    <SwipeToDelete onDelete={() => removeAccessorySegMove(si, mi)} marginBottom={10} borderRadius={10}>
                       <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          placeholder={`Movement ${mi + 1}…`} value={move.name}
-                          onChange={e => updateAccessoryTabataMove(mi, 'name', e.target.value)}
-                          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
-                        />
-                        <button onClick={() => openPicker('accessoryTabata', mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
-                          Library
+                        {move.isRest ? (
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: '10px 14px' }}>
+                            <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'inherit' }}>Rest</span>
+                          </div>
+                        ) : (
+                          <input
+                            placeholder={`Movement ${mi + 1}…`} value={move.name}
+                            onChange={e => updateAccessorySegMove(si, mi, 'name', e.target.value)}
+                            style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+                          />
+                        )}
+                        {!move.isRest && (
+                          <button onClick={() => openPicker('accessory', mi, si)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                            Library
+                          </button>
+                        )}
+                        <button
+                          onClick={() => updateAccessorySegMove(si, mi, 'isRest', !move.isRest)}
+                          style={{ backgroundColor: move.isRest ? 'rgba(245,240,232,0.12)' : 'rgba(255,255,255,0.06)', color: move.isRest ? '#f5f0e8' : 'rgba(245,240,232,0.35)', border: 'none', borderRadius: 10, padding: '10px 10px', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}
+                        >
+                          Rest
                         </button>
                       </div>
                     </SwipeToDelete>
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <div style={{ flex: 1 }}>
-                        <p style={labelStyle}>Rounds</p>
-                        <input placeholder="8" value={move.rounds} onChange={e => updateAccessoryTabataMove(mi, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={labelStyle}>Reps / 20s</p>
-                        <input placeholder="15" value={move.reps} onChange={e => updateAccessoryTabataMove(mi, 'reps', e.target.value)} style={inputBase} />
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <p style={labelStyle}>Weight (lbs)</p>
-                        <input placeholder="35" value={move.weight} onChange={e => updateAccessoryTabataMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={inputBase} />
-                      </div>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      {move.isRest ? (
+                        <>
+                          <input placeholder="0" value={move.restMin} onChange={e => updateAccessorySegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
+                          <input placeholder="30" value={move.restSec} onChange={e => updateAccessorySegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
+                          {accessoryFormat === 'OTM' && (
+                            <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateAccessorySegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', marginLeft: 'auto' }} />
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          {accessoryFormat !== 'Ladder' && (
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input placeholder="—" value={move.reps} onChange={e => updateAccessorySegMove(si, mi, 'reps', e.target.value)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                              {isCardioName(move.name) ? (
+                                <div style={{ display: 'flex', gap: 3, marginTop: 1 }}>
+                                  {['cal', 'm', 'mi', 'sec'].map(u => (
+                                    <button key={u} onClick={() => updateAccessorySegMove(si, mi, 'cardioUnit', u)} style={{
+                                      flex: 1, backgroundColor: (move.cardioUnit || 'cal') === u ? 'rgba(15,247,197,0.18)' : 'rgba(255,255,255,0.05)',
+                                      color: (move.cardioUnit || 'cal') === u ? '#0ff7c5' : 'rgba(245,240,232,0.35)',
+                                      border: 'none', borderRadius: 5, padding: '3px 0', fontSize: 10, fontWeight: 700,
+                                      fontFamily: 'inherit', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.4,
+                                    }}>
+                                      {u}
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>reps</span>
+                              )}
+                            </div>
+                          )}
+                          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <input placeholder="—" value={move.weight} onChange={e => updateAccessorySegMove(si, mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                            <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>lbs</span>
+                          </div>
+                          {accessoryFormat === 'OTM' && (
+                            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input placeholder="—" value={move.minuteAssignment} onChange={e => updateAccessorySegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                              <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>min #</span>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
+                    {!move.isRest && accessoryFormat !== 'Ladder' && isLadder(move.reps) && (
+                      <div style={{ marginTop: 8 }}>
+                        <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit', letterSpacing: 0.3 }}>
+                          {parseLadder(move.reps).join(' → ')}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
-                <button onClick={addAccessoryTabataMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
+
+                <button onClick={() => addAccessorySegMove(si)} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '12px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}>
                   + Add Movement
                 </button>
-              </>
-            )}
+              </div>
+            ))}
+
+            {/* Add segment buttons */}
+            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+              <button
+                onClick={() => addAccessorySegment(false)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                + Segment
+              </button>
+              <button
+                onClick={() => addAccessorySegment(true)}
+                style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer' }}
+              >
+                + Segment w/ Rest
+              </button>
+            </div>
+
+            {/* Score */}
+            <div style={{ marginTop: 16 }}>
+              <p style={labelStyle}>
+                {accessoryFormat === 'AMRAP' ? 'Score (rounds + reps)' : (accessoryFormat === 'For Time' || accessoryFormat === 'Ladder') ? 'Time (MM:SS)' : 'Score'}
+              </p>
+              <input
+                className="log-hint"
+                placeholder={accessoryFormat === 'AMRAP' ? '12 rounds + 5 reps' : (accessoryFormat === 'For Time' || accessoryFormat === 'Ladder') ? '14:32' : ''}
+                value={accessoryScore} onChange={e => setAccessoryScore(e.target.value)} style={inputBase}
+              />
+            </div>
           </div>
         )}
 

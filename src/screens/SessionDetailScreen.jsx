@@ -254,14 +254,7 @@ function calcMetconVol(block) {
 }
 
 function calcAccessoryVol(block) {
-  let v = 0
-  for (const mv of block?.movements ?? []) {
-    for (const s of mv.sets ?? []) {
-      if (s.notation === 'warmup') continue
-      if (s.reps && s.weight) v += s.reps * s.weight
-    }
-  }
-  return v
+  return calcMetconVol(block)
 }
 
 function formatScore(score) {
@@ -547,49 +540,67 @@ function MetconBlock({ block }) {
 
 function AccessoryBlock({ block }) {
   if (!block) return null
-  const isTraditional = !block.type || block.type === 'Traditional'
+  const isOTM = block.format === 'OTM'
+  const vol = calcAccessoryVol(block)
+  const subtitle = metconSubtitle(block)
+  const displayScore = block.score ? formatScore(block.score) : null
+
+  const segments = block.segments?.length
+    ? block.segments
+    : block.movements?.length
+      ? [{ movements: block.movements, duration: block.duration, rounds: block.rounds }]
+      : []
+
+  const isMultiSeg = segments.length > 1
+
   return (
     <div style={{ padding: '22px 20px 0' }}>
-      {block.movements?.map((move, i) => {
-        const moveVol = isTraditional
-          ? (move.sets ?? []).reduce((sum, s) => {
-              if (s.notation === 'warmup') return sum
-              return s.reps && s.weight ? sum + s.reps * s.weight : sum
-            }, 0)
-          : (move.weight && move.reps ? move.weight * Number(move.reps) * (move.rounds || 8) : 0)
-        return (
-          <div key={i} style={{
-            backgroundColor: '#201a2a', borderRadius: 14,
-            border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden',
-            marginBottom: i < (block.movements?.length ?? 1) - 1 ? 12 : 0,
-          }}>
-            <div style={{ padding: '14px 16px 8px' }}>
-              <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Accessory</p>
-              <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{toWorkoutDisplay(move)}</p>
-            </div>
-            {isTraditional ? (
-              <SetRows sets={move.sets} moveName={move.name} inlineLayout />
-            ) : (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-                <span style={{ flex: 1, color: 'rgba(245,240,232,0.6)', fontSize: 14, fontFamily: ff }}>
-                  {move.rounds ? `${move.rounds} rounds` : '8 rounds'}
-                  {move.reps ? ` · ${move.reps} reps` : ''}
-                </span>
-                <span style={{ minWidth: 64, textAlign: 'right', fontSize: 14, fontFamily: ff, color: move.weight ? 'rgba(245,240,232,0.65)' : 'rgba(245,240,232,0.22)' }}>
-                  {move.weight ? `${move.weight} lbs` : '—'}
+      <div style={{ backgroundColor: '#201a2a', borderRadius: 14, border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+
+        <div style={{ padding: '14px 16px 8px' }}>
+          <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Accessory</p>
+          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
+        </div>
+
+        {segments.map((seg, si) => (
+          <div key={si}>
+            {si > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
+                {seg.restBefore != null && (
+                  <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 11, fontWeight: 600, letterSpacing: 0.4, fontFamily: ff, whiteSpace: 'nowrap' }}>
+                    {formatRestSeconds(seg.restBefore)} rest
+                  </span>
+                )}
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
+              </div>
+            )}
+            {isMultiSeg && (
+              <div style={{ padding: '4px 16px 2px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>
+                  {segmentLabel(seg, block)}
                 </span>
               </div>
             )}
-            {moveVol > 0 && (
-              <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', justifyContent: 'flex-end' }}>
-                <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
-                  {moveVol.toLocaleString()} lbs
-                </span>
-              </div>
+            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
+          </div>
+        ))}
+
+        {(displayScore || vol > 0) && (
+          <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            {displayScore
+              ? <span style={{ color: '#0ff7c5', fontSize: 16, fontWeight: 600, flex: 1, fontFamily: ff }}>{displayScore}</span>
+              : <span style={{ flex: 1 }} />
+            }
+            {vol > 0 && (
+              <span style={{ textAlign: 'right', color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
+                {vol.toLocaleString()} lbs
+              </span>
             )}
           </div>
-        )
-      })}
+        )}
+
+      </div>
     </div>
   )
 }
