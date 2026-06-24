@@ -1158,7 +1158,9 @@ Rules:
     const mt = titleMetcon.trim()
     const at = titleAccessory.trim()
     if (st || mt || at) {
-      const titleParts = [st, mt].filter(Boolean)
+      const titleParts = []
+      if (hasStrength) titleParts.push(st || strengthMoves.map(m => m.name.trim()).filter(Boolean).slice(0, 2).join(' + ') || 'Strength')
+      if (hasMetcon) titleParts.push(mt || metconFormat || 'Metcon')
       if (hasAccessory) titleParts.push(at || 'Accessory')
       return titleParts.join(' / ') || 'BB WOD'
     }
