@@ -404,34 +404,47 @@ function SectionHeader({ title, subtitle, right }) {
 
 function StrengthBlock({ block, allMovements }) {
   if (!block) return null
+  const moves = block.movements ?? []
+  const isMultiMove = moves.length > 1
+  const totalVol = calcStrengthVol(block)
+
+  const subtitle = block.structure && block.structure !== 'Traditional'
+    ? block.structure
+    : isMultiMove
+      ? moves.slice(0, 2).map(m => m.name).filter(Boolean).join(' + ')
+      : moves[0] ? toWorkoutDisplay(moves[0]) : ''
+
   return (
     <div style={{ padding: '0 20px' }}>
-      {block.movements?.map((move, i) => {
-        const moveVol = (move.sets ?? []).reduce((sum, s) => {
-          if (s.notation === 'warmup') return sum
-          return s.reps && s.weight ? sum + s.reps * s.weight : sum
-        }, 0)
-        return (
-          <div key={i} style={{
-            backgroundColor: '#201a2a', borderRadius: 14,
-            border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden',
-            marginBottom: i < (block.movements?.length ?? 1) - 1 ? 12 : 0,
-          }}>
-            <div style={{ padding: '14px 16px 8px' }}>
-              <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Strength</p>
-              <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{toWorkoutDisplay(move)}</p>
-            </div>
-            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout />
-            {moveVol > 0 && (
-              <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', justifyContent: 'flex-end' }}>
-                <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
-                  {moveVol.toLocaleString()} lbs
+      <div style={{ backgroundColor: '#201a2a', borderRadius: 14, border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
+
+        <div style={{ padding: '14px 16px 8px' }}>
+          <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Strength</p>
+          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
+        </div>
+
+        {moves.map((move, i) => (
+          <div key={i}>
+            {isMultiMove && (
+              <div style={{ padding: i === 0 ? '4px 16px 2px' : '6px 16px 2px' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>
+                  {toWorkoutDisplay(move)}
                 </span>
               </div>
             )}
+            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout />
           </div>
-        )
-      })}
+        ))}
+
+        {totalVol > 0 && (
+          <div style={{ background: '#131820', padding: '11px 16px', display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{ color: 'rgba(245,240,232,0.5)', fontSize: 16, fontWeight: 600, fontFamily: ff }}>
+              {totalVol.toLocaleString()} lbs
+            </span>
+          </div>
+        )}
+
+      </div>
     </div>
   )
 }
