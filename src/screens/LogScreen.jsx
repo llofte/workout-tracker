@@ -1156,9 +1156,10 @@ Rules:
   function generateSessionTitle() {
     const st = titleStrength.trim()
     const mt = titleMetcon.trim()
-    if (st || mt) {
+    const at = titleAccessory.trim()
+    if (st || mt || at) {
       const titleParts = [st, mt].filter(Boolean)
-      if (hasAccessory) titleParts.push('Accessory')
+      if (hasAccessory) titleParts.push(at || 'Accessory')
       return titleParts.join(' / ') || 'BB WOD'
     }
 
