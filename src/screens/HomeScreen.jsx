@@ -28,15 +28,21 @@ function deriveSessionParts(session) {
   const parts = []
 
   if (session.strengthBlock) {
-    const names = (session.strengthBlock.movements || [])
-      .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
-    if (names.length) parts.push(`💪 ${names.join(' + ')}`)
+    if (session.strengthBlock.customTitle) {
+      parts.push(`💪 ${session.strengthBlock.customTitle}`)
+    } else {
+      const names = (session.strengthBlock.movements || [])
+        .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
+      if (names.length) parts.push(`💪 ${names.join(' + ')}`)
+    }
   }
 
   if (session.metconBlock) {
     const { format, duration, rounds, segments } = session.metconBlock
     let label = format || 'Metcon'
-    if (segments?.length > 1) {
+    if (session.metconBlock.customTitle) {
+      label = session.metconBlock.customTitle
+    } else if (segments?.length > 1) {
       if (format === 'OTM') {
         const iv = segments[0]?.interval || 1
         const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
@@ -85,7 +91,7 @@ function deriveSessionParts(session) {
     parts.push(`⚡ ${label}`)
   }
 
-  if (session.accessoryBlock) parts.push(`⭐ Accessory`)
+  if (session.accessoryBlock) parts.push(`⭐ ${session.accessoryBlock.customTitle || 'Accessory'}`)
 
   return parts.length ? parts : ['BB WOD']
 }
@@ -763,7 +769,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v162</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v163</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

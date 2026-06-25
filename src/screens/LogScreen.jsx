@@ -648,11 +648,13 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
   const [titleStrength, setTitleStrength] = useState(() => {
     if (!s) return ''
+    if (s.strengthBlock?.customTitle) return s.strengthBlock.customTitle
     const names = (s.strengthBlock?.movements ?? []).map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
     return names.join(' + ')
   })
   const [titleMetcon, setTitleMetcon] = useState(() => {
     if (!s) return ''
+    if (s.metconBlock?.customTitle) return s.metconBlock.customTitle
     if (!s.metconBlock) return ''
     const { format, duration, rounds } = s.metconBlock
     if (format === 'AMRAP' && duration) return `${duration} min AMRAP`
@@ -685,7 +687,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     }
     return format || ''
   })
-  const [titleAccessory, setTitleAccessory] = useState('Accessory')
+  const [titleAccessory, setTitleAccessory] = useState(() => s?.accessoryBlock?.customTitle || 'Accessory')
   const movements = useMovements()
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(s?.date ?? new Date().toISOString().split('T')[0])
@@ -1215,6 +1217,7 @@ Rules:
         date: date,
         program: 'BB WOD',
         strengthBlock: hasStrength ? {
+          customTitle: titleStrength.trim() || null,
           title: strengthMoves[0]?.name || '',
           structure: strengthType === 'OTM'
             ? `${strengthDuration} min OTM every ${strengthInterval} min`
@@ -1237,6 +1240,7 @@ Rules:
           notes: '',
         } : null,
         metconBlock: hasMetcon ? {
+          customTitle: titleMetcon.trim() || null,
           format: metconFormat,
           // top-level fields from first segment for HomeScreen display
           duration: metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && firstSeg.duration !== '' ? Number(firstSeg.duration) : null,
@@ -1282,6 +1286,7 @@ Rules:
           })),
         } : null,
         accessoryBlock: hasAccessory ? {
+          customTitle: titleAccessory.trim() || null,
           format: accessoryFormat,
           score: accessoryScore || null,
           segments: accessorySegments.map(seg => ({

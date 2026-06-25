@@ -102,14 +102,19 @@ function deriveSessionParts(session) {
 
   const parts = []
   if (session.strengthBlock) {
-    const names = (session.strengthBlock.movements || [])
-      .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
-    parts.push(`💪 ${names.length ? names.join(' + ') : 'Strength'}`)
+    if (session.strengthBlock.customTitle) {
+      parts.push(`💪 ${session.strengthBlock.customTitle}`)
+    } else {
+      const names = (session.strengthBlock.movements || [])
+        .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
+      parts.push(`💪 ${names.length ? names.join(' + ') : 'Strength'}`)
+    }
   }
   if (session.metconBlock) {
-    parts.push(`⚡ ${ladderOverride ? 'Ladder' : metconSubtitle(session.metconBlock)}`)
+    const custom = session.metconBlock.customTitle
+    parts.push(`⚡ ${custom || (ladderOverride ? 'Ladder' : metconSubtitle(session.metconBlock))}`)
   }
-  if (session.accessoryBlock) parts.push(`⭐ Accessory`)
+  if (session.accessoryBlock) parts.push(`⭐ ${session.accessoryBlock.customTitle || 'Accessory'}`)
   return parts.length ? parts : ['BB WOD']
 }
 
