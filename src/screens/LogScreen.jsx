@@ -648,20 +648,11 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
   const [titleStrength, setTitleStrength] = useState(() => {
     if (!s) return ''
-    if (s.title) {
-      if (!s.strengthBlock) return ''
-      return s.title.split(' / ')[0] ?? ''
-    }
     const names = (s.strengthBlock?.movements ?? []).map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
     return names.join(' + ')
   })
   const [titleMetcon, setTitleMetcon] = useState(() => {
     if (!s) return ''
-    if (s.title) {
-      if (!s.metconBlock) return ''
-      const raw = s.title.split(' / ')
-      return raw[s.strengthBlock ? 1 : 0] ?? ''
-    }
     if (!s.metconBlock) return ''
     const { format, duration, rounds } = s.metconBlock
     if (format === 'AMRAP' && duration) return `${duration} min AMRAP`
@@ -694,15 +685,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     }
     return format || ''
   })
-  const [titleAccessory, setTitleAccessory] = useState(() => {
-    if (!s?.accessoryBlock) return 'Accessory'
-    if (s.title) {
-      const raw = s.title.split(' / ')
-      const idx = (s.strengthBlock ? 1 : 0) + (s.metconBlock ? 1 : 0)
-      return raw[idx] ?? 'Accessory'
-    }
-    return 'Accessory'
-  })
+  const [titleAccessory, setTitleAccessory] = useState('Accessory')
   const movements = useMovements()
   const [saving, setSaving] = useState(false)
   const [date, setDate] = useState(s?.date ?? new Date().toISOString().split('T')[0])

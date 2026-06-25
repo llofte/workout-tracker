@@ -94,38 +94,20 @@ function metconSubtitle(block) {
 }
 
 function deriveSessionParts(session) {
-  const hasStrength = !!session.strengthBlock
-  const hasMetcon = !!session.metconBlock
-  const hasAccessory = !!session.accessoryBlock
-
-  if (session.title) {
-    const raw = session.title.split(' / ').filter(Boolean)
-    const mb = session.metconBlock
-    const ladderOverride = mb && (mb.format === 'For Time' || mb.format === 'Ladder') && [
-      ...(mb.segments?.flatMap(s => s.movements ?? []) ?? []),
-      ...(mb.movements ?? []),
-    ].filter(m => !m.isRest).some(m => isLadderReps(m.reps))
-    if (raw.length >= 2) {
-      const result = [`💪 ${raw[0]}`, `⚡ ${ladderOverride ? 'Ladder' : raw[1]}`]
-      if (raw[2]) result.push(`⭐ ${raw[2]}`)
-      else if (hasAccessory) result.push(`⭐ Accessory`)
-      return result
-    }
-    if (raw.length === 1) {
-      if (ladderOverride) return hasStrength ? [`💪 ${raw[0]}`, `⚡ Ladder`] : [`⚡ Ladder`]
-      return [hasMetcon && !hasStrength ? `⚡ ${raw[0]}` : `💪 ${raw[0]}`]
-    }
-    return raw
-  }
+  const mb = session.metconBlock
+  const ladderOverride = mb && (mb.format === 'For Time' || mb.format === 'Ladder') && [
+    ...(mb.segments?.flatMap(s => s.movements ?? []) ?? []),
+    ...(mb.movements ?? []),
+  ].filter(m => !m.isRest).some(m => isLadderReps(m.reps))
 
   const parts = []
   if (session.strengthBlock) {
     const names = (session.strengthBlock.movements || [])
       .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
-    if (names.length) parts.push(`💪 ${names.join(' + ')}`)
+    parts.push(`💪 ${names.length ? names.join(' + ') : 'Strength'}`)
   }
   if (session.metconBlock) {
-    parts.push(`⚡ ${metconSubtitle(session.metconBlock)}`)
+    parts.push(`⚡ ${ladderOverride ? 'Ladder' : metconSubtitle(session.metconBlock)}`)
   }
   if (session.accessoryBlock) parts.push(`⭐ Accessory`)
   return parts.length ? parts : ['BB WOD']
