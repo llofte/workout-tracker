@@ -83,7 +83,7 @@ function metconSubtitle(block) {
       const segRounds = segments.map(s => s.rounds).filter(r => r != null && r > 0)
       if (segRounds.length > 0) {
         const allSame = segRounds.every(r => r === segRounds[0])
-        return allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : `${segRounds.join('+')} Rounds For Time`
+        return allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : segRounds.map(r => `${r} RFT`).join(' + ')
       }
       return 'For Time'
     }

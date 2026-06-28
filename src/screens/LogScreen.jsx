@@ -1182,7 +1182,7 @@ Rules:
           const segRounds = metconSegments.map(s => Number(s.rounds)).filter(r => r > 0)
           if (segRounds.length > 0) {
             const allSame = segRounds.every(r => r === segRounds[0])
-            label = allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : `${segRounds.join('+')} Rounds For Time`
+            label = allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : segRounds.map(r => `${r} RFT`).join(' + ')
           } else {
             label = metconFormat
           }
