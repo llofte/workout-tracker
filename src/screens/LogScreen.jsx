@@ -1180,7 +1180,12 @@ Rules:
           }
         } else if (metconFormat === 'For Time' || metconFormat === 'Ladder') {
           const segRounds = metconSegments.map(s => Number(s.rounds)).filter(r => r > 0)
-          label = segRounds.length > 0 ? `${segRounds.join('+')} Rounds For Time` : metconFormat
+          if (segRounds.length > 0) {
+            const allSame = segRounds.every(r => r === segRounds[0])
+            label = allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : `${segRounds.join('+')} Rounds For Time`
+          } else {
+            label = metconFormat
+          }
         } else {
           const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
           const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)

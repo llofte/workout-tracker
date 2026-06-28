@@ -81,7 +81,11 @@ function metconSubtitle(block) {
     if (allMoves.some(m => isLadderReps(m.reps))) return 'Ladder'
     if (segments?.length > 1) {
       const segRounds = segments.map(s => s.rounds).filter(r => r != null && r > 0)
-      return segRounds.length > 0 ? `${segRounds.join('+')} Rounds For Time` : 'For Time'
+      if (segRounds.length > 0) {
+        const allSame = segRounds.every(r => r === segRounds[0])
+        return allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : `${segRounds.join('+')} Rounds For Time`
+      }
+      return 'For Time'
     }
     const r = rounds || seg0?.rounds
     if (Number(r) === 1) return 'Chipper'
