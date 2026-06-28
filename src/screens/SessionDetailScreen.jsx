@@ -79,6 +79,10 @@ function metconSubtitle(block) {
       ...(block.movements ?? []),
     ].filter(m => !m.isRest)
     if (allMoves.some(m => isLadderReps(m.reps))) return 'Ladder'
+    if (segments?.length > 1) {
+      const segRounds = segments.map(s => s.rounds).filter(r => r != null && r > 0)
+      return segRounds.length > 0 ? `${segRounds.join('+')} Rounds For Time` : 'For Time'
+    }
     const r = rounds || seg0?.rounds
     if (Number(r) === 1) return 'Chipper'
     if (r) return `${r} Rounds For Time`
@@ -481,9 +485,13 @@ function MetconBlock({ block }) {
             {si > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'rgba(0,0,0,0.2)' }}>
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
-                {seg.restBefore != null && (
+                {seg.restBefore > 0 ? (
                   <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 11, fontWeight: 600, letterSpacing: 0.4, fontFamily: ff, whiteSpace: 'nowrap' }}>
                     {formatRestSeconds(seg.restBefore)} rest
+                  </span>
+                ) : (
+                  <span style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, fontFamily: ff, whiteSpace: 'nowrap' }}>
+                    → into
                   </span>
                 )}
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
@@ -558,9 +566,13 @@ function AccessoryBlock({ block }) {
             {si > 0 && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', background: 'rgba(0,0,0,0.2)' }}>
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />
-                {seg.restBefore != null && (
+                {seg.restBefore > 0 ? (
                   <span style={{ color: 'rgba(245,240,232,0.3)', fontSize: 11, fontWeight: 600, letterSpacing: 0.4, fontFamily: ff, whiteSpace: 'nowrap' }}>
                     {formatRestSeconds(seg.restBefore)} rest
+                  </span>
+                ) : (
+                  <span style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, letterSpacing: 0.8, fontFamily: ff, whiteSpace: 'nowrap' }}>
+                    → into
                   </span>
                 )}
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(245,240,232,0.1)' }} />

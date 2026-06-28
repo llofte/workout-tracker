@@ -1178,6 +1178,9 @@ Rules:
             const r = Number(seg?.rounds)
             label = r ? `${r * metconSegments.length * iv} min ${emomLabel}` : `${metconSegments.length} min ${emomLabel}`
           }
+        } else if (metconFormat === 'For Time' || metconFormat === 'Ladder') {
+          const segRounds = metconSegments.map(s => Number(s.rounds)).filter(r => r > 0)
+          label = segRounds.length > 0 ? `${segRounds.join('+')} Rounds For Time` : metconFormat
         } else {
           const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
           const totalRestMin = metconSegments.reduce((sum, s) => sum + (Number(s.restBeforeMin) || 0) + (Number(s.restBeforeSec) || 0) / 60, 0)
@@ -1707,38 +1710,55 @@ Rules:
             {metconSegments.map((seg, si) => (
               <div key={si}>
                 {/* Divider before segments 2+ */}
-                {si > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px' }}>
-                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                    {(seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '7px 12px' }}>
-                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'inherit' }}>Rest</span>
-                        <input
-                          value={seg.restBeforeMin}
-                          onChange={e => updateSegField(si, 'restBeforeMin', e.target.value)}
-                          type="number" inputMode="numeric" placeholder="2"
-                          style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
-                        />
-                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
-                        <input
-                          value={seg.restBeforeSec}
-                          onChange={e => updateSegField(si, 'restBeforeSec', e.target.value)}
-                          type="number" inputMode="numeric" placeholder="0"
-                          style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
-                        />
-                        <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
-                      </div>
-                    ) : (
-                      <div style={{ flexShrink: 0 }} />
-                    )}
-                    <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
-                    <button onClick={() => removeMetconSegment(si)} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
-                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff6b5e" strokeWidth="2.5" strokeLinecap="round">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
+                {si > 0 && (() => {
+                  const totalRestSec = Number(seg.restBeforeMin || 0) * 60 + Number(seg.restBeforeSec || 0)
+                  const isInto = totalRestSec === 0
+                  return (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '4px 0 18px' }}>
+                      <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                      {isInto ? (
+                        <button
+                          onClick={() => { updateSegField(si, 'restBeforeMin', '2'); updateSegField(si, 'restBeforeSec', '0') }}
+                          style={{ backgroundColor: 'rgba(15,247,197,0.1)', border: 'none', borderRadius: 10, padding: '7px 14px', color: '#0ff7c5', fontSize: 12, fontWeight: 700, letterSpacing: 0.8, fontFamily: 'inherit', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                        >
+                          → into
+                        </button>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '7px 12px' }}>
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'inherit' }}>Rest</span>
+                          <input
+                            value={seg.restBeforeMin}
+                            onChange={e => updateSegField(si, 'restBeforeMin', e.target.value)}
+                            type="number" inputMode="numeric" placeholder="2"
+                            style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
+                          />
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
+                          <input
+                            value={seg.restBeforeSec}
+                            onChange={e => updateSegField(si, 'restBeforeSec', e.target.value)}
+                            type="number" inputMode="numeric" placeholder="0"
+                            style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
+                          />
+                          <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
+                          <button
+                            onClick={() => { updateSegField(si, 'restBeforeMin', ''); updateSegField(si, 'restBeforeSec', '') }}
+                            style={{ width: 18, height: 18, borderRadius: '50%', backgroundColor: 'rgba(255,59,48,0.15)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0, marginLeft: 2 }}
+                          >
+                            <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="#ff6b5e" strokeWidth="2.5" strokeLinecap="round">
+                              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                      <div style={{ flex: 1, height: '0.5px', backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                      <button onClick={() => removeMetconSegment(si)} style={{ width: 26, height: 26, borderRadius: '50%', backgroundColor: 'rgba(255,59,48,0.12)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ff6b5e" strokeWidth="2.5" strokeLinecap="round">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                      </button>
+                    </div>
+                  )
+                })()}
 
                 {/* Per-segment fields */}
                 <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>

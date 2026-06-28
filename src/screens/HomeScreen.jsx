@@ -60,6 +60,9 @@ function deriveSessionParts(session) {
           const r = rounds || segments[0]?.rounds
           label = r ? `${r * segments.length * iv} min ${emomLabel}` : `${segments.length} min ${emomLabel}`
         }
+      } else if (format === 'For Time' || format === 'Ladder') {
+        const segRounds = segments.map(s => s.rounds).filter(r => r != null && r > 0)
+        label = segRounds.length > 0 ? `${segRounds.join('+')} Rounds For Time` : format
       } else {
         const totalWorkMin = segments.reduce((sum, s) => sum + (s.duration || 0), 0)
         const totalRestMin = segments.reduce((sum, s) => sum + (s.restBefore || 0) / 60, 0)
@@ -769,7 +772,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v163</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v164</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
