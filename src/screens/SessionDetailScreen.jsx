@@ -3,8 +3,9 @@ import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 import { toWorkoutDisplay } from '../utils/movements'
 
-const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running/i
+const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 const TIMED_RE = /\bplank\b/i
+const CARRY_RE = /\bcarry\b|\bfarm/i
 
 function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
@@ -179,6 +180,7 @@ function calcPartialRoundVol(movements, extraReps) {
   for (const mv of movements) {
     if (remaining <= 0) break
     if (mv.isRest) continue
+    if (CARRY_RE.test(mv.name ?? '')) continue
     const mvReps = parseReps(mv.reps) || 0
     const used = Math.min(mvReps, remaining)
     if (mv.weight && used > 0) v += used * mv.weight
@@ -198,6 +200,11 @@ function calcStrengthVol(block) {
   return v
 }
 
+function carryVol(mv, rounds) {
+  const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+  return mv.weight * (bilateral ? 2 : 1) * rounds
+}
+
 function calcMetconVol(block) {
   if (!block) return 0
   let v = 0
@@ -206,6 +213,7 @@ function calcMetconVol(block) {
     if (amrapSeg) {
       for (const mv of seg.movements ?? []) {
         if (mv.isRest || !mv.weight) continue
+        if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, amrapSeg.completedRounds); continue }
         const reps = parseReps(mv.reps)
         if (reps) v += reps * mv.weight * amrapSeg.completedRounds
       }
@@ -214,6 +222,7 @@ function calcMetconVol(block) {
       const r = seg.rounds || 1
       for (const mv of seg.movements ?? []) {
         if (mv.isRest || !mv.weight) continue
+        if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, r); continue }
         const reps = parseReps(mv.reps)
         if (reps) v += reps * mv.weight * r
       }
@@ -224,6 +233,7 @@ function calcMetconVol(block) {
     if (amrap) {
       for (const mv of block.movements) {
         if (mv.isRest || !mv.weight) continue
+        if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, amrap.completedRounds); continue }
         const reps = parseReps(mv.reps)
         if (reps) v += reps * mv.weight * amrap.completedRounds
       }
@@ -238,6 +248,7 @@ function calcMetconVol(block) {
       }
       for (const mv of block.movements) {
         if (mv.isRest || !mv.weight) continue
+        if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, rounds); continue }
         const reps = parseReps(mv.reps)
         if (reps) v += reps * mv.weight * rounds
       }
@@ -245,6 +256,7 @@ function calcMetconVol(block) {
   }
   for (const mv of [...(block.buyIn ?? []), ...(block.buyOut ?? [])]) {
     if (mv.isRest || !mv.weight) continue
+    if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, 1); continue }
     const reps = parseReps(mv.reps)
     if (reps) v += reps * mv.weight
   }

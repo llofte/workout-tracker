@@ -298,6 +298,8 @@ function weekBarLabel(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+const CARRY_RE = /\bcarry\b|\bfarm/i
+
 function parseReps(reps) {
   if (typeof reps === 'number') return reps
   if (typeof reps === 'string') {
@@ -320,6 +322,7 @@ function calcPartialRoundVol(movements, extraReps) {
   for (const mv of movements) {
     if (remaining <= 0) break
     if (mv.isRest) continue
+    if (CARRY_RE.test(mv.name ?? '')) continue
     const mvReps = parseReps(mv.reps) || 0
     const used = Math.min(mvReps, remaining)
     if (mv.weight && used > 0) v += used * mv.weight
@@ -346,16 +349,26 @@ function sessionVolume(session) {
       if (amrapSeg) {
         for (const mv of seg.movements ?? []) {
           if (mv.isRest || !mv.weight) continue
-          const reps = parseReps(mv.reps)
-          if (reps) vol += reps * mv.weight * amrapSeg.completedRounds
+          if (CARRY_RE.test(mv.name ?? '')) {
+            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+            vol += mv.weight * (bilateral ? 2 : 1) * amrapSeg.completedRounds
+          } else {
+            const reps = parseReps(mv.reps)
+            if (reps) vol += reps * mv.weight * amrapSeg.completedRounds
+          }
         }
         vol += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
       } else {
         const rounds = seg.rounds || 1
         for (const mv of seg.movements ?? []) {
           if (mv.isRest || !mv.weight) continue
-          const reps = parseReps(mv.reps)
-          if (reps) vol += reps * mv.weight * rounds
+          if (CARRY_RE.test(mv.name ?? '')) {
+            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+            vol += mv.weight * (bilateral ? 2 : 1) * rounds
+          } else {
+            const reps = parseReps(mv.reps)
+            if (reps) vol += reps * mv.weight * rounds
+          }
         }
       }
     }
@@ -366,8 +379,13 @@ function sessionVolume(session) {
       if (amrap) {
         for (const mv of mb.movements) {
           if (mv.isRest || !mv.weight) continue
-          const reps = parseReps(mv.reps)
-          if (reps) vol += reps * mv.weight * amrap.completedRounds
+          if (CARRY_RE.test(mv.name ?? '')) {
+            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+            vol += mv.weight * (bilateral ? 2 : 1) * amrap.completedRounds
+          } else {
+            const reps = parseReps(mv.reps)
+            if (reps) vol += reps * mv.weight * amrap.completedRounds
+          }
         }
         vol += calcPartialRoundVol(mb.movements, amrap.extraReps)
       } else {
@@ -380,8 +398,13 @@ function sessionVolume(session) {
         }
         for (const mv of mb.movements) {
           if (mv.isRest || !mv.weight) continue
-          const reps = parseReps(mv.reps)
-          if (reps) vol += reps * mv.weight * rounds
+          if (CARRY_RE.test(mv.name ?? '')) {
+            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+            vol += mv.weight * (bilateral ? 2 : 1) * rounds
+          } else {
+            const reps = parseReps(mv.reps)
+            if (reps) vol += reps * mv.weight * rounds
+          }
         }
       }
     }
@@ -389,8 +412,13 @@ function sessionVolume(session) {
     // Buy-in / buy-out are always done once
     for (const mv of [...(mb.buyIn ?? []), ...(mb.buyOut ?? [])]) {
       if (mv.isRest || !mv.weight) continue
-      const reps = parseReps(mv.reps)
-      if (reps) vol += reps * mv.weight
+      if (CARRY_RE.test(mv.name ?? '')) {
+        const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+        vol += mv.weight * (bilateral ? 2 : 1)
+      } else {
+        const reps = parseReps(mv.reps)
+        if (reps) vol += reps * mv.weight
+      }
     }
   }
 
@@ -777,7 +805,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v167</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v168</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

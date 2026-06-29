@@ -24,8 +24,10 @@ function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWa
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
 function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
 
-const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running/i
+const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
+const CARRY_RE = /\bcarry\b|\bfarm/i
+function isCarryName(name) { return CARRY_RE.test(name ?? '') }
 
 function parseCardioReps(repsVal) {
   const s = String(repsVal ?? '').trim()
@@ -529,6 +531,9 @@ function ImplementSelector({ implement, singleArm, side, onChange }) {
           style={pill(implement === imp)}
         >{imp}</button>
       ))}
+      {canBeSA && !singleArm && (
+        <span style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, alignSelf: 'center', letterSpacing: 0.3 }}>×2</span>
+      )}
       {canBeSA && (
         <button onClick={() => onChange({ implement, singleArm: !singleArm, side: null })} style={pill(singleArm)}>
           SA
@@ -918,7 +923,12 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function updateSegMove(si, mi, field, val) {
     setMetconSegments(prev => prev.map((s, i) => {
       if (i !== si) return s
-      return { ...s, moves: s.moves.map((m, j) => j === mi ? { ...m, [field]: val } : m) }
+      return { ...s, moves: s.moves.map((m, j) => {
+        if (j !== mi) return m
+        const updated = { ...m, [field]: val }
+        if (field === 'name' && isCarryName(val) && (!m.cardioUnit || m.cardioUnit === 'cal')) updated.cardioUnit = 'm'
+        return updated
+      })}
     }))
   }
   function addSegMove(si) {
@@ -946,7 +956,12 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function updateAccessorySegMove(si, mi, field, val) {
     setAccessorySegments(prev => prev.map((s, i) => {
       if (i !== si) return s
-      return { ...s, moves: s.moves.map((m, j) => j === mi ? { ...m, [field]: val } : m) }
+      return { ...s, moves: s.moves.map((m, j) => {
+        if (j !== mi) return m
+        const updated = { ...m, [field]: val }
+        if (field === 'name' && isCarryName(val) && (!m.cardioUnit || m.cardioUnit === 'cal')) updated.cardioUnit = 'm'
+        return updated
+      })}
     }))
   }
   function addAccessorySegMove(si) {
@@ -1289,7 +1304,7 @@ Rules:
               side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
-              cardioUnit: isCardioName(m.name) ? (m.cardioUnit || 'cal') : null,
+              cardioUnit: isCardioName(m.name) ? (isCarryName(m.name) ? (m.cardioUnit || 'm') : (m.cardioUnit || 'cal')) : null,
             }),
           })),
         } : null,
@@ -1315,7 +1330,7 @@ Rules:
               weightUnit: 'lbs',
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
-              cardioUnit: isCardioName(m.name) ? (m.cardioUnit || 'cal') : null,
+              cardioUnit: isCardioName(m.name) ? (isCarryName(m.name) ? (m.cardioUnit || 'm') : (m.cardioUnit || 'cal')) : null,
             }),
           })),
         } : null,
