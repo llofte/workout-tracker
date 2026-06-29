@@ -885,8 +885,8 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         ...m,
         sets: m.sets.map((s, j) => {
           if (j === si) return { ...s, [field]: val }
-          // Propagate forward to subsequent uncompleted working sets
-          if (isWorkingSet && j > si && !s.isWarmup && !s.isCompleted) return { ...s, [field]: val }
+          // Propagate weight forward to subsequent uncompleted working sets
+          if (field === 'weight' && isWorkingSet && j > si && !s.isWarmup && !s.isCompleted) return { ...s, [field]: val }
           return s
         }),
       }
