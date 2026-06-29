@@ -11,7 +11,13 @@ patchSessionData()
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () =>
     navigator.serviceWorker.register(import.meta.env.BASE_URL + 'sw.js', { updateViaCache: 'none' })
-      .then(reg => reg.update())
+      .then(reg => {
+        reg.update()
+        const existingController = navigator.serviceWorker.controller
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (existingController) window.location.reload()
+        })
+      })
   )
 }
 
