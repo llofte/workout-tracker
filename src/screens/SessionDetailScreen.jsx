@@ -304,13 +304,14 @@ function SummaryBox({ score, vol }) {
 
 function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   function prStatus(set) {
-    if (!set.isPR) return null
     const record = allMovements?.find(m => m.name === moveName)
     const best = record?.prs
       ?.filter(p => p.reps === set.reps)
       ?.reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
-    if (!best || set.weight >= best.weight) return 'current'
-    return 'former'
+    if (!best || set.weight == null) return null
+    if (set.weight >= best.weight) return 'current'
+    if (set.isPR) return 'former'
+    return null
   }
 
   let workNum = 0
