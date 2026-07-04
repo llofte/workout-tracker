@@ -13,20 +13,31 @@ export default function SwipeBack({ onBack, children }) {
 
     function start(e) {
       const t = e.touches[0]
-      s.current.active = t.clientX <= 30 // only from the left edge
+      s.current.active = t.clientX <= 30
       s.current.startX = t.clientX
       s.current.startY = t.clientY
       s.current.locked = null
       s.current.dx = 0
       setAnimating(false)
+      // Prevent iOS from claiming this touch sequence as a system gesture
+      if (s.current.active) e.preventDefault()
     }
     function move(e) {
       if (!s.current.active) return
       const t = e.touches[0]
       const mx = t.clientX - s.current.startX
       const my = t.clientY - s.current.startY
-      if (s.current.locked === null && (Math.abs(mx) > 8 || Math.abs(my) > 8)) {
-        s.current.locked = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
+      if (s.current.locked === null) {
+        // Block iOS system gestures until we determine direction
+        e.preventDefault()
+        if (Math.abs(mx) > 8 || Math.abs(my) > 8) {
+          s.current.locked = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
+          if (s.current.locked === 'v') {
+            s.current.active = false
+            return
+          }
+        }
+        return
       }
       if (s.current.locked === 'h') {
         e.preventDefault()
@@ -37,8 +48,6 @@ export default function SwipeBack({ onBack, children }) {
           // Pulled back to origin — cancel so the page doesn't stay draggable
           s.current.active = false
         }
-      } else if (s.current.locked === 'v') {
-        s.current.active = false
       }
     }
     function end() {
@@ -54,7 +63,8 @@ export default function SwipeBack({ onBack, children }) {
       }
     }
 
-    el.addEventListener('touchstart', start, { passive: true })
+    // Non-passive touchstart so we can call preventDefault for left-edge touches
+    el.addEventListener('touchstart', start, { passive: false })
     el.addEventListener('touchmove', move, { passive: false })
     el.addEventListener('touchend', end, { passive: true })
     el.addEventListener('touchcancel', end, { passive: true })
