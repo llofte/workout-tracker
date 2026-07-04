@@ -29,22 +29,27 @@ export default function SwipeBack({ onBack, children }) {
         s.current.locked = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
       }
       if (s.current.locked === 'h') {
-        e.preventDefault() // stop vertical scroll once we're clearly swiping back
+        e.preventDefault()
         const clamped = Math.max(0, mx)
         s.current.dx = clamped
         setDx(clamped)
+        if (clamped === 0) {
+          // Pulled back to origin — cancel so the page doesn't stay draggable
+          s.current.active = false
+        }
       } else if (s.current.locked === 'v') {
-        s.current.active = false // it's a scroll, let it through
+        s.current.active = false
       }
     }
     function end() {
       if (!s.current.active) return
       s.current.active = false
-      setAnimating(true)
       if (s.current.dx > window.innerWidth * 0.33) {
+        setAnimating(true)
         setDx(window.innerWidth)
         setTimeout(() => onBack && onBack(), 220)
-      } else {
+      } else if (s.current.dx > 0) {
+        setAnimating(true)
         setDx(0)
       }
     }
@@ -64,6 +69,7 @@ export default function SwipeBack({ onBack, children }) {
   return (
     <div
       ref={ref}
+      onTransitionEnd={() => setAnimating(false)}
       style={{
         transform: `translateX(${dx}px)`,
         transition: animating ? 'transform 0.22s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
