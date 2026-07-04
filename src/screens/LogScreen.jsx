@@ -98,8 +98,8 @@ function restoreStrengthMove(m) {
   return {
     name: canonName,
     sets: m.sets?.map(s => (s.notation === 'warmup' || s.isWarmup === true)
-      ? { num: `W${++wn}`, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: true }
-      : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false }
+      ? { num: `W${++wn}`, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: true, isPR: false }
+      : { num: ++wkn, reps: s.reps?.toString() ?? '', weight: s.weight?.toString() ?? '', isWarmup: false, isPR: s.isPR ?? false }
     ) ?? [newWorkingSet(1)],
     notes: m.notes || '',
     implement,
@@ -1255,7 +1255,7 @@ Rules:
               reps: s.reps !== '' ? Number(s.reps) : null,
               weight: s.weight !== '' ? Number(s.weight) : null,
               weightUnit: 'lbs',
-              isFailure: false, isPR: false,
+              isFailure: false, isPR: s.isPR ?? false,
               notation: s.isWarmup ? 'warmup' : null,
             })),
             notes: m.notes || '',
