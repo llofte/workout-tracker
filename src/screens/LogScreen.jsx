@@ -1597,11 +1597,11 @@ Rules:
                 <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
                   <div style={{ flex: 1 }}>
                     <p style={labelStyle}>Duration (min)</p>
-                    <input placeholder="12" value={strengthDuration} onChange={e => setStrengthDuration(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    <input placeholder="—" value={strengthDuration} onChange={e => setStrengthDuration(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={labelStyle}>Every (min)</p>
-                    <input placeholder="1" value={strengthInterval} onChange={e => setStrengthInterval(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                    <input placeholder="—" value={strengthInterval} onChange={e => setStrengthInterval(e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                   </div>
                 </div>
               )}
@@ -1690,14 +1690,14 @@ Rules:
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
                         <>
-                          <input placeholder="0" value={move.restMin} onChange={e => updateBuyInMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restMin} onChange={e => updateBuyInMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
-                          <input placeholder="30" value={move.restSec} onChange={e => updateBuyInMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restSec} onChange={e => updateBuyInMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
                         </>
                       ) : (
                         <>
-                          <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateBuyInMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="Reps" value={move.reps} onChange={e => updateBuyInMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <input placeholder="lbs" value={move.weight} onChange={e => updateBuyInMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                         </>
                       )}
@@ -1749,14 +1749,14 @@ Rules:
                           <input
                             value={seg.restBeforeMin}
                             onChange={e => updateSegField(si, 'restBeforeMin', e.target.value)}
-                            type="number" inputMode="numeric" placeholder="2"
+                            type="number" inputMode="numeric" placeholder="—"
                             style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
                           />
                           <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
                           <input
                             value={seg.restBeforeSec}
                             onChange={e => updateSegField(si, 'restBeforeSec', e.target.value)}
-                            type="number" inputMode="numeric" placeholder="0"
+                            type="number" inputMode="numeric" placeholder="—"
                             style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }}
                           />
                           <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
@@ -1785,31 +1785,31 @@ Rules:
                   {metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Duration (min)</p>
-                      <input placeholder="20" value={seg.duration} onChange={e => updateSegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.duration} onChange={e => updateSegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {(metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Rounds</p>
-                      <input placeholder={metconFormat === 'Tabata' ? '8' : '4'} value={seg.rounds} onChange={e => updateSegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.rounds} onChange={e => updateSegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {metconFormat === 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Work (sec)</p>
-                      <input placeholder="20" value={seg.tabataWork} onChange={e => updateSegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.tabataWork} onChange={e => updateSegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {metconFormat === 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Rest (sec)</p>
-                      <input placeholder="10" value={seg.tabataRest} onChange={e => updateSegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.tabataRest} onChange={e => updateSegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {metconFormat === 'OTM' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Every (min)</p>
-                      <input placeholder="1" value={seg.interval} onChange={e => updateSegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.interval} onChange={e => updateSegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                 </div>
@@ -1880,9 +1880,9 @@ Rules:
                       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                         {move.isRest ? (
                           <>
-                            <input placeholder="0" value={move.restMin} onChange={e => updateSegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <input placeholder="—" value={move.restMin} onChange={e => updateSegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                             <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
-                            <input placeholder="30" value={move.restSec} onChange={e => updateSegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                            <input placeholder="—" value={move.restSec} onChange={e => updateSegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                             <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
                             {metconFormat === 'OTM' && (
                               <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateSegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', marginLeft: 'auto' }} />
@@ -1964,7 +1964,7 @@ Rules:
               </p>
               <input
                 className="log-hint"
-                placeholder={metconFormat === 'AMRAP' ? '12 rounds + 5 reps' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? '14:32' : ''}
+                placeholder="—"
                 value={metconScore} onChange={e => setMetconScore(e.target.value)} style={inputBase}
               />
             </div>
@@ -1996,14 +1996,14 @@ Rules:
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       {move.isRest ? (
                         <>
-                          <input placeholder="0" value={move.restMin} onChange={e => updateBuyOutMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restMin} onChange={e => updateBuyOutMove(mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
-                          <input placeholder="30" value={move.restSec} onChange={e => updateBuyOutMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restSec} onChange={e => updateBuyOutMove(mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
                         </>
                       ) : (
                         <>
-                          <input placeholder="Reps or 15-12-9" value={move.reps} onChange={e => updateBuyOutMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="Reps" value={move.reps} onChange={e => updateBuyOutMove(mi, 'reps', e.target.value)} style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <input placeholder="lbs" value={move.weight} onChange={e => updateBuyOutMove(mi, 'weight', e.target.value)} type="number" inputMode="decimal" style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 10px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                         </>
                       )}
@@ -2053,9 +2053,9 @@ Rules:
                     {(seg.restBeforeMin !== '' || seg.restBeforeSec !== '') ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: '7px 12px' }}>
                         <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'inherit' }}>Rest</span>
-                        <input value={seg.restBeforeMin} onChange={e => updateAccessorySegField(si, 'restBeforeMin', e.target.value)} type="number" inputMode="numeric" placeholder="2" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
+                        <input value={seg.restBeforeMin} onChange={e => updateAccessorySegField(si, 'restBeforeMin', e.target.value)} type="number" inputMode="numeric" placeholder="—" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
                         <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>min</span>
-                        <input value={seg.restBeforeSec} onChange={e => updateAccessorySegField(si, 'restBeforeSec', e.target.value)} type="number" inputMode="numeric" placeholder="0" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
+                        <input value={seg.restBeforeSec} onChange={e => updateAccessorySegField(si, 'restBeforeSec', e.target.value)} type="number" inputMode="numeric" placeholder="—" style={{ width: 32, backgroundColor: 'transparent', border: 'none', color: '#f5f0e8', fontSize: 16, fontWeight: 600, outline: 'none', textAlign: 'center', fontFamily: 'inherit', padding: 0 }} />
                         <span style={{ color: 'rgba(245,240,232,0.45)', fontSize: 12, fontFamily: 'inherit' }}>sec</span>
                       </div>
                     ) : (
@@ -2075,31 +2075,31 @@ Rules:
                   {accessoryFormat !== 'For Time' && accessoryFormat !== 'Ladder' && accessoryFormat !== 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Duration (min)</p>
-                      <input placeholder="20" value={seg.duration} onChange={e => updateAccessorySegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.duration} onChange={e => updateAccessorySegField(si, 'duration', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {(accessoryFormat === 'For Time' || accessoryFormat === 'OTM' || accessoryFormat === 'Tabata') && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Rounds</p>
-                      <input placeholder={accessoryFormat === 'Tabata' ? '8' : '4'} value={seg.rounds} onChange={e => updateAccessorySegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.rounds} onChange={e => updateAccessorySegField(si, 'rounds', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {accessoryFormat === 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Work (sec)</p>
-                      <input placeholder="20" value={seg.tabataWork} onChange={e => updateAccessorySegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.tabataWork} onChange={e => updateAccessorySegField(si, 'tabataWork', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {accessoryFormat === 'Tabata' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Rest (sec)</p>
-                      <input placeholder="10" value={seg.tabataRest} onChange={e => updateAccessorySegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.tabataRest} onChange={e => updateAccessorySegField(si, 'tabataRest', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                   {accessoryFormat === 'OTM' && (
                     <div style={{ flex: 1 }}>
                       <p style={labelStyle}>Every (min)</p>
-                      <input placeholder="1" value={seg.interval} onChange={e => updateAccessorySegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
+                      <input placeholder="—" value={seg.interval} onChange={e => updateAccessorySegField(si, 'interval', e.target.value)} type="number" inputMode="numeric" style={inputBase} />
                     </div>
                   )}
                 </div>
@@ -2147,9 +2147,9 @@ Rules:
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       {move.isRest ? (
                         <>
-                          <input placeholder="0" value={move.restMin} onChange={e => updateAccessorySegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restMin} onChange={e => updateAccessorySegMove(si, mi, 'restMin', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>min</span>
-                          <input placeholder="30" value={move.restSec} onChange={e => updateAccessorySegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
+                          <input placeholder="—" value={move.restSec} onChange={e => updateAccessorySegMove(si, mi, 'restSec', e.target.value)} type="number" inputMode="numeric" style={{ width: 56, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center' }} />
                           <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: 'inherit' }}>sec</span>
                           {accessoryFormat === 'OTM' && (
                             <input placeholder="Min #" value={move.minuteAssignment} onChange={e => updateAccessorySegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, flexShrink: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '9px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', marginLeft: 'auto' }} />
