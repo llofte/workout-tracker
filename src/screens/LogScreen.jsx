@@ -38,11 +38,16 @@ function parseCardioReps(repsVal) {
   return { reps: m[1], cardioUnit }
 }
 
-// If reps are "X/Y" (Rx/scaled split on whiteboard), take Y (women's/scaled)
+// If reps are "X/Y" (Rx/scaled split on whiteboard), take Y (women's/scaled).
+// Unit suffix (e.g. "300/250m") can sit on either side or both — carry it onto the picked value.
 function pickScaledReps(val) {
   const s = String(val ?? '').trim()
-  const m = s.match(/^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/)
-  return m ? m[2] : s
+  const unitPart = '(cal|cals?|calories?|mi|miles?|m|meters?|metres?|sec|secs?|seconds?)?'
+  const re = new RegExp(`^(\\d+(?:\\.\\d+)?)\\s*${unitPart}\\s*\\/\\s*(\\d+(?:\\.\\d+)?)\\s*${unitPart}$`, 'i')
+  const m = s.match(re)
+  if (!m) return s
+  const unit = m[4] || m[2] || ''
+  return unit ? `${m[3]}${unit}` : m[3]
 }
 
 // If weight is "X/Y" (Rx/scaled split), clear it — user never does prescribed weight
