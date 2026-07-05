@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { toWorkoutDisplay } from '../utils/movements'
+import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn } from '../utils/movements'
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 const TIMED_RE = /\bplank\b/i
@@ -324,16 +324,20 @@ function SummaryBox({ score, vol }) {
   )
 }
 
+function computeSetPRStatus(set, moveName, allMovements) {
+  const record = allMovements?.find(m => m.name === moveName)
+  const best = record?.prs
+    ?.filter(p => p.reps === set.reps)
+    ?.reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
+  if (!best || set.weight == null) return null
+  if (set.weight >= best.weight) return 'current'
+  if (set.isPR) return 'former'
+  return null
+}
+
 function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   function prStatus(set) {
-    const record = allMovements?.find(m => m.name === moveName)
-    const best = record?.prs
-      ?.filter(p => p.reps === set.reps)
-      ?.reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
-    if (!best || set.weight == null) return null
-    if (set.weight >= best.weight) return 'current'
-    if (set.isPR) return 'former'
-    return null
+    return computeSetPRStatus(set, moveName, allMovements)
   }
 
   let workNum = 0
@@ -428,9 +432,103 @@ function SectionHeader({ title, subtitle, right }) {
   )
 }
 
+function multiTableHeaders(movements) {
+  if (movements.length >= 4) return movements.map((_, i) => String(i + 1))
+  const abbrevs = movements.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name).toUpperCase())
+  const tooLong = abbrevs.some(a => a.length > 12)
+  const hasCollision = new Set(abbrevs).size !== abbrevs.length
+  return (tooLong || hasCollision) ? movements.map((_, i) => String(i + 1)) : abbrevs
+}
+
+// Dot-aligned "x8 · 85 lbs" cell — fixed-width reps/dot spans so the dot lands at the
+// same x-position on every row regardless of digit count (bodyweight movements just show "x8").
+function MultiSetCell({ set, isPR }) {
+  if (!set) return <span style={{ flex: 1, textAlign: 'center', fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
+  const color = isPR ? '#0ff7c5' : '#f5f0e8'
+  const weight = set.weight != null ? set.weight : null
+  return (
+    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', width: weight != null ? 90 : 'auto' }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: weight != null ? 20 : 'auto', flexShrink: 0, textAlign: weight != null ? 'right' : 'center' }}>x{set.reps}</span>
+        {weight != null && (
+          <>
+            <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: 14, textAlign: 'center', flexShrink: 0 }}>·</span>
+            <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{weight} lbs</span>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function MultiSetStrengthTable({ movements, allMovements }) {
+  const headers = multiTableHeaders(movements)
+  const perMove = movements.map(m => ({
+    warm: (m.sets ?? []).filter(s => s.notation === 'warmup'),
+    work: (m.sets ?? []).filter(s => s.notation !== 'warmup'),
+  }))
+  const maxWarmups = Math.max(0, ...perMove.map(p => p.warm.length))
+  const maxWorking = Math.max(0, ...perMove.map(p => p.work.length))
+  const n = movements.length
+  const colBoundary = i => `calc(22px + (100% - 22px - 22px) * ${i} / ${n})`
+
+  function renderRow({ key, label, labelColor, isWarmupSection, sectionIndex }) {
+    let anyPR = false
+    const cells = movements.map((move, mi) => {
+      const set = isWarmupSection ? perMove[mi].warm[sectionIndex] : perMove[mi].work[sectionIndex]
+      const pr = set ? computeSetPRStatus(set, move.name, allMovements) : null
+      if (pr === 'current') anyPR = true
+      return <MultiSetCell key={mi} set={set} isPR={pr === 'current'} />
+    })
+    return (
+      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
+        <span style={{ width: 22, flexShrink: 0, textAlign: 'center', fontSize: 13, fontWeight: 600, fontFamily: ff, color: anyPR ? '#0ff7c5' : labelColor, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          {label}
+          {anyPR && (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+            </svg>
+          )}
+        </span>
+        {cells}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      <div style={{ padding: '2px 16px 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {movements.map((move, i) => (
+          <span key={i} style={{ fontSize: 11, color: 'rgba(245,240,232,0.4)', fontFamily: ff }}>
+            {i + 1}. {toWorkoutDisplay(move)}
+          </span>
+        ))}
+      </div>
+      <div style={{ position: 'relative' }}>
+        {Array.from({ length: n + 1 }).map((_, i) => (
+          <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: colBoundary(i), width: 1.5, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+        ))}
+        <div style={{ display: 'flex', gap: 4, padding: '6px 16px' }}>
+          <span style={{ width: 22, flexShrink: 0 }} />
+          {headers.map((h, i) => (
+            <span key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: ff, letterSpacing: 0.3 }}>{h}</span>
+          ))}
+        </div>
+      </div>
+      {Array.from({ length: maxWarmups }).map((_, wi) =>
+        renderRow({ key: `w${wi}`, label: 'W', labelColor: 'rgba(245,240,232,0.28)', isWarmupSection: true, sectionIndex: wi })
+      )}
+      {Array.from({ length: maxWorking }).map((_, wki) =>
+        renderRow({ key: `s${wki}`, label: wki + 1, labelColor: 'rgba(245,240,232,0.45)', isWarmupSection: false, sectionIndex: wki })
+      )}
+    </div>
+  )
+}
+
 function StrengthBlock({ block, allMovements }) {
   if (!block) return null
   const moves = block.movements ?? []
+  const mode = resolveStrengthMode(block)
   const isMultiMove = moves.length > 1
   const totalVol = calcStrengthVol(block)
 
@@ -449,7 +547,9 @@ function StrengthBlock({ block, allMovements }) {
           <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
         </div>
 
-        {moves.map((move, i) => (
+        {mode === 'multi' ? (
+          <MultiSetStrengthTable movements={moves} allMovements={allMovements} />
+        ) : moves.map((move, i) => (
           <div key={i}>
             {isMultiMove && (
               <div style={{ padding: i === 0 ? '4px 16px 2px' : '6px 16px 2px' }}>

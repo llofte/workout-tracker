@@ -430,3 +430,34 @@ export function toLibraryDisplay(name, implement) {
   const abbrev = LIBRARY_ABBREV[implement] ?? implement
   return `${name} (${abbrev})`
 }
+
+// Determines whether a strength block's movements should be displayed/logged as a
+// synced multi-movement superset table (one round per row, one column per movement)
+// or as independent stacked movements. Explicit block.mode wins; legacy data (no
+// mode field) falls back to inferring from equal WORKING-set counts across movements.
+// Warmups are allowed to differ per movement (e.g. only one movement warms up) —
+// they're rendered/logged independently per movement, not as synced rounds.
+export function resolveStrengthMode(block) {
+  if (block?.mode === 'multi') return 'multi'
+  if (block?.mode === 'single') return 'single'
+  const moves = block?.movements ?? []
+  if (moves.length < 2) return 'single'
+  const workingCounts = moves.map(m => (m.sets ?? []).filter(s => s.notation !== 'warmup').length)
+  return (workingCounts.every(c => c === workingCounts[0]) && workingCounts[0] > 0) ? 'multi' : 'single'
+}
+
+// Abbreviates a canonical movement name for a narrow table column header, e.g.
+// "Power Snatch" -> "P Snatch", "Split-Stance Press" -> "SS Press".
+// Reuses SESSION_ABBREV first (RDL, SDHP, G2OH); otherwise keeps the last word whole
+// and reduces every earlier word to its initial(s) (hyphenated words contribute one
+// letter per part, so "Split-Stance" -> "SS").
+export function abbreviateForColumn(canonicalName) {
+  if (!canonicalName) return ''
+  if (SESSION_ABBREV[canonicalName]) return SESSION_ABBREV[canonicalName]
+  const words = canonicalName.split(' ')
+  const last = words[words.length - 1]
+  const initials = words.slice(0, -1)
+    .map(w => w.split('-').map(part => part[0]?.toUpperCase() ?? '').join(''))
+    .join(' ')
+  return initials ? `${initials} ${last}` : last
+}

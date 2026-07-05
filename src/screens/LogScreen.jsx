@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { normalizeMovement } from '../utils/movements'
+import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay } from '../utils/movements'
 
 // Full implement name → selector short code
 const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate', Rower: 'Rower' }
@@ -519,8 +519,9 @@ function DbToggle({ value, onChange }) {
 }
 
 // ─── Implement Selector ───────────────────────────────────────────────
-function ImplementSelector({ implement, singleArm, side, onChange }) {
+function ImplementSelector({ implement, singleArm, side, onChange, name }) {
   const canBeSA = implement === 'KB' || implement === 'DB'
+  const isKnownBarbell = BB_STRENGTH_MOVEMENTS.has(normalizeMovement(name ?? '').name)
   const pill = (active) => ({
     backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
     color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
@@ -530,12 +531,17 @@ function ImplementSelector({ implement, singleArm, side, onChange }) {
   })
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-      {['BB', 'KB', 'DB', 'Plate'].map(imp => (
-        <button key={imp}
-          onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
-          style={pill(implement === imp)}
-        >{imp}</button>
-      ))}
+      {['BB', 'KB', 'DB', 'Plate'].map(imp => {
+        const isActive = imp === 'BB'
+          ? (implement === 'BB' || (implement == null && isKnownBarbell))
+          : implement === imp
+        return (
+          <button key={imp}
+            onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
+            style={pill(isActive)}
+          >{imp}</button>
+        )
+      })}
       {canBeSA && !singleArm && (
         <span style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, alignSelf: 'center', letterSpacing: 0.3 }}>×2</span>
       )}
@@ -550,6 +556,137 @@ function ImplementSelector({ implement, singleArm, side, onChange }) {
           style={pill(side === s)}
         >{s}</button>
       ))}
+    </div>
+  )
+}
+
+function multiColumnHeaders(moves) {
+  if (moves.length >= 4) return moves.map((_, i) => String(i + 1))
+  const abbrevs = moves.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name).toUpperCase())
+  const tooLong = abbrevs.some(a => a.length > 12)
+  const hasCollision = new Set(abbrevs).size !== abbrevs.length
+  return (tooLong || hasCollision) ? moves.map((_, i) => String(i + 1)) : abbrevs
+}
+
+// Multi mode: movements are logged together, one round per row, one reps/weight pair per movement column.
+function MultiSetStrengthInput({
+  moves, onUpdateName, onOpenPicker, onImplementChange, onRemoveMovement, onAddMovement,
+  onUpdateCell, onRemoveRound, onAddRound, onAddWarmupRound, onCheckRound,
+}) {
+  const headers = multiColumnHeaders(moves)
+  const n = moves.length
+  const colBoundary = i => `calc(22px + (100% - 22px - 22px) * ${i} / ${n})`
+
+  // Warmups are independent per movement; only working sets are synced into rounds.
+  const perMove = moves.map(m => ({
+    warm: m.sets.filter(s => s.isWarmup),
+    work: m.sets.filter(s => !s.isWarmup),
+  }))
+  const maxWarmups = Math.max(0, ...perMove.map(p => p.warm.length))
+  const maxWorking = Math.max(0, ...perMove.map(p => p.work.length))
+
+  function renderRoundRow({ key, label, labelColor, isWarmupSection, sectionIndex }) {
+    const allChecked = perMove.every(p => {
+      const set = isWarmupSection ? p.warm[sectionIndex] : p.work[sectionIndex]
+      return !set || set.isCompleted
+    })
+    return (
+      <SwipeToDelete key={key} onDelete={() => onRemoveRound(isWarmupSection, sectionIndex)} marginBottom={5}>
+        <div style={{ display: 'flex', gap: 3, alignItems: 'center', padding: '6px 0' }}>
+          <span style={{ width: 22, flexShrink: 0, textAlign: 'center', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', color: labelColor }}>
+            {label}
+          </span>
+          {moves.map((m, mi) => {
+            const set = isWarmupSection ? perMove[mi].warm[sectionIndex] : perMove[mi].work[sectionIndex]
+            if (!set) return <span key={mi} style={{ flex: 1, textAlign: 'center', fontSize: 12, color: 'rgba(245,240,232,0.25)', fontFamily: 'inherit' }}>—</span>
+            const flatIndex = isWarmupSection ? sectionIndex : perMove[mi].warm.length + sectionIndex
+            return (
+              <div key={mi} style={{ flex: 1, display: 'flex', gap: 2 }}>
+                <input
+                  type="number" inputMode="numeric" placeholder="—" value={set.reps}
+                  onChange={e => onUpdateCell(mi, flatIndex, 'reps', e.target.value)}
+                  style={{ width: 0, flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 6, padding: '6px 2px', fontSize: 12, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                />
+                <input
+                  type="number" inputMode="decimal" placeholder="—" value={set.weight}
+                  onChange={e => onUpdateCell(mi, flatIndex, 'weight', e.target.value)}
+                  style={{ width: 0, flex: 1, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 6, padding: '6px 2px', fontSize: 12, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }}
+                />
+              </div>
+            )
+          })}
+          <div style={{ width: 22, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+            <button
+              onClick={() => onCheckRound(isWarmupSection, sectionIndex, !allChecked)}
+              style={{ width: 16, height: 16, borderRadius: '50%', backgroundColor: allChecked ? '#0ff7c5' : 'transparent', border: allChecked ? 'none' : '1.5px solid rgba(245,240,232,0.25)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 0 }}
+            >
+              {allChecked && (
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#0a1a10" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              )}
+            </button>
+          </div>
+        </div>
+      </SwipeToDelete>
+    )
+  }
+
+  return (
+    <div>
+      {moves.map((move, mi) => (
+        <div key={mi} style={{ marginBottom: 4 }}>
+          <SwipeToDelete onDelete={() => onRemoveMovement(mi)} marginBottom={6} borderRadius={10}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                placeholder={`Movement ${mi + 1}…`} value={move.name}
+                onChange={e => onUpdateName(mi, e.target.value)}
+                style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 500, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none' }}
+              />
+              <button onClick={() => onOpenPicker(mi)} style={{ backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer', flexShrink: 0 }}>
+                Library
+              </button>
+            </div>
+          </SwipeToDelete>
+          <div style={{ marginBottom: -4 }}>
+            <ImplementSelector
+              implement={move.implement}
+              singleArm={move.singleArm}
+              side={move.side}
+              name={move.name}
+              onChange={patch => onImplementChange(mi, patch)}
+            />
+          </div>
+        </div>
+      ))}
+      <button onClick={onAddMovement} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px', fontSize: 13, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 14 }}>
+        + Add Movement
+      </button>
+
+      <div style={{ position: 'relative', marginBottom: 6 }}>
+        {Array.from({ length: n + 1 }).map((_, i) => (
+          <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: colBoundary(i), width: 1.5, backgroundColor: 'rgba(255,255,255,0.16)' }} />
+        ))}
+        <div style={{ display: 'flex', gap: 3, padding: '4px 0' }}>
+          <span style={{ width: 22, flexShrink: 0 }} />
+          {headers.map((h, i) => (
+            <span key={i} style={{ flex: 1, textAlign: 'center', fontSize: 9, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>{h}</span>
+          ))}
+          <span style={{ width: 22, flexShrink: 0 }} />
+        </div>
+      </div>
+
+      {Array.from({ length: maxWarmups }).map((_, wi) =>
+        renderRoundRow({ key: `w${wi}`, label: 'W', labelColor: 'rgba(245,240,232,0.28)', isWarmupSection: true, sectionIndex: wi })
+      )}
+      {Array.from({ length: maxWorking }).map((_, wki) =>
+        renderRoundRow({ key: `s${wki}`, label: wki + 1, labelColor: 'rgba(245,240,232,0.45)', isWarmupSection: false, sectionIndex: wki })
+      )}
+
+      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        <button onClick={onAddWarmupRound} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.4)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Warmup</button>
+        <button onClick={onAddRound} style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: 8, padding: '9px 0', fontSize: 13, color: 'rgba(245,240,232,0.55)', fontFamily: 'inherit', cursor: 'pointer' }}>+ Set</button>
+      </div>
     </div>
   )
 }
@@ -617,6 +754,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
 
   const [hasStrength, setHasStrength] = useState(s ? !!s.strengthBlock : true)
   const [strengthType, setStrengthType] = useState(initSt?.type ?? 'Traditional')
+  const [strengthMode, setStrengthMode] = useState(() => resolveStrengthMode(s?.strengthBlock))
   const [strengthDuration, setStrengthDuration] = useState(initSt?.duration ?? '')
   const [strengthInterval, setStrengthInterval] = useState(initSt?.interval ?? '1')
   const [strengthMoves, setStrengthMoves] = useState(() =>
@@ -906,6 +1044,78 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     setStrengthMoves(prev => prev.map((m, i) => {
       if (i !== mi) return m
       return { ...m, sets: m.sets.filter((_, j) => j !== si) }
+    }))
+  }
+
+  // ── multi-set (synced round) helpers ──
+  // Only WORKING sets are synced round-for-round across movements — warmups stay
+  // independent per movement (e.g. one movement warms up, another doesn't), since
+  // they happen before the shared complex/superset rounds begin.
+  // Switching Single -> Multi: pad any movement whose working-set count is below
+  // the max found, so every movement shares the same round count. Warmups untouched.
+  // Switching Multi -> Single is always safe as-is (no changes needed).
+  function handleStrengthModeChange(nextMode) {
+    if (nextMode === 'multi') {
+      setStrengthMoves(prev => {
+        const maxWork = Math.max(...prev.map(m => m.sets.filter(s => !s.isWarmup).length))
+        return prev.map(m => {
+          const work = m.sets.filter(s => !s.isWarmup)
+          if (work.length >= maxWork) return m
+          const warm = m.sets.filter(s => s.isWarmup)
+          const extra = Array.from({ length: maxWork - work.length }, (_, i) => newWorkingSet(work.length + i + 1))
+          return { ...m, sets: [...warm, ...work, ...extra] }
+        })
+      })
+    }
+    setStrengthMode(nextMode)
+  }
+  function addMultiRound() {
+    setStrengthMoves(prev => prev.map(m => {
+      const n = m.sets.filter(s => !s.isWarmup).length
+      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+    }))
+  }
+  function addMultiWarmupRound() {
+    setStrengthMoves(prev => prev.map(m => {
+      const wn = m.sets.filter(s => s.isWarmup).length
+      const warm = m.sets.filter(s => s.isWarmup)
+      const work = m.sets.filter(s => !s.isWarmup)
+      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+    }))
+  }
+  // sectionIndex is per-movement position within its own warmup or working sub-list —
+  // movements that don't have an entry at that position (e.g. no warmup) are left unchanged.
+  function removeMultiRound(isWarmupSection, sectionIndex) {
+    setStrengthMoves(prev => prev.map(m => {
+      const warm = m.sets.filter(s => s.isWarmup)
+      const work = m.sets.filter(s => !s.isWarmup)
+      if (isWarmupSection) {
+        if (sectionIndex >= warm.length) return m
+        return { ...m, sets: [...warm.filter((_, i) => i !== sectionIndex), ...work] }
+      }
+      if (sectionIndex >= work.length) return m
+      return { ...m, sets: [...warm, ...work.filter((_, i) => i !== sectionIndex)] }
+    }))
+  }
+  function addMultiMovement() {
+    setStrengthMoves(prev => {
+      const maxWork = Math.max(1, ...prev.map(m => m.sets.filter(s => !s.isWarmup).length))
+      const clonedSets = Array.from({ length: maxWork }, (_, i) => newWorkingSet(i + 1))
+      return [...prev, { ...newStrengthMove(), sets: clonedSets }]
+    })
+  }
+  function updateMultiRoundChecked(isWarmupSection, sectionIndex, checked) {
+    setStrengthMoves(prev => prev.map(m => {
+      const warm = m.sets.filter(s => s.isWarmup)
+      const work = m.sets.filter(s => !s.isWarmup)
+      if (isWarmupSection) {
+        if (sectionIndex >= warm.length) return m
+        const newWarm = warm.map((s, i) => i === sectionIndex ? { ...s, isCompleted: checked } : s)
+        return { ...m, sets: [...newWarm, ...work] }
+      }
+      if (sectionIndex >= work.length) return m
+      const newWork = work.map((s, i) => i === sectionIndex ? { ...s, isCompleted: checked } : s)
+      return { ...m, sets: [...warm, ...newWork] }
     }))
   }
 
@@ -1254,6 +1464,7 @@ Rules:
         strengthBlock: hasStrength ? {
           customTitle: titleStrength.trim() || null,
           title: strengthMoves[0]?.name || '',
+          mode: strengthMode,
           structure: strengthType === 'OTM'
             ? `${strengthDuration} min OTM every ${strengthInterval} min`
             : strengthType,
@@ -1620,9 +1831,33 @@ Rules:
                   </div>
                 </div>
               )}
+              <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                {['Single', 'Multi'].map(m => {
+                  const val = m === 'Single' ? 'single' : 'multi'
+                  return (
+                    <button key={m} onClick={() => handleStrengthModeChange(val)} style={{ flexShrink: 0, backgroundColor: strengthMode === val ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: strengthMode === val ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 16px', fontSize: 13, fontWeight: strengthMode === val ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
+                      {m}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
-            {strengthMoves.map((move, mi) => (
+            {strengthMode === 'multi' ? (
+              <MultiSetStrengthInput
+                moves={strengthMoves}
+                onUpdateName={(mi, val) => updateStrengthMove(mi, 'name', val)}
+                onOpenPicker={mi => openPicker('strength', mi)}
+                onImplementChange={(mi, patch) => setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, ...patch } : m))}
+                onRemoveMovement={removeStrengthMove}
+                onAddMovement={addMultiMovement}
+                onUpdateCell={(mi, si, field, val) => updateSet(mi, si, field, val)}
+                onRemoveRound={removeMultiRound}
+                onAddRound={addMultiRound}
+                onAddWarmupRound={addMultiWarmupRound}
+                onCheckRound={updateMultiRoundChecked}
+              />
+            ) : strengthMoves.map((move, mi) => (
               <div key={mi} style={{ backgroundColor: '#201a2a', borderRadius: 14, padding: '14px 14px 10px', marginBottom: 10, border: '0.5px solid rgba(255,255,255,0.07)' }}>
                 <SwipeToDelete onDelete={() => removeStrengthMove(mi)} marginBottom={10} borderRadius={10}>
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -1641,6 +1876,7 @@ Rules:
                   implement={move.implement}
                   singleArm={move.singleArm}
                   side={move.side}
+                  name={move.name}
                   onChange={({ implement, singleArm, side }) =>
                     setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side } : m))
                   }
@@ -1662,9 +1898,11 @@ Rules:
                 </div>
               </div>
             ))}
-            <button onClick={addStrengthMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
-              + Add Movement
-            </button>
+            {strengthMode !== 'multi' && (
+              <button onClick={addStrengthMove} style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.04)', border: '1px dashed rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', fontSize: 14, color: 'rgba(245,240,232,0.45)', fontFamily: 'inherit', cursor: 'pointer', marginBottom: 4 }}>
+                + Add Movement
+              </button>
+            )}
           </div>
         )}
 
@@ -1882,6 +2120,7 @@ Rules:
                           implement={move.implement}
                           singleArm={move.singleArm}
                           side={move.side}
+                          name={move.name}
                           onChange={({ implement, singleArm, side }) =>
                             setMetconSegments(prev => prev.map((sg, sgi) =>
                               sgi === si ? {
@@ -2164,6 +2403,7 @@ Rules:
                         implement={move.implement}
                         singleArm={move.singleArm}
                         side={move.side}
+                        name={move.name}
                         onChange={({ implement, singleArm, side }) =>
                           setAccessorySegments(prev => prev.map((sg, sgi) =>
                             sgi === si ? {
