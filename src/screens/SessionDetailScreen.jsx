@@ -492,7 +492,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
     })
     return (
       <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
+        <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', borderRight: DIVIDER_BORDER }}>
           {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
             <span style={{ fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
           )}
