@@ -1042,7 +1042,7 @@ Metcon rules:
 - Buy-in/buy-out: movements done once before/after the main piece
 - Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed
 
-OTM/EMOM metcon — TWO distinct patterns, handle carefully:
+OTM/EMOM metcon — THREE distinct patterns, handle carefully:
 PATTERN A — Rotating OTM (each minute is a different movement):
   "12 min OTM: Min 1 x8 Burpee Box Jump, Min 2 x5 DL" means every minute you do ONE movement, alternating.
   → interval="1", each move gets minuteAssignment "1", "2", etc. to show which minute it occupies.
@@ -1051,7 +1051,12 @@ PATTERN B — Grouped OTM (all movements happen together every X minutes):
   "E2MOM: 5 DL + 8 Burpee Box Jump" means both movements happen within the same 2-minute window.
   → interval="2" (or however many minutes the window is), all moves get minuteAssignment "" (no assignment).
 The key signal: if the board says "Min 1", "Min 2" etc., it is PATTERN A (rotating, interval="1").
-If it says "E2MOM" or "every 2 min" with no per-minute labels, it is PATTERN B.`
+If it says "E2MOM" or "every 2 min" with no per-minute labels, it is PATTERN B.
+PATTERN C — "N Rounds, X min ON, Y min OFF" (work/rest rounds):
+  "5 Rounds, 2min ON 2min OFF" with movements listed below means each round is (X+Y) minutes total: X min working the listed movements, then Y min resting.
+  → metconFormat="OTM", interval="X+Y" as a single number (e.g. "2min ON 2min OFF" → interval="4"), rounds="N" (e.g. "5"), duration="".
+  → moves = the listed work movements in order, PLUS one final move representing the rest: { "name": "", "reps": "", "weight": "", "minuteAssignment": "", "isRest": true, "restMin": "Y", "restSec": "0", "notes": "" }.
+  → This produces a label like "(X+Y) EMOM" (e.g. "4 EMOM") with the rest shown as the last row of each round.`
   }
 
   function buildGeneratePrompt(request) {
