@@ -108,18 +108,18 @@ const ALIAS_MAP = {
   'PRISONER STEP-UP': { name: 'Step-Up', modifier: 'Prisoner' },
   'PRISONER STEP UP': { name: 'Step-Up', modifier: 'Prisoner' },
 
-  // ── Split-Stance Single-Arm Press ─────────────────────────────────────────
-  'SPLIT STANCE SINGLE ARM PRESS':          { name: 'Split-Stance Single-Arm Press' },
-  'SPLIT-STANCE SINGLE-ARM PRESS':          { name: 'Split-Stance Single-Arm Press' },
-  'SPLIT STANCE SA PRESS':                  { name: 'Split-Stance Single-Arm Press' },
-  'SPLIT STANCE SINGLE ARM PRESS (KB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
-  'SPLIT-STANCE SINGLE-ARM PRESS (KB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
-  'SPLIT STANCE SINGLE ARM PRESS (DB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
-  'SPLIT-STANCE SINGLE-ARM PRESS (DB)':     { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
-  'KB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
-  'DB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
-  'SPLIT STANCE SA KB PRESS':               { name: 'Split-Stance Single-Arm Press', implement: 'Kettlebell' },
-  'SPLIT STANCE SA DB PRESS':               { name: 'Split-Stance Single-Arm Press', implement: 'Dumbbell' },
+  // ── Split-Stance Press (single-arm, DB/KB — "Single-Arm" lives in modifier, not the name) ──
+  'SPLIT STANCE SINGLE ARM PRESS':          { name: 'Split-Stance Press', modifier: 'SA' },
+  'SPLIT-STANCE SINGLE-ARM PRESS':          { name: 'Split-Stance Press', modifier: 'SA' },
+  'SPLIT STANCE SA PRESS':                  { name: 'Split-Stance Press', modifier: 'SA' },
+  'SPLIT STANCE SINGLE ARM PRESS (KB)':     { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (KB)':     { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
+  'SPLIT STANCE SINGLE ARM PRESS (DB)':     { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (DB)':     { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
+  'KB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
+  'DB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
+  'SPLIT STANCE SA KB PRESS':               { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
+  'SPLIT STANCE SA DB PRESS':               { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
 
   // ── DB Front Squat ────────────────────────────────────────────────────────
   'DB FRONT SQUAT': { name: 'Front Squat', implement: 'Dumbbell' },
