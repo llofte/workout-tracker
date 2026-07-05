@@ -289,7 +289,7 @@ function formatScore(score) {
   if (!score) return null
   const s = String(score).trim()
   const maxList = parseCommaRepsList(s)
-  if (maxList) return `${maxList.parts.join(', ')} | ${maxList.total} ${maxList.total === 1 ? 'rep' : 'reps'}`
+  if (maxList) return `${maxList.total} ${maxList.total === 1 ? 'rep' : 'reps'} | ${maxList.parts.join(', ')}`
   const timeMatch = s.match(/^(\d+):(\d{2})$/)
   if (timeMatch) {
     const min = parseInt(timeMatch[1], 10)
