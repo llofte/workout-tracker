@@ -11,8 +11,9 @@ function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
   const s = String(reps)
   if (/,/.test(s) && s.split(',').every(p => /^\d+(\.\d+)?$/.test(p.trim()))) {
-    const total = s.split(',').map(Number).reduce((a, b) => a + b, 0)
-    return `${total} ${total === 1 ? 'rep' : 'reps'}`
+    const parts = s.split(',').map(p => p.trim())
+    const total = parts.reduce((a, b) => a + Number(b), 0)
+    return `${parts.join(', ')} | ${total} ${total === 1 ? 'rep' : 'reps'}`
   }
   if (/[a-zA-Z]/.test(s)) return s
   if (CARDIO_RE.test(moveName ?? '')) {
