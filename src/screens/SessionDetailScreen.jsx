@@ -445,23 +445,26 @@ function multiTableHeaders(movements) {
   return (tooLong || hasCollision) ? movements.map((_, i) => String(i + 1)) : abbrevs
 }
 
+// Fixed width for the round-number/PR-label column — constant across every row so a
+// "3⚡PR" row never shifts the movement columns relative to a plain "3" row above it.
+const MULTI_LABEL_COL_WIDTH = 44
+const DIVIDER_BORDER = '1.5px solid rgba(255,255,255,0.1)'
+
 // Dot-aligned "x8 · 85 lbs" cell — fixed-width reps/dot spans so the dot lands at the
 // same x-position on every row regardless of digit count (bodyweight movements just show "x8").
 function MultiSetCell({ set, isPR }) {
-  if (!set) return <span style={{ flex: 1, textAlign: 'center', fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
+  if (!set) return <span style={{ fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
   const color = isPR ? '#0ff7c5' : '#f5f0e8'
   const weight = set.weight != null ? set.weight : null
   return (
-    <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', width: weight != null ? 90 : 'auto' }}>
-        <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: weight != null ? 20 : 'auto', flexShrink: 0, textAlign: weight != null ? 'right' : 'center' }}>x{set.reps}</span>
-        {weight != null && (
-          <>
-            <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: 14, textAlign: 'center', flexShrink: 0 }}>·</span>
-            <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{weight} lbs</span>
-          </>
-        )}
-      </div>
+    <div style={{ display: 'flex', alignItems: 'baseline', width: weight != null ? 90 : 'auto' }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: weight != null ? 20 : 'auto', flexShrink: 0, textAlign: weight != null ? 'right' : 'center' }}>x{set.reps}</span>
+      {weight != null && (
+        <>
+          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: 14, textAlign: 'center', flexShrink: 0 }}>·</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{weight} lbs</span>
+        </>
+      )}
     </div>
   )
 }
@@ -474,8 +477,6 @@ function MultiSetStrengthTable({ movements, allMovements }) {
   }))
   const maxWarmups = Math.max(0, ...perMove.map(p => p.warm.length))
   const maxWorking = Math.max(0, ...perMove.map(p => p.work.length))
-  const n = movements.length
-  const colBoundary = i => `calc(22px + (100% - 22px - 22px) * ${i} / ${n})`
 
   function renderRow({ key, label, labelColor, isWarmupSection, sectionIndex }) {
     let anyPR = false
@@ -483,13 +484,19 @@ function MultiSetStrengthTable({ movements, allMovements }) {
       const set = isWarmupSection ? perMove[mi].warm[sectionIndex] : perMove[mi].work[sectionIndex]
       const pr = set ? computeSetPRStatus(set, move.name, allMovements) : null
       if (pr === 'current') anyPR = true
-      return <MultiSetCell key={mi} set={set} isPR={pr === 'current'} />
+      return (
+        <div key={mi} style={{ flex: 1, display: 'flex', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
+          <MultiSetCell set={set} isPR={pr === 'current'} />
+        </div>
+      )
     })
     return (
       <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
-        {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
-          <span style={{ width: 22, flexShrink: 0, textAlign: 'center', fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
-        )}
+        <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
+          {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
+            <span style={{ fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
+          )}
+        </div>
         {cells}
       </div>
     )
@@ -504,16 +511,11 @@ function MultiSetStrengthTable({ movements, allMovements }) {
           </span>
         ))}
       </div>
-      <div style={{ position: 'relative' }}>
-        {Array.from({ length: n + 1 }).map((_, i) => (
-          <div key={i} style={{ position: 'absolute', top: 0, bottom: 0, left: colBoundary(i), width: 1.5, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+      <div style={{ display: 'flex', gap: 4, padding: '6px 16px' }}>
+        <span style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, borderRight: DIVIDER_BORDER }} />
+        {headers.map((h, i) => (
+          <span key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: ff, letterSpacing: 0.3, borderRight: DIVIDER_BORDER }}>{h}</span>
         ))}
-        <div style={{ display: 'flex', gap: 4, padding: '6px 16px' }}>
-          <span style={{ width: 22, flexShrink: 0 }} />
-          {headers.map((h, i) => (
-            <span key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: ff, letterSpacing: 0.3 }}>{h}</span>
-          ))}
-        </div>
       </div>
       {Array.from({ length: maxWarmups }).map((_, wi) =>
         renderRow({ key: `w${wi}`, label: 'W', labelColor: 'rgba(245,240,232,0.28)', isWarmupSection: true, sectionIndex: wi })
