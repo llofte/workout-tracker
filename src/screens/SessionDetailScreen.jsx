@@ -457,7 +457,7 @@ function MultiSetCell({ set, isPR }) {
   const color = isPR ? '#0ff7c5' : '#f5f0e8'
   const weight = set.weight != null ? set.weight : null
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', width: weight != null ? 90 : 'auto' }}>
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', width: weight != null ? 90 : 'auto' }}>
       <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: weight != null ? 20 : 'auto', flexShrink: 0, textAlign: weight != null ? 'right' : 'center' }}>x{set.reps}</span>
       {weight != null && (
         <>

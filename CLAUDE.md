@@ -1,5 +1,35 @@
 # Workout Tracker — Claude Code Spec
 
+## Multi-Set Strength Table — column alignment RESOLVED (v189 / bb-wod-v164)
+
+**Root cause found:** `MultiSetCell` (`SessionDetailScreen.jsx`) gives its root `div` a fixed `width: 90` (to keep the dot position consistent across rows) and relies on the parent column's `justifyContent: 'center'` to center that box in the column — but the 90px box itself never set `justifyContent`, so its children (reps/dot/weight) defaulted to `flex-start` and packed against the box's left edge. The box was centered in the column, but the visible text inside it wasn't centered in the box, so it read as off-center. Fixed by adding `justifyContent: 'center'` to that root div (`SessionDetailScreen.jsx:460`). Verified via `preview_eval` bounding-box measurements (content center now within 1px of column center) on both the Jun 16 (3-movement) and Jun 23 (2-movement) test sessions — this is the fix that should have shipped originally instead of the label-column-only fix in the prior iteration.
+
+**What this feature is:** strength sessions with 2+ movements done together as a superset (e.g. Snatch Pull + Power Snatch, one round = both movements at once) now render as a combined table instead of stacked separate movement blocks. Toggle in Log/Edit screen: **Single** vs **Multi** (separate from the existing Traditional/OTM toggle).
+
+**Key files/functions:**
+- `src/utils/movements.js` — `resolveStrengthMode(block)` (decides single vs multi display: explicit `block.mode`, else legacy heuristic on equal *working*-set counts across movements — warmups are independent per movement, not synced), `abbreviateForColumn(name)` (column header abbreviations, reuses `SESSION_ABBREV` for RDL/SDHP/G2OH first).
+- `src/screens/SessionDetailScreen.jsx` — `MultiSetStrengthTable` (the read-only combined table), `MultiSetCell` (dot-aligned "x8 · 85 lbs" cell), `PRBadgeLabel` (icon+"PR" text, shared with single-movement `SetRows`), `computeSetPRStatus` (shared PR lookup), `MULTI_LABEL_COL_WIDTH` (currently 44, fixed-width round#/PR column), `DIVIDER_BORDER` (border-based column dividers — replaced an earlier absolute-positioned overlay approach that didn't account for row padding/gaps correctly).
+- `src/screens/LogScreen.jsx` — `MultiSetStrengthInput` (the synced-round input UI for Multi mode), `strengthMode` state, `handleStrengthModeChange`, `addMultiRound`/`addMultiWarmupRound`/`removeMultiRound`/`addMultiMovement`/`updateMultiRoundChecked` mutators, `ImplementSelector` (now defaults BB pill active for known barbell lifts via `BB_STRENGTH_MOVEMENTS`, but not for bodyweight movements — takes a `name` prop now).
+
+**Gotcha when measuring this table:** `document.querySelectorAll` text matches duplicate easily (e.g. "RDL" appears both in the Home screen's background movement chips AND in the detail overlay's table) — scope queries to the detail overlay container first, e.g. by finding the legend text and calling `.closest()`. Also: a header/cell *container's* bounding rect can look column-width-sized even when the actual visible text inside it is off-center — measure the innermost text-bearing element's rect, not just its wrapping flex box, or a left/right-packing bug like the one above will hide from you.
+
+**Test data (real, in production Supabase — safe to view/edit for testing):**
+- **Jun 16** session: 3 movements — Romanian Deadlift (only one with a warmup, 85 lbs), Inverted Row (bodyweight, no weight), SA DB Split-Stance Press (DB, SA modifier, 20 lbs). Canonical name is "Split-Stance Press" — **there are two "Split-Stance Press" entries in the Movements list**, only the first one in DOM order is the real one linked to this session (the other is an orphaned duplicate, harmless, left alone per user's earlier decision not to worry about PR-history merging).
+- **Jun 23** session: 2 movements — Snatch Pull (1 rep/round) + Power Snatch (2 reps/round), same weight per round.
+- Neither movement currently has real PR history (first-ever log for both) — **intentionally left as-is**, user decided not to auto-flag first-time logs as PRs (see "Key decisions" below).
+- A temporary test PR was added to Split-Stance Press earlier to verify PR-row rendering, then deleted afterward — Movements list should currently show zero PRs for it again (confirm this is still true if picking this thread back up, in case the delete didn't fully land).
+
+**Key decisions already made (don't re-ask):**
+- Single vs Multi is an explicit per-session flag (`strengthBlock.mode`), not just inferred — but the inference heuristic (`resolveStrengthMode`) is still used for legacy sessions without the flag, and deliberately shared between `LogScreen.jsx` (so editing a legacy multi-set session pre-selects "Multi") and `SessionDetailScreen.jsx` (so it displays correctly) to avoid the flag silently reverting to "single" on an unrelated edit+save.
+- Column headers show abbreviated names (not letters A/B/C, not literal movement names) — numbers only as a fallback for 4+ movements or abbreviation collisions.
+- Legend above the table always uses plain numbers (1, 2, 3...) + full movement names, regardless of column-header fallback state.
+- PR display: icon+"PR" text (not just icon) next to the round number when any movement in that round is a PR; the specific movement's cell (not the whole row) turns teal. Same treatment applies to single-movement view's `SetRows`.
+- Single-movement view (not multi) was redesigned too: right-anchored "N reps" / "N lbs" columns (not the "xN · weight" dot format — that's Multi-only), pushed toward the right edge with a flexible spacer before them, not centered/spread full-width.
+- A movement's first-ever log should **not** auto-count as a PR (user explicitly confirmed leaving this gap alone).
+- Reminder: Bash is permanently blocked in this environment — use Read/Edit/Write only, and `mcp__Claude_Preview__*` tools for the dev server (already configured, server name `workout-tracker`). Give the user the full `cd ".../Workout Tracker" && git add ... && git commit ... && git push` command after each change; they run it themselves. Always bump both the version badge in `HomeScreen.jsx` and the `CACHE` name in `public/sw.js` before writing that commit.
+
+---
+
 ## Project Overview
 
 A personal Progressive Web App (PWA) for tracking CrossFit/BB WOD workouts. Built for one user (Leanna), installed to iPhone home screen, no App Store. The app replaces Hevy for strength tracking and adds structured metcon logging. Claude AI is deeply integrated for photo parsing, natural language input, and intelligent suggestions.
