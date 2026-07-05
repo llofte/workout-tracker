@@ -1340,6 +1340,9 @@ Rules:
               reps: (accessoryFormat === 'Ladder' && seg.ladderScheme) ? seg.ladderScheme : (m.reps || null),
               weight: m.weight !== '' ? Number(m.weight) : null,
               weightUnit: 'lbs',
+              implement: m.implement ?? null,
+              singleArm: m.singleArm ?? false,
+              side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               notes: m.notes || null,
               cardioUnit: isCardioName(m.name) ? (isCarryName(m.name) ? (m.cardioUnit || 'm') : (m.cardioUnit || 'cal')) : null,
@@ -2156,6 +2159,21 @@ Rules:
                         </button>
                       </div>
                     </SwipeToDelete>
+                    {!move.isRest && (
+                      <ImplementSelector
+                        implement={move.implement}
+                        singleArm={move.singleArm}
+                        side={move.side}
+                        onChange={({ implement, singleArm, side }) =>
+                          setAccessorySegments(prev => prev.map((sg, sgi) =>
+                            sgi === si ? {
+                              ...sg,
+                              moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side } : m)
+                            } : sg
+                          ))
+                        }
+                      />
+                    )}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
                       {move.isRest ? (
                         <>
