@@ -345,37 +345,41 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
     const isWarmup = set.notation === 'warmup'
     if (!isWarmup) workNum++
     const pr = prStatus(set)
-    const repsText = set.reps != null ? `${set.reps} ${set.reps === 1 ? 'rep' : 'reps'}` : '—'
-    const weightText = set.weight ? `${set.weight} lbs` : '—'
+    const isCurrentPR = pr === 'current'
+    const color = isCurrentPR ? '#0ff7c5' : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8')
+    const hasWeight = set.weight != null
     return (
       <div key={si} style={{
-        display: 'flex', gap: 8, alignItems: 'center',
-        padding: inlineLayout ? '8px 16px' : '7px 0',
+        display: 'flex', gap: 4, alignItems: 'center',
+        padding: inlineLayout ? '7px 16px' : '7px 0',
         borderBottom: inlineLayout
           ? '0.5px solid rgba(255,255,255,0.05)'
           : si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
-        <span style={S.setNum(isWarmup)}>{isWarmup ? 'W' : workNum}</span>
-        <span style={{
-          flex: 1, fontSize: 14, fontFamily: ff,
-          color: isWarmup ? 'rgba(245,240,232,0.45)' : '#f5f0e8',
-        }}>
-          {repsText}
-        </span>
-        <span style={{
-          minWidth: 72, textAlign: 'right', fontSize: 14, fontFamily: ff,
-          color: isWarmup ? 'rgba(245,240,232,0.28)' : set.weight ? 'rgba(245,240,232,0.65)' : 'rgba(245,240,232,0.25)',
-        }}>
-          {weightText}
-        </span>
-        {pr === 'current' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0, marginLeft: 4 }}>
+        <span style={{ ...S.setNum(isWarmup), color: isCurrentPR ? '#0ff7c5' : S.setNum(isWarmup).color, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+          {isWarmup ? 'W' : workNum}
+          {isCurrentPR && (
             <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
             </svg>
-            <span style={{ color: '#0ff7c5', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff }}>PR</span>
-          </div>
-        )}
+          )}
+        </span>
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
+          {set.reps != null ? (
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, width: hasWeight ? 22 : 'auto', flexShrink: 0, textAlign: hasWeight ? 'right' : 'center' }}>x{set.reps}</span>
+              {hasWeight && (
+                <>
+                  <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, width: 16, textAlign: 'center', flexShrink: 0 }}>·</span>
+                  <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{set.weight} lbs</span>
+                </>
+              )}
+            </div>
+          ) : (
+            <span style={{ fontSize: 14, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
+          )}
+        </div>
+        <span style={{ width: 22, flexShrink: 0 }} />
         {pr === 'former' && (
           <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff, flexShrink: 0, marginLeft: 4 }}>PR</span>
         )}
