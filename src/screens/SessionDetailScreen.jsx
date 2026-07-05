@@ -485,7 +485,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
       const pr = set ? computeSetPRStatus(set, move.name, allMovements) : null
       if (pr === 'current') anyPR = true
       return (
-        <div key={mi} style={{ flex: 1, display: 'flex', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
+        <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
           <MultiSetCell set={set} isPR={pr === 'current'} />
         </div>
       )
