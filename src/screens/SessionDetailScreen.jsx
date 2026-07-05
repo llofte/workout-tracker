@@ -115,7 +115,9 @@ function deriveSessionParts(session) {
       parts.push(`💪 ${session.strengthBlock.customTitle}`)
     } else {
       const names = (session.strengthBlock.movements || [])
-        .map(m => m.name?.trim()).filter(Boolean).slice(0, 2)
+        .filter(m => m.name?.trim())
+        .map(m => toWorkoutDisplay(m))
+        .slice(0, 2)
       parts.push(`💪 ${names.length ? names.join(' + ') : 'Strength'}`)
     }
   }
@@ -435,7 +437,7 @@ function StrengthBlock({ block, allMovements }) {
   const subtitle = block.structure && block.structure !== 'Traditional'
     ? block.structure
     : isMultiMove
-      ? moves.slice(0, 2).map(m => m.name).filter(Boolean).join(' + ')
+      ? moves.slice(0, 2).map(m => toWorkoutDisplay(m)).filter(Boolean).join(' + ')
       : moves[0] ? toWorkoutDisplay(moves[0]) : ''
 
   return (

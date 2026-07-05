@@ -1029,7 +1029,9 @@ Strength rules:
 - For OTM, pre-generate sets: total sets = duration ÷ interval. E.g. 12 min OTM interval=1 → 12 sets; 12 min E2MOM interval=2 → 6 sets.
 - For Traditional: pre-generate set rows from the rep scheme (e.g. "5x5" → 5 sets with reps "5"; "3-3-3-3" → 4 sets)
 - Leave weight as empty string ""; num must be an integer (1, 2, 3…); reps must be a string
-- Common abbreviations: BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch
+- Movement name cleanup: strip trailing progression notation like "Build" or "build" from the movement name — it's coaching shorthand for "add weight each set", not part of the name. "RDL Build" → "RDL". "Back Squat Build (BB)" → "Back Squat".
+- Do NOT include a "(BB)" or barbell marker in the movement name — barbell is the assumed default implement for barbell lifts, so it's redundant. Only note an implement when it's non-default (DB, KB, etc.), and even then put it in the name as the app expects (e.g. "DB RDL"), never as a parenthetical "(BB)".
+- Common abbreviations (expand to full canonical name): BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch, RDL=Romanian Deadlift
 
 Metcon rules:
 - Weight fields: leave as empty string "" for ALL barbell/dumbbell/kettlebell movements — do NOT guess weights.
