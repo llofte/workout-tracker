@@ -309,11 +309,18 @@ function parseReps(reps) {
   return null
 }
 
-// "Max" movements are logged as one comma-separated actual-reps value per round (e.g. "12,10,8,7,6").
-// That value is already a total across all rounds, so volume must not be multiplied by rounds again.
-function isMaxRepsList(reps) {
-  const s = String(reps ?? '').trim()
-  return /,/.test(s) && s.split(',').every(p => /^\d+(\.\d+)?$/.test(p.trim()))
+function isMaxReps(reps) {
+  return /^max$/i.test(String(reps ?? '').trim())
+}
+
+// A "max" movement's actual per-round results are logged in the metcon's overall Score field
+// as a comma list (e.g. "4, 4, 6, 5, 5"). That's already a total across all rounds — no rounds multiplier.
+function parseCommaRepsList(val) {
+  const s = String(val ?? '').trim()
+  if (!/,/.test(s)) return null
+  const parts = s.split(',').map(p => p.trim())
+  if (!parts.every(p => /^\d+(\.\d+)?$/.test(p))) return null
+  return { parts, total: parts.reduce((a, b) => a + Number(b), 0) }
 }
 
 function parseAmrapScore(score) {
@@ -350,6 +357,16 @@ function sessionVolume(session) {
 
   const mb = session.metconBlock
   if (mb) {
+    const maxScore = parseCommaRepsList(mb.score)
+    const addLoad = (mv, mult) => {
+      if (isMaxReps(mv.reps)) {
+        if (maxScore) vol += maxScore.total * mv.weight
+        return
+      }
+      const reps = parseReps(mv.reps)
+      if (reps) vol += reps * mv.weight * mult
+    }
+
     // New format: segments
     const amrapSeg = mb.format === 'AMRAP' ? parseAmrapScore(mb.score) : null
     for (const seg of mb.segments ?? []) {
@@ -360,8 +377,7 @@ function sessionVolume(session) {
             const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
             vol += mv.weight * (bilateral ? 2 : 1) * amrapSeg.completedRounds
           } else {
-            const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrapSeg.completedRounds)
+            addLoad(mv, amrapSeg.completedRounds)
           }
         }
         vol += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
@@ -373,8 +389,7 @@ function sessionVolume(session) {
             const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
             vol += mv.weight * (bilateral ? 2 : 1) * rounds
           } else {
-            const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : rounds)
+            addLoad(mv, rounds)
           }
         }
       }
@@ -390,8 +405,7 @@ function sessionVolume(session) {
             const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
             vol += mv.weight * (bilateral ? 2 : 1) * amrap.completedRounds
           } else {
-            const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrap.completedRounds)
+            addLoad(mv, amrap.completedRounds)
           }
         }
         vol += calcPartialRoundVol(mb.movements, amrap.extraReps)
@@ -409,8 +423,7 @@ function sessionVolume(session) {
             const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
             vol += mv.weight * (bilateral ? 2 : 1) * rounds
           } else {
-            const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : rounds)
+            addLoad(mv, rounds)
           }
         }
       }
@@ -423,8 +436,7 @@ function sessionVolume(session) {
         const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
         vol += mv.weight * (bilateral ? 2 : 1)
       } else {
-        const reps = parseReps(mv.reps)
-        if (reps) vol += reps * mv.weight
+        addLoad(mv, 1)
       }
     }
   }
@@ -812,7 +824,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v177</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v178</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
