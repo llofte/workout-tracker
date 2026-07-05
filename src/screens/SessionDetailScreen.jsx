@@ -335,6 +335,18 @@ function computeSetPRStatus(set, moveName, allMovements) {
   return null
 }
 
+function PRBadgeLabel({ label, color }) {
+  return (
+    <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, fontFamily: ff, color, display: 'flex', alignItems: 'center', gap: 2 }}>
+      {label}
+      <svg width="10" height="10" viewBox="0 0 24 24" fill={color} stroke="none">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+      </svg>
+      PR
+    </span>
+  )
+}
+
 function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   function prStatus(set) {
     return computeSetPRStatus(set, moveName, allMovements)
@@ -346,8 +358,10 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
     if (!isWarmup) workNum++
     const pr = prStatus(set)
     const isCurrentPR = pr === 'current'
+    const label = isWarmup ? 'W' : workNum
     const color = isCurrentPR ? '#0ff7c5' : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8')
-    const hasWeight = set.weight != null
+    const repsText = set.reps != null ? `${set.reps} ${set.reps === 1 ? 'rep' : 'reps'}` : '—'
+    const weightText = set.weight != null ? `${set.weight} lbs` : '—'
     return (
       <div key={si} style={{
         display: 'flex', gap: 4, alignItems: 'center',
@@ -356,30 +370,17 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
           ? '0.5px solid rgba(255,255,255,0.05)'
           : si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
-        <span style={{ ...S.setNum(isWarmup), color: isCurrentPR ? '#0ff7c5' : S.setNum(isWarmup).color, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          {isWarmup ? 'W' : workNum}
-          {isCurrentPR && (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          )}
+        {isCurrentPR ? <PRBadgeLabel label={label} color={color} /> : (
+          <span style={{ ...S.setNum(isWarmup), width: 22 }}>{label}</span>
+        )}
+        <div style={{ flex: 1 }} />
+        <span style={{ width: 56, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8') }}>
+          {repsText}
         </span>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center' }}>
-          {set.reps != null ? (
-            <div style={{ display: 'flex', alignItems: 'baseline' }}>
-              <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, width: hasWeight ? 22 : 'auto', flexShrink: 0, textAlign: hasWeight ? 'right' : 'center' }}>x{set.reps}</span>
-              {hasWeight && (
-                <>
-                  <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, width: 16, textAlign: 'center', flexShrink: 0 }}>·</span>
-                  <span style={{ fontSize: 14, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{set.weight} lbs</span>
-                </>
-              )}
-            </div>
-          ) : (
-            <span style={{ fontSize: 14, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
-          )}
-        </div>
-        <span style={{ width: 22, flexShrink: 0 }} />
+        <span style={{ width: 18, flexShrink: 0 }} />
+        <span style={{ width: 64, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.28)' : set.weight ? '#f5f0e8' : 'rgba(245,240,232,0.25)') }}>
+          {weightText}
+        </span>
         {pr === 'former' && (
           <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff, flexShrink: 0, marginLeft: 4 }}>PR</span>
         )}
@@ -486,14 +487,9 @@ function MultiSetStrengthTable({ movements, allMovements }) {
     })
     return (
       <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ width: 22, flexShrink: 0, textAlign: 'center', fontSize: 13, fontWeight: 600, fontFamily: ff, color: anyPR ? '#0ff7c5' : labelColor, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-          {label}
-          {anyPR && (
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#0ff7c5" stroke="none">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
-            </svg>
-          )}
-        </span>
+        {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
+          <span style={{ width: 22, flexShrink: 0, textAlign: 'center', fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
+        )}
         {cells}
       </div>
     )
