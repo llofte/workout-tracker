@@ -450,19 +450,21 @@ function multiTableHeaders(movements) {
 const MULTI_LABEL_COL_WIDTH = 44
 const DIVIDER_BORDER = '1.5px solid rgba(255,255,255,0.1)'
 
-// Dot-aligned "x8 · 85 lbs" cell — fixed-width reps/dot spans so the dot lands at the
-// same x-position on every row regardless of digit count (bodyweight movements just show "x8").
+// "x8 · 85 lbs" cell. No fixed-width sub-spans: a fixed-width right-aligned reps span
+// paired with an auto-width weight span puts empty padding only on the left (reps side),
+// which visually shifts the true text center right of the column's true center even
+// though the outer box measures as "centered" — earlier bug, don't reintroduce it.
 function MultiSetCell({ set, isPR }) {
   if (!set) return <span style={{ fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
   const color = isPR ? '#0ff7c5' : '#f5f0e8'
   const weight = set.weight != null ? set.weight : null
   return (
-    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center', width: weight != null ? 90 : 'auto' }}>
-      <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: weight != null ? 20 : 'auto', flexShrink: 0, textAlign: weight != null ? 'right' : 'center' }}>x{set.reps}</span>
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center' }}>
+      <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff }}>x{set.reps}</span>
       {weight != null && (
         <>
-          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, width: 14, textAlign: 'center', flexShrink: 0 }}>·</span>
-          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, textAlign: 'left' }}>{weight} lbs</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, margin: '0 4px' }}>·</span>
+          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff }}>{weight} lbs</span>
         </>
       )}
     </div>
