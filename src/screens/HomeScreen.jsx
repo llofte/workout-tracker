@@ -309,6 +309,13 @@ function parseReps(reps) {
   return null
 }
 
+// "Max" movements are logged as one comma-separated actual-reps value per round (e.g. "12,10,8,7,6").
+// That value is already a total across all rounds, so volume must not be multiplied by rounds again.
+function isMaxRepsList(reps) {
+  const s = String(reps ?? '').trim()
+  return /,/.test(s) && s.split(',').every(p => /^\d+(\.\d+)?$/.test(p.trim()))
+}
+
 function parseAmrapScore(score) {
   if (!score) return null
   const match = String(score).trim().match(/^(\d+)(?:\+(\d+))?$/)
@@ -354,7 +361,7 @@ function sessionVolume(session) {
             vol += mv.weight * (bilateral ? 2 : 1) * amrapSeg.completedRounds
           } else {
             const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * amrapSeg.completedRounds
+            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrapSeg.completedRounds)
           }
         }
         vol += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
@@ -367,7 +374,7 @@ function sessionVolume(session) {
             vol += mv.weight * (bilateral ? 2 : 1) * rounds
           } else {
             const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * rounds
+            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : rounds)
           }
         }
       }
@@ -384,7 +391,7 @@ function sessionVolume(session) {
             vol += mv.weight * (bilateral ? 2 : 1) * amrap.completedRounds
           } else {
             const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * amrap.completedRounds
+            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrap.completedRounds)
           }
         }
         vol += calcPartialRoundVol(mb.movements, amrap.extraReps)
@@ -403,7 +410,7 @@ function sessionVolume(session) {
             vol += mv.weight * (bilateral ? 2 : 1) * rounds
           } else {
             const reps = parseReps(mv.reps)
-            if (reps) vol += reps * mv.weight * rounds
+            if (reps) vol += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : rounds)
           }
         }
       }
@@ -805,7 +812,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v175</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v176</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

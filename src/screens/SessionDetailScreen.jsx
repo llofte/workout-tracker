@@ -10,6 +10,10 @@ const CARRY_RE = /\bcarry\b|\bfarm/i
 function formatReps(moveName, reps, cardioUnit) {
   if (reps == null) return '—'
   const s = String(reps)
+  if (/,/.test(s) && s.split(',').every(p => /^\d+(\.\d+)?$/.test(p.trim()))) {
+    const total = s.split(',').map(Number).reduce((a, b) => a + b, 0)
+    return `${total} ${total === 1 ? 'rep' : 'reps'}`
+  }
   if (/[a-zA-Z]/.test(s)) return s
   if (CARDIO_RE.test(moveName ?? '')) {
     if (cardioUnit === 'm') return `${s} m`
@@ -167,6 +171,13 @@ function parseReps(reps) {
   return null
 }
 
+// "Max" movements are logged as one comma-separated actual-reps value per round (e.g. "12,10,8,7,6").
+// That value is already a total across all rounds, so volume must not be multiplied by rounds again.
+function isMaxRepsList(reps) {
+  const s = String(reps ?? '').trim()
+  return /,/.test(s) && s.split(',').every(p => /^\d+(\.\d+)?$/.test(p.trim()))
+}
+
 function parseAmrapScore(score) {
   if (!score) return null
   const match = String(score).trim().match(/^(\d+)(?:\+(\d+))?$/)
@@ -215,7 +226,7 @@ function calcMetconVol(block) {
         if (mv.isRest || !mv.weight) continue
         if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, amrapSeg.completedRounds); continue }
         const reps = parseReps(mv.reps)
-        if (reps) v += reps * mv.weight * amrapSeg.completedRounds
+        if (reps) v += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrapSeg.completedRounds)
       }
       v += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
     } else {
@@ -224,7 +235,7 @@ function calcMetconVol(block) {
         if (mv.isRest || !mv.weight) continue
         if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, r); continue }
         const reps = parseReps(mv.reps)
-        if (reps) v += reps * mv.weight * r
+        if (reps) v += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : r)
       }
     }
   }
@@ -235,7 +246,7 @@ function calcMetconVol(block) {
         if (mv.isRest || !mv.weight) continue
         if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, amrap.completedRounds); continue }
         const reps = parseReps(mv.reps)
-        if (reps) v += reps * mv.weight * amrap.completedRounds
+        if (reps) v += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : amrap.completedRounds)
       }
       v += calcPartialRoundVol(block.movements, amrap.extraReps)
     } else {
@@ -250,7 +261,7 @@ function calcMetconVol(block) {
         if (mv.isRest || !mv.weight) continue
         if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, rounds); continue }
         const reps = parseReps(mv.reps)
-        if (reps) v += reps * mv.weight * rounds
+        if (reps) v += reps * mv.weight * (isMaxRepsList(mv.reps) ? 1 : rounds)
       }
     }
   }
