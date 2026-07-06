@@ -5,16 +5,17 @@ export default function SwipeBack({ onBack, children }) {
   const ref = useRef(null)
   const [dx, setDx] = useState(0)
   const [animating, setAnimating] = useState(false)
-  // Forces a React re-render on every touchstart/touchend, even ones that don't otherwise
-  // touch dx/animating (a tap outside the edge zone, an end() for an inactive gesture).
-  // Confirmed by trial: without this "nudge", a touch landing while the snap-back CSS
-  // transition is still playing can leave the page frozen mid-transition on iOS — the
-  // extra render appears to be what makes the browser actually commit/repaint the
-  // transition instead of getting stuck. Traced to this specific mechanism via a visible
-  // on-screen debug log (which itself re-rendered on every event) that masked the bug;
-  // removing the visible log but keeping an equivalent state bump preserves the fix.
-  const [, bump] = useState(0)
-  const forceRender = () => bump(n => n + 1)
+  // Forces a genuine DOM text mutation on every touchstart/touchend, even ones that don't
+  // otherwise touch dx/animating (a tap outside the edge zone, an end() for an inactive
+  // gesture). Confirmed by trial: a visible on-screen debug log fixed the freeze bug; a
+  // version that only bumped React state *without rendering it anywhere* did NOT fix it —
+  // React bails out of touching the real DOM when nothing in the rendered output actually
+  // changed, so that "invisible" nudge never forced a repaint at all. This nudge count IS
+  // rendered (in a zero-size, aria-hidden span below) specifically so React commits a real
+  // DOM mutation each time, which is what makes iOS actually commit/repaint the pending
+  // transform/transition instead of leaving the page frozen mid-transition.
+  const [nudge, setNudge] = useState(0)
+  const forceRender = () => setNudge(n => n + 1)
   const s = useRef({ active: false, startX: 0, startY: 0, locked: null, dx: 0 })
 
   useEffect(() => {
@@ -115,6 +116,7 @@ export default function SwipeBack({ onBack, children }) {
         willChange: 'transform',
       }}
     >
+      <span aria-hidden="true" style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>{nudge}</span>
       {children}
     </div>
   )

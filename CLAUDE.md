@@ -1,6 +1,6 @@
 # Workout Tracker — Claude Code Spec
 
-## SwipeBack "freely draggable after pause" — RESOLVED (v197 / bb-wod-v172)
+## SwipeBack "freely draggable after pause" — RESOLVED (v198 / bb-wod-v173)
 
 **Symptom:** after tapping into a session from Home's Recent list, starting a left-edge swipe-back, stopping mid-drag, lifting that finger, then touching the page again — the whole screen became freely draggable in any direction with the Home screen visible behind it. Same failure mode as [[reference_ios_swipe_gesture_conflict]].
 
@@ -12,9 +12,11 @@
 
 **The actual root cause, discovered by accident:** the user reported the bug was "fixed" the moment the debug log was added — before they'd even read what it said. The debug log's own re-render was the fix. `start()`/`end()` previously did **nothing** — no state update, no re-render — for touches outside the tracked gesture (a non-edge tap, an `end()` firing when `active` was already `false`). On iOS, when a `transform`/`transition` CSS change is mid-flight and the *only* thing happening is native touch handling with zero React re-renders in between, the browser can apparently fail to properly commit/repaint the transition — leaving the page frozen mid-transform with no further JS involvement to recover it, at which point iOS is free to treat that frozen, visually-offset page as fair game for its own gesture handling.
 
-**Fix (v197):** removed the visible debug log and `DebugOverlay`, replaced with an equivalent invisible mechanism — a `bump()` function (`const [, bump] = useState(0); bump(n => n + 1)`) called at the exact same points the debug log fired: unconditionally at the top of `start()`, at the direction-lock decision in `move()`, and unconditionally at the top of `end()`. This forces the same "nudge" re-render on every touch event without any visible UI. Verified via preview: no visible debug bar, no functional regression (stray tap during snap-back still doesn't disturb the transition, full swipe-back still completes and calls `onBack`).
+**v197 fix attempt (WRONG — bump didn't render anywhere, so it didn't work):** removed the visible debug log, replaced with `const [, bump] = useState(0); bump(n => n + 1)` called at the same points, with nothing rendered from it. User confirmed the bug came back the moment the debug bar was removed. This proved the fix wasn't "an extra React re-render" in the abstract — a `setState` call whose new value is never referenced in JSX produces an identical render output, and React's reconciler skips the real DOM commit entirely when nothing differs. So v197's "nudge" never actually touched the DOM and never repainted anything.
 
-**Lesson for next time:** when a bug involves a native platform's touch/gesture/rendering pipeline (iOS Safari transform/transition commits, in this case) and pure JS-logic reasoning has failed twice, reach for an on-screen instrumentation pass *before* a third logic guess — and don't assume the instrumentation is inert. A debug log that calls `setState` on every event is not a passive observer; forcing extra re-renders can change real behavior, which is itself a clue (as it was here) rather than a confound to route around.
+**Fix (v198 — actually works):** `nudge` is now rendered — inside a zero-size, `aria-hidden` `<span style={{ position: 'absolute', width: 0, height: 0, overflow: 'hidden' }}>{nudge}</span>` alongside `children`. Its text content genuinely changes in the real DOM on every relevant touch event (verified directly: `nudgeSpan.textContent` went `"0" → "1" → "2"` across a stray touchstart/touchend that previously did nothing at all). This is the same mechanism the visible debug log used (real DOM text mutation forcing iOS to commit/repaint the pending transform/transition), just with zero visual footprint. Verified no functional regression: stray tap during snap-back still doesn't disturb the transition, full swipe-back still completes and calls `onBack`.
+
+**Lesson for next time:** when "trigger a React re-render" is the theorized fix, verify the state you're bumping is actually *rendered somewhere* — an unreferenced `setState` call can be a no-op at the DOM level even though the component function re-executes, because React's reconciler only commits real DOM mutations for output that actually changed. "Re-render" and "repaint the real DOM" are not the same guarantee.
 
 ---
 
