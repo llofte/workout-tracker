@@ -1,12 +1,18 @@
 import { useRef, useState, useEffect } from 'react'
 
-// TEMPORARY DEBUG — remove once the swipe-back freeze bug is confirmed fixed on-device.
-// This is a near-exact copy of the overlay that empirically fixed the bug (confirmed by
-// the user), differing only by `opacity: 0`. Two invisible variants that only changed
-// state without real dimensions/paint (a bare setState bump, and a zero-size DOM text
-// mutation) both failed to fix it — so whatever matters seems tied to this element
-// actually occupying real screen area and being painted, not just present in the DOM.
-function DebugOverlay({ log }) {
+// PERMANENT, LOAD-BEARING — do NOT delete or "clean up" this component or its call sites.
+// This started as a visible on-screen debug log while chasing an iOS-only bug (see
+// CLAUDE.md "SwipeBack freely draggable after pause" for the full history) and turned out
+// to *be* the fix. Without it, a touch landing on the page while iOS is mid-transition on
+// the swipe-back transform can leave the page frozen and draggable in any direction, with
+// no further JS to recover it. Two invisible substitutes both failed on-device: a bare
+// setState bump with nothing rendered (React skips the DOM commit when output is
+// unchanged), and a zero-size DOM text mutation (real DOM change, but no real paint). Only
+// a real, painted, `position: fixed` element with actual dimensions fixed it — this is
+// that exact element, kept pixel-for-pixel identical to the working version, hidden via
+// `opacity: 0` (not size/display, which would undo the fix). The precise iOS/WebKit
+// mechanism is still not understood — treat this as empirically required, not decorative.
+function RepaintKeepalive({ log }) {
   return (
     <div style={{
       position: 'fixed', top: 'env(safe-area-inset-top, 0px)', left: 0, right: 0, zIndex: 99999,
@@ -24,11 +30,11 @@ export default function SwipeBack({ onBack, children }) {
   const ref = useRef(null)
   const [dx, setDx] = useState(0)
   const [animating, setAnimating] = useState(false)
-  const [debugLog, setDebugLog] = useState([])
+  const [keepaliveLog, setKeepaliveLog] = useState([])
   const s = useRef({ active: false, startX: 0, startY: 0, locked: null, dx: 0 })
 
-  function logDebug(msg) {
-    setDebugLog(prev => [...prev.slice(-11), msg])
+  function nudgeRepaint(msg) {
+    setKeepaliveLog(prev => [...prev.slice(-11), msg])
   }
 
   useEffect(() => {
@@ -37,7 +43,7 @@ export default function SwipeBack({ onBack, children }) {
 
     function start(e) {
       const t = e.touches[0]
-      logDebug(`start x=${Math.round(t.clientX)} touches=${e.touches.length} active=${s.current.active}`)
+      nudgeRepaint(`start x=${Math.round(t.clientX)} touches=${e.touches.length} active=${s.current.active}`)
       // A tap anywhere that isn't a potential edge-swipe must not touch gesture state
       // at all — this used to call setAnimating(false) unconditionally, which cancels
       // an in-flight snap-back CSS transition mid-animation (e.g. a quick tap right
@@ -67,7 +73,7 @@ export default function SwipeBack({ onBack, children }) {
         e.preventDefault()
         if (Math.abs(mx) > 8 || Math.abs(my) > 8) {
           s.current.locked = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
-          logDebug(`lock=${s.current.locked} mx=${Math.round(mx)} my=${Math.round(my)}`)
+          nudgeRepaint(`lock=${s.current.locked} mx=${Math.round(mx)} my=${Math.round(my)}`)
           if (s.current.locked === 'v') {
             s.current.active = false
             return
@@ -83,31 +89,31 @@ export default function SwipeBack({ onBack, children }) {
         if (clamped === 0) {
           // Pulled back to origin — cancel so the page doesn't stay draggable
           s.current.active = false
-          logDebug(`back to 0, active=false`)
+          nudgeRepaint(`back to 0, active=false`)
         }
       }
     }
     function end(e) {
-      logDebug(`end touchesLeft=${e.touches ? e.touches.length : '?'} active=${s.current.active} dx=${s.current.dx} locked=${s.current.locked}`)
+      nudgeRepaint(`end touchesLeft=${e.touches ? e.touches.length : '?'} active=${s.current.active} dx=${s.current.dx} locked=${s.current.locked}`)
       // Ignore a lifted second finger — only finalize once every touch is up, so the
       // tracked finger can keep driving the drag via touchmove in the meantime.
       if (e.touches && e.touches.length > 0) return
       if (!s.current.active) {
-        logDebug(`end IGNORED — active was already false`)
+        nudgeRepaint(`end IGNORED — active was already false`)
         return
       }
       s.current.active = false
       if (s.current.dx > window.innerWidth * 0.33) {
-        logDebug(`end -> full close animation`)
+        nudgeRepaint(`end -> full close animation`)
         setAnimating(true)
         setDx(window.innerWidth)
         setTimeout(() => onBack && onBack(), 220)
       } else if (s.current.dx > 0) {
-        logDebug(`end -> snap back animation`)
+        nudgeRepaint(`end -> snap back animation`)
         setAnimating(true)
         setDx(0)
       } else {
-        logDebug(`end -> dx already 0, no-op`)
+        nudgeRepaint(`end -> dx already 0, no-op`)
       }
     }
 
@@ -137,7 +143,7 @@ export default function SwipeBack({ onBack, children }) {
         willChange: 'transform',
       }}
     >
-      <DebugOverlay log={debugLog} />
+      <RepaintKeepalive log={keepaliveLog} />
       {children}
     </div>
   )
