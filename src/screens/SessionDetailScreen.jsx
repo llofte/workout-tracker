@@ -448,13 +448,50 @@ function multiTableHeaders(movements) {
 // Fixed width for the round-number/PR-label column — constant across every row so a
 // "3⚡PR" row never shifts the movement columns relative to a plain "3" row above it.
 const MULTI_LABEL_COL_WIDTH = 44
-const DIVIDER_BORDER = '1.5px solid rgba(255,255,255,0.1)'
 
-// "x8 · 85 lbs" cell. No fixed-width sub-spans: a fixed-width right-aligned reps span
-// paired with an auto-width weight span puts empty padding only on the left (reps side),
-// which visually shifts the true text center right of the column's true center even
-// though the outer box measures as "centered" — earlier bug, don't reintroduce it.
-function MultiSetCell({ set, isPR }) {
+// A real flex sibling (not a borderRight glued to the column before it) so every column's
+// box sits symmetrically between two divider lines — a borderRight paired with flex `gap`
+// puts the gap on only one side of each box, shifting centered content off true-center.
+function ColumnDivider() {
+  return <div style={{ width: 1.5, alignSelf: 'stretch', flexShrink: 0, background: 'rgba(255,255,255,0.1)' }} />
+}
+
+let _measureCanvas = null
+function measureTextWidth(text, font) {
+  if (!_measureCanvas) _measureCanvas = document.createElement('canvas')
+  const ctx = _measureCanvas.getContext('2d')
+  ctx.font = font
+  return ctx.measureText(text).width
+}
+
+// Reference width (in px) for a column's weight text, based on whichever digit-count
+// (2-digit "85", 3-digit "100", etc.) appears most often across every set — warmup and
+// working — for that movement. Rows matching the majority fill this slot exactly; rows
+// that don't (e.g. one heavier working set) keep their dot fixed and let the extra digit
+// spill past the slot rather than recentering the whole cell. Returns null if the
+// movement never has a weight (bodyweight-only column).
+function majorityWeightSlotWidth(sets) {
+  const withWeight = sets.filter(s => s.weight != null)
+  if (withWeight.length === 0) return null
+  const counts = new Map()
+  for (const s of withWeight) {
+    const digits = String(s.weight).length
+    counts.set(digits, (counts.get(digits) ?? 0) + 1)
+  }
+  let majorityDigits = null, best = -1
+  for (const [digits, count] of counts) {
+    if (count > best) { best = count; majorityDigits = digits }
+  }
+  const rep = withWeight.find(s => String(s.weight).length === majorityDigits)
+  return Math.ceil(measureTextWidth(`${rep.weight} lbs`, `500 13px ${ff}`))
+}
+
+// "x8 · 85 lbs" cell. The weight span gets a fixed width (`weightSlotWidth`, computed per
+// column by `majorityWeightSlotWidth`) instead of auto width — `minWidth: 0` overrides the
+// browser's automatic content-based minimum size, so an overflowing value (e.g. "100 lbs"
+// in a column otherwise full of 2-digit weights) spills past the slot visually without
+// growing the box, keeping the reps/dot position identical across every row in the column.
+function MultiSetCell({ set, isPR, weightSlotWidth }) {
   if (!set) return <span style={{ fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
   const color = isPR ? '#0ff7c5' : '#f5f0e8'
   const weight = set.weight != null ? set.weight : null
@@ -464,7 +501,10 @@ function MultiSetCell({ set, isPR }) {
       {weight != null && (
         <>
           <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, margin: '0 4px' }}>·</span>
-          <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff }}>{weight} lbs</span>
+          <span style={{
+            fontSize: 13, fontWeight: 500, color, fontFamily: ff, textAlign: 'left',
+            width: weightSlotWidth ?? 'auto', minWidth: 0, flexShrink: 0, whiteSpace: 'nowrap',
+          }}>{weight} lbs</span>
         </>
       )}
     </div>
@@ -479,6 +519,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
   }))
   const maxWarmups = Math.max(0, ...perMove.map(p => p.warm.length))
   const maxWorking = Math.max(0, ...perMove.map(p => p.work.length))
+  const weightSlotWidths = perMove.map(p => majorityWeightSlotWidth([...p.warm, ...p.work]))
 
   function renderRow({ key, label, labelColor, isWarmupSection, sectionIndex }) {
     let anyPR = false
@@ -487,18 +528,22 @@ function MultiSetStrengthTable({ movements, allMovements }) {
       const pr = set ? computeSetPRStatus(set, move.name, allMovements) : null
       if (pr === 'current') anyPR = true
       return (
-        <div key={mi} style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center', borderRight: DIVIDER_BORDER }}>
-          <MultiSetCell set={set} isPR={pr === 'current'} />
+        <div key={mi} style={{ display: 'contents' }}>
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
+            <MultiSetCell set={set} isPR={pr === 'current'} weightSlotWidth={weightSlotWidths[mi]} />
+          </div>
+          <ColumnDivider />
         </div>
       )
     })
     return (
-      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', borderRight: DIVIDER_BORDER }}>
+      <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
           {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
             <span style={{ fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
           )}
         </div>
+        <ColumnDivider />
         {cells}
       </div>
     )
@@ -513,10 +558,14 @@ function MultiSetStrengthTable({ movements, allMovements }) {
           </span>
         ))}
       </div>
-      <div style={{ display: 'flex', gap: 4, padding: '6px 16px' }}>
-        <span style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, borderRight: DIVIDER_BORDER }} />
+      <div style={{ display: 'flex', alignItems: 'center', padding: '6px 16px' }}>
+        <span style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0 }} />
+        <ColumnDivider />
         {headers.map((h, i) => (
-          <span key={i} style={{ flex: 1, textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: ff, letterSpacing: 0.3, borderRight: DIVIDER_BORDER }}>{h}</span>
+          <div key={i} style={{ display: 'contents' }}>
+            <span style={{ flex: 1, minWidth: 0, textAlign: 'center', fontSize: 10, fontWeight: 700, color: 'rgba(245,240,232,0.3)', fontFamily: ff, letterSpacing: 0.3 }}>{h}</span>
+            <ColumnDivider />
+          </div>
         ))}
       </div>
       {Array.from({ length: maxWarmups }).map((_, wi) =>
