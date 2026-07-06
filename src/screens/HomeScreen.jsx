@@ -772,16 +772,17 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
   }, [selectedSession])
 
   const sessionDetailOverlay = selectedSession && createPortal(
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100, overflow: 'hidden' }}>
-      <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}>
-        <SwipeBack onBack={() => setSelectedSession(null)}>
-          <SessionDetailScreen
-            session={selectedSession}
-            onBack={() => setSelectedSession(null)}
-            onEdit={session => { setSelectedSession(null); onEdit(session) }}
-          />
-        </SwipeBack>
-      </div>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100,
+      overflowY: 'auto', overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch',
+    }}>
+      <SwipeBack onBack={() => setSelectedSession(null)}>
+        <SessionDetailScreen
+          session={selectedSession}
+          onBack={() => setSelectedSession(null)}
+          onEdit={session => { setSelectedSession(null); onEdit(session) }}
+        />
+      </SwipeBack>
     </div>,
     document.body
   )
@@ -826,7 +827,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v194</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v195</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>
