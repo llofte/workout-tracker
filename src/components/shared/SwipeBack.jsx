@@ -12,20 +12,25 @@ export default function SwipeBack({ onBack, children }) {
     if (!el) return
 
     function start(e) {
-      // A second finger touching down mid-drag fires another touchstart, whose
-      // touches[0] is now wherever the drag has moved to (no longer the left edge) —
-      // resetting state here would deactivate tracking and drop preventDefault,
-      // letting iOS claim the touch and leaving the page frozen mid-transform.
-      if (s.current.active) return
       const t = e.touches[0]
-      s.current.active = t.clientX <= 30
+      // A tap anywhere that isn't a potential edge-swipe must not touch gesture state
+      // at all — this used to call setAnimating(false) unconditionally, which cancels
+      // an in-flight snap-back CSS transition mid-animation (e.g. a quick tap right
+      // after releasing a partial swipe) and freezes the page at whatever partial
+      // position it was mid-transition, with no JS tracking and no preventDefault to
+      // stop iOS claiming the now-frozen, visually-offset page as a system gesture.
+      if (t.clientX > 30) return
+      // A second finger joining an already-active edge-drag also fires touchstart —
+      // ignore it rather than re-deriving state from its (non-edge) position.
+      if (s.current.active) return
+      s.current.active = true
       s.current.startX = t.clientX
       s.current.startY = t.clientY
       s.current.locked = null
       s.current.dx = 0
       setAnimating(false)
       // Prevent iOS from claiming this touch sequence as a system gesture
-      if (s.current.active) e.preventDefault()
+      e.preventDefault()
     }
     function move(e) {
       if (!s.current.active) return
