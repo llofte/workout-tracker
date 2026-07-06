@@ -12,6 +12,11 @@ export default function SwipeBack({ onBack, children }) {
     if (!el) return
 
     function start(e) {
+      // A second finger touching down mid-drag fires another touchstart, whose
+      // touches[0] is now wherever the drag has moved to (no longer the left edge) —
+      // resetting state here would deactivate tracking and drop preventDefault,
+      // letting iOS claim the touch and leaving the page frozen mid-transform.
+      if (s.current.active) return
       const t = e.touches[0]
       s.current.active = t.clientX <= 30
       s.current.startX = t.clientX
@@ -50,7 +55,10 @@ export default function SwipeBack({ onBack, children }) {
         }
       }
     }
-    function end() {
+    function end(e) {
+      // Ignore a lifted second finger — only finalize once every touch is up, so the
+      // tracked finger can keep driving the drag via touchmove in the meantime.
+      if (e.touches && e.touches.length > 0) return
       if (!s.current.active) return
       s.current.active = false
       if (s.current.dx > window.innerWidth * 0.33) {

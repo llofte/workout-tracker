@@ -1,5 +1,17 @@
 # Workout Tracker — Claude Code Spec
 
+## ⚠️ SwipeBack multi-touch regression — fix applied in v193, awaiting on-device confirmation
+
+**Symptom reported by user:** on the session detail page, start a left-edge swipe-back, stop mid-drag (finger still down), then touch the page again — the whole screen becomes freely draggable in any direction with the Home screen visible behind it. This is the same failure mode as [[reference_ios_swipe_gesture_conflict]] (iOS claims the touch as a system gesture once our `preventDefault()` stops firing).
+
+**Root cause found in `SwipeBack.jsx`:** `start()` (the `touchstart` handler) unconditionally reset all gesture state — `active`, `locked`, `dx`, `animating` — on *every* `touchstart` event, computing `active = touches[0].clientX <= 30` from touches[0]'s *current* position. A second finger touching down mid-drag also fires `touchstart`; by then `touches[0]` (still the original dragging finger) is no longer near the left edge, so `active` got reset to `false` — abandoning tracking, skipping `preventDefault()`, and leaving the page frozen mid-transform with iOS free to claim the touch. Likewise `end()` (`touchend`) finalized the gesture on *any* lifted finger, even one that wasn't the tracked touch.
+
+**Fix:** `start()` now returns immediately if `s.current.active` is already `true` (ignores extra touches joining an in-progress gesture instead of resetting state from their position). `end()` now checks `e.touches.length > 0` and returns early if any finger is still down, so it only finalizes once every touch has lifted.
+
+**Verified (JS-state level only):** simulated the exact repro with `new Touch()` / `new TouchEvent()` dispatched at the real `SwipeBack` DOM node (found via `el.style.willChange === 'transform'`) — dragged finger 1 to `dx=140px`, added finger 2 elsewhere (not at the edge), confirmed `transform` stayed at `140px` instead of resetting to `0`; finger 1 continued dragging to `210px` with finger 2 still down; lifted finger 2 only, confirmed transform stayed at `210px` (gesture not prematurely finalized); finger 1 completed the swipe past the 33% threshold and released, confirmed `onBack` fired and the app navigated to Home. **Could not verify the actual iOS symptom itself** (system gesture claiming the touch, screen going freely draggable) — that requires real iOS/WKWebView gesture-recognizer behavior which the desktop Chrome preview can't reproduce. Ask the user to confirm on their phone before considering this fully closed.
+
+---
+
 ## Multi-Set Strength Table — column alignment RESOLVED (v192 / bb-wod-v167)
 
 **Five separate bugs, fixed in five passes — all were real, don't reintroduce any of them:**
