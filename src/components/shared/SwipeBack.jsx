@@ -1,11 +1,31 @@
 import { useRef, useState, useEffect } from 'react'
 
+// TEMPORARY DEBUG — remove once the swipe-back freeze bug is confirmed fixed on-device.
+// Logs each touch event + the gesture state at that moment to an on-screen readout,
+// since the bug can't be reproduced in the desktop preview at all.
+function DebugOverlay({ log }) {
+  return (
+    <div style={{
+      position: 'fixed', top: 'env(safe-area-inset-top, 0px)', left: 0, right: 0, zIndex: 99999,
+      background: 'rgba(0,0,0,0.85)', color: '#0ff7c5', fontSize: 9, fontFamily: 'monospace',
+      padding: '4px 6px', maxHeight: 140, overflowY: 'auto', pointerEvents: 'none', whiteSpace: 'pre-wrap',
+    }}>
+      {log.join('\n')}
+    </div>
+  )
+}
+
 // Wraps a drill-down screen so a swipe from the left edge slides it away and calls onBack.
 export default function SwipeBack({ onBack, children }) {
   const ref = useRef(null)
   const [dx, setDx] = useState(0)
   const [animating, setAnimating] = useState(false)
+  const [debugLog, setDebugLog] = useState([])
   const s = useRef({ active: false, startX: 0, startY: 0, locked: null, dx: 0 })
+
+  function logDebug(msg) {
+    setDebugLog(prev => [...prev.slice(-11), msg])
+  }
 
   useEffect(() => {
     const el = ref.current
@@ -13,6 +33,7 @@ export default function SwipeBack({ onBack, children }) {
 
     function start(e) {
       const t = e.touches[0]
+      logDebug(`start x=${Math.round(t.clientX)} touches=${e.touches.length} active=${s.current.active}`)
       // A tap anywhere that isn't a potential edge-swipe must not touch gesture state
       // at all — this used to call setAnimating(false) unconditionally, which cancels
       // an in-flight snap-back CSS transition mid-animation (e.g. a quick tap right
@@ -42,6 +63,7 @@ export default function SwipeBack({ onBack, children }) {
         e.preventDefault()
         if (Math.abs(mx) > 8 || Math.abs(my) > 8) {
           s.current.locked = Math.abs(mx) > Math.abs(my) ? 'h' : 'v'
+          logDebug(`lock=${s.current.locked} mx=${Math.round(mx)} my=${Math.round(my)}`)
           if (s.current.locked === 'v') {
             s.current.active = false
             return
@@ -57,22 +79,31 @@ export default function SwipeBack({ onBack, children }) {
         if (clamped === 0) {
           // Pulled back to origin — cancel so the page doesn't stay draggable
           s.current.active = false
+          logDebug(`back to 0, active=false`)
         }
       }
     }
     function end(e) {
+      logDebug(`end touchesLeft=${e.touches ? e.touches.length : '?'} active=${s.current.active} dx=${s.current.dx} locked=${s.current.locked}`)
       // Ignore a lifted second finger — only finalize once every touch is up, so the
       // tracked finger can keep driving the drag via touchmove in the meantime.
       if (e.touches && e.touches.length > 0) return
-      if (!s.current.active) return
+      if (!s.current.active) {
+        logDebug(`end IGNORED — active was already false`)
+        return
+      }
       s.current.active = false
       if (s.current.dx > window.innerWidth * 0.33) {
+        logDebug(`end -> full close animation`)
         setAnimating(true)
         setDx(window.innerWidth)
         setTimeout(() => onBack && onBack(), 220)
       } else if (s.current.dx > 0) {
+        logDebug(`end -> snap back animation`)
         setAnimating(true)
         setDx(0)
+      } else {
+        logDebug(`end -> dx already 0, no-op`)
       }
     }
 
@@ -102,6 +133,7 @@ export default function SwipeBack({ onBack, children }) {
         willChange: 'transform',
       }}
     >
+      <DebugOverlay log={debugLog} />
       {children}
     </div>
   )
