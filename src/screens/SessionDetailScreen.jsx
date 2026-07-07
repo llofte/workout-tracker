@@ -556,7 +556,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
       <div style={{ padding: '2px 16px 10px', display: 'flex', flexDirection: 'column', gap: 3 }}>
         {movements.map((move, i) => (
           <span key={i} style={{ fontSize: 11, color: 'rgba(245,240,232,0.4)', fontFamily: ff }}>
-            {i + 1}. {toWorkoutDisplay(move)}
+            {i + 1}. {toWorkoutDisplay(move, { abbreviate: false })}
           </span>
         ))}
       </div>
@@ -590,7 +590,7 @@ function StrengthBlock({ block, allMovements }) {
   const subtitle = block.structure && block.structure !== 'Traditional'
     ? block.structure
     : isMultiMove
-      ? moves.slice(0, 2).map(m => toWorkoutDisplay(m)).filter(Boolean).join(' + ')
+      ? moves.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name)).filter(Boolean).join(' + ')
       : moves[0] ? toWorkoutDisplay(moves[0]) : ''
 
   return (

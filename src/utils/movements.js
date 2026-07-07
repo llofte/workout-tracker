@@ -373,7 +373,7 @@ export function normalizeMovement(rawName) {
 // Explicit move.implement (short code: 'BB'|'KB'|'DB'|'Plate') takes precedence over normalized.
 // Explicit move.singleArm / move.side take precedence over 'SA' modifier from alias map (old data).
 // R/L suffixes in the raw name (e.g. " R", " (L)") are preserved even when the alias map would strip them.
-export function toWorkoutDisplay(move) {
+export function toWorkoutDisplay(move, { abbreviate = true } = {}) {
   if (!move?.name) return '—'
 
   // Strip R/L suffix before alias lookup so e.g. "SA OH Lunge R" normalizes via "SA OH Lunge"
@@ -391,7 +391,7 @@ export function toWorkoutDisplay(move) {
   const normalized = normalizeMovement(rawName)
   const { name, modifier } = normalized
 
-  let display = SESSION_ABBREV[name] ?? name
+  let display = abbreviate ? (SESSION_ABBREV[name] ?? name) : name
 
   const isJumpOver = name.toLowerCase().includes('jump over') || name.toLowerCase().includes('jump-over')
 
