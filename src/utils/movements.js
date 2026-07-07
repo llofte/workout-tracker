@@ -325,6 +325,7 @@ const SESSION_ABBREV = {
   'Sumo Deadlift High Pull':'SDHP',
   'Ground to Overhead':     'G2OH',
   'Inverted Row':           'Inv Row',
+  'Snatch Pull':            'Sn Pull',
 }
 
 // Implement → session-view display prefix (Barbell is silent)
