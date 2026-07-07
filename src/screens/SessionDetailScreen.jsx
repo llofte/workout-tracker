@@ -371,7 +371,12 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
           : si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
         {isCurrentPR ? <PRBadgeLabel label={label} color={color} /> : (
-          <span style={{ ...S.setNum(isWarmup), width: 22 }}>{label}</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ ...S.setNum(isWarmup), width: 22 }}>{label}</span>
+            {pr === 'former' && (
+              <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff, flexShrink: 0 }}>PR</span>
+            )}
+          </span>
         )}
         <div style={{ flex: 1 }} />
         <span style={{ width: 56, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8') }}>
@@ -381,9 +386,6 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
         <span style={{ width: 64, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.28)' : set.weight ? '#f5f0e8' : 'rgba(245,240,232,0.25)') }}>
           {weightText}
         </span>
-        {pr === 'former' && (
-          <span style={{ color: 'rgba(245,240,232,0.25)', fontSize: 11, fontWeight: 700, letterSpacing: 0.4, fontFamily: ff, flexShrink: 0, marginLeft: 4 }}>PR</span>
-        )}
       </div>
     )
   })

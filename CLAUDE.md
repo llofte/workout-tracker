@@ -1,6 +1,15 @@
 # Workout Tracker — Claude Code Spec
 
-## SwipeBack "freely draggable after pause" — RESOLVED (v199 fix, v200 / bb-wod-v175 cleanup)
+## SwipeBack "freely draggable after pause" — WORKED AROUND, not truly fixed (v199 fix, v200 / bb-wod-v175 cleanup)
+
+**⚠️ This is a hack, not a real fix — user has flagged they may want to revisit it for a proper solution.** "Fixed" below means "the symptom no longer reproduces," not "the root cause is understood or corrected." Read the whole entry before touching `SwipeBack.jsx` again.
+
+**What makes it a hack, specifically:**
+- **Empirical, not diagnosed.** We know a real, painted, `position: fixed` element with actual dimensions prevents the freeze, and that a bare re-render and an invisible-but-real DOM mutation both don't — an A/B result, not a root-cause finding. The actual iOS/WebKit mechanism that's misbehaving was never identified.
+- **A workaround, not a correction.** It doesn't touch whatever iOS process is actually failing (something about committing a `transform`/`transition` mid-touch-sequence) — it just keeps an irrelevant element painted on screen as a side effect that happens to prevent that process from misfiring.
+- **Fragile against future refactors.** Nothing about `RepaintKeepalive`'s apparent purpose (an invisible overlay) signals that it's load-bearing. A well-intentioned cleanup that shrinks it, drops the `opacity: 0` trick for something that looks equivalent, or removes it as "dead code" could silently reintroduce the bug with no obvious signal.
+
+**If revisiting this for a real fix:** the right next step is Safari Remote Debugging (Mac + cable, Safari → Develop menu → select the phone) during the actual repro, to see what iOS is doing at the moment of the freeze — compositing layers, whether the `transition` actually starts, timing of paint vs. touch events — rather than more black-box A/B toggling of `SwipeBack.jsx`'s structure, which is how the current hack was found and is why it's not understood.
 
 **Symptom:** after tapping into a session from Home's Recent list, starting a left-edge swipe-back, stopping mid-drag, lifting that finger, then touching the page again — the whole screen became freely draggable in any direction with the Home screen visible behind it. Same failure mode as [[reference_ios_swipe_gesture_conflict]].
 
