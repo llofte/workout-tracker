@@ -1,5 +1,24 @@
 # Workout Tracker — Claude Code Spec
 
+## Movement-name title consistency scrub — RESOLVED (v205 / bb-wod-v180)
+
+**Rule requested by user:** for any title/subtitle combining multiple STRENGTH movement names, use full names for every movement if the full-name string fits on one line; otherwise abbreviate every movement — never mix full and abbreviated names in the same title.
+
+**Three call sites found and unified** (via a new shared `buildMultiMoveTitle(movements, { font, maxWidth })` in `src/utils/movements.js`, replacing three previously-independent, inconsistent implementations):
+1. `SessionDetailScreen.jsx` `deriveSessionParts()` — the page-top "💪 ..." title. Previously `.slice(0,2)` + always-full `toWorkoutDisplay`.
+2. `SessionDetailScreen.jsx` `StrengthBlock`'s `subtitle` — previously always-abbreviated via `abbreviateForColumn`, all movements (no slice), but never full even when short.
+3. `HomeScreen.jsx` `deriveSessionParts()` (a separate, duplicate function from #1) — same `.slice(0,2)` + always-full bug as #1.
+
+**How `buildMultiMoveTitle` decides:** builds the full-name string (`toWorkoutDisplay(m, { abbreviate: false })` for every movement — see gotcha below), measures it via `measureTextWidth` (canvas-based, exported from `movements.js`) against the caller's actual font + available width (`window.innerWidth` minus that call site's known horizontal padding — 40px page title, 72px subtitle, 32px Home card), and returns it if it fits; otherwise returns the fully-abbreviated string (`abbreviateForColumn(normalizeMovement(m.name).name)` for every movement). Single-movement titles are untouched (still just `toWorkoutDisplay(moves[0])`) since there's no mixing risk with one name.
+
+**Real bug found and fixed:** the first implementation of `buildMultiMoveTitle` built its "full" candidate with plain `toWorkoutDisplay(m)` (default `abbreviate: true`) — since `toWorkoutDisplay` *always* substitutes `SESSION_ABBREV` entries (RDL, Inv Row, Sn Pull, SDHP, G2OH) regardless of context, the "full" string was already partially abbreviated for any movement that happened to be in that map, while non-mapped movements stayed full — producing exactly the reported mixed inconsistency, just one level deeper than the original per-call-site bugs. Fixed by passing `{ abbreviate: false }` explicitly when building the full candidate.
+
+**Gotcha that cost significant debugging time:** after fixing the code, the Jun 16 test session *still* showed the old mixed title ("RDL + Inverted Row + SS Press") on every reload. The dynamic logic was actually correct by that point (verified in isolation via `await import('/workout-tracker/src/utils/movements.js?bust=...')` in the browser console with the session's real movement data) — the actual cause was that `session.strengthBlock.customTitle` was **persisted in the database** with that exact stale string (likely auto-saved by an older version of this same title logic during earlier testing in this session), and `customTitle` always takes precedence over the dynamic computation in both `deriveSessionParts` and `StrengthBlock`. Cleared it via the Edit screen's "Strength title" field (blank = fall through to dynamic logic) to confirm the fix end-to-end. **If a title looks wrong after a code fix here, check `strengthBlock.customTitle` in the actual session data before assuming the logic is still broken** — inspect via React fiber (`el[Object.keys(el).find(k=>k.startsWith('__reactFiber'))]`, walk `.return` until `memoizedProps.session` appears) rather than re-guessing at the code.
+
+**Not yet done — needs user decision:** this same stale-`customTitle` issue may exist on the user's *real* (non-test) session history, not just this one test session, since `customTitle` is a user-editable override field and I can't safely distinguish "genuinely user-typed custom title" from "stale auto-generated text that happens to look custom" without asking. Have not bulk-scanned/cleared real production sessions for this — flag to user before doing so.
+
+---
+
 ## SwipeBack "freely draggable after pause" — WORKED AROUND, not truly fixed (v199 fix, v200 / bb-wod-v175 cleanup)
 
 **⚠️ This is a hack, not a real fix — user has flagged they may want to revisit it for a proper solution.** "Fixed" below means "the symptom no longer reproduces," not "the root cause is understood or corrected." Read the whole entry before touching `SwipeBack.jsx` again.

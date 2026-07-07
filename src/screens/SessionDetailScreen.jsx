@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn } from '../utils/movements'
+import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn, buildMultiMoveTitle, measureTextWidth } from '../utils/movements'
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 const TIMED_RE = /\bplank\b/i
@@ -114,11 +114,10 @@ function deriveSessionParts(session) {
     if (session.strengthBlock.customTitle) {
       parts.push(`💪 ${session.strengthBlock.customTitle}`)
     } else {
-      const names = (session.strengthBlock.movements || [])
-        .filter(m => m.name?.trim())
-        .map(m => toWorkoutDisplay(m))
-        .slice(0, 2)
-      parts.push(`💪 ${names.length ? names.join(' + ') : 'Strength'}`)
+      const title = buildMultiMoveTitle(session.strengthBlock.movements, {
+        font: `700 20px ${ff}`, maxWidth: window.innerWidth - 40,
+      })
+      parts.push(`💪 ${title || 'Strength'}`)
     }
   }
   if (session.metconBlock) {
@@ -458,14 +457,6 @@ function ColumnDivider() {
   return <div style={{ width: 1.5, alignSelf: 'stretch', flexShrink: 0, background: 'rgba(255,255,255,0.1)' }} />
 }
 
-let _measureCanvas = null
-function measureTextWidth(text, font) {
-  if (!_measureCanvas) _measureCanvas = document.createElement('canvas')
-  const ctx = _measureCanvas.getContext('2d')
-  ctx.font = font
-  return ctx.measureText(text).width
-}
-
 // Reference width (in px) for a column's weight text, based on whichever digit-count
 // (2-digit "85", 3-digit "100", etc.) appears most often across every set — warmup and
 // working — for that movement. Rows matching the majority fill this slot exactly; rows
@@ -590,7 +581,7 @@ function StrengthBlock({ block, allMovements }) {
   const subtitle = block.structure && block.structure !== 'Traditional'
     ? block.structure
     : isMultiMove
-      ? moves.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name)).filter(Boolean).join(' + ')
+      ? buildMultiMoveTitle(moves, { font: `500 16px ${ff}`, maxWidth: window.innerWidth - 72 })
       : moves[0] ? toWorkoutDisplay(moves[0]) : ''
 
   return (

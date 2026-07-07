@@ -3,7 +3,9 @@ import { createPortal } from 'react-dom'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
-import { toWorkoutDisplay } from '../utils/movements'
+import { toWorkoutDisplay, buildMultiMoveTitle } from '../utils/movements'
+
+const APP_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T12:00:00')
@@ -31,11 +33,10 @@ function deriveSessionParts(session) {
     if (session.strengthBlock.customTitle) {
       parts.push(`💪 ${session.strengthBlock.customTitle}`)
     } else {
-      const names = (session.strengthBlock.movements || [])
-        .filter(m => m.name?.trim())
-        .map(m => toWorkoutDisplay(m))
-        .slice(0, 2)
-      if (names.length) parts.push(`💪 ${names.join(' + ')}`)
+      const title = buildMultiMoveTitle(session.strengthBlock.movements, {
+        font: `600 15px ${APP_FONT}`, maxWidth: window.innerWidth - 32,
+      })
+      if (title) parts.push(`💪 ${title}`)
     }
   }
 
@@ -827,7 +828,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v204</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v205</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

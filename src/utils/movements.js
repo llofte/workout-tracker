@@ -463,3 +463,26 @@ export function abbreviateForColumn(canonicalName) {
     .join(' ')
   return initials ? `${initials} ${last}` : last
 }
+
+let _measureCanvas = null
+export function measureTextWidth(text, font) {
+  if (!_measureCanvas) _measureCanvas = document.createElement('canvas')
+  const ctx = _measureCanvas.getContext('2d')
+  ctx.font = font
+  return ctx.measureText(text).width
+}
+
+// Builds a title from 2+ movements, e.g. "RDL + Inv Row + SS Press" or
+// "Romanian Deadlift + Inverted Row + SA DB Split-Stance Press" — never a mix of the
+// two: tries full names for every movement first, and only if that string would wrap
+// past one line (measured against the caller's actual font + available width) does it
+// fall back to abbreviating every movement. Single-movement titles are left to the
+// caller (toWorkoutDisplay directly) since there's no mixing concern with one name.
+export function buildMultiMoveTitle(movements, { font, maxWidth }) {
+  const valid = (movements ?? []).filter(m => m?.name?.trim())
+  if (valid.length === 0) return ''
+  if (valid.length === 1) return toWorkoutDisplay(valid[0])
+  const full = valid.map(m => toWorkoutDisplay(m, { abbreviate: false })).join(' + ')
+  if (measureTextWidth(full, font) <= maxWidth) return full
+  return valid.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name)).join(' + ')
+}
