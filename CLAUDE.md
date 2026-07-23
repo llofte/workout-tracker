@@ -1,5 +1,23 @@
 # Workout Tracker — Claude Code Spec
 
+## In-progress log/edit sessions now survive app restarts — RESOLVED (v212 / bb-wod-v187)
+
+**User-reported data loss:** started logging a workout, forgot to hit "Log Workout," and came back a day later to find the whole in-progress session gone. Root cause: `logging`/`editingSession`/`logMinimized` in `App.jsx` were plain React state — purely in-memory. Minimizing (the existing mini-player pattern) kept `LogScreen` mounted and preserved state *within the same page load*, but a killed tab, an iOS-purged backgrounded PWA, or just closing the app lost everything with no recovery path.
+
+**Fix — localStorage-backed autosave, new `src/utils/draftStorage.js`** (`loadDraft`/`saveDraft`/`clearDraft`, key `bb-wod-draft-v1`):
+- `LogScreen.jsx`: extracted the object literal `handleLog()` used to build for saving into a standalone `buildSessionData()` (same shape as a saved DB row — title, date, strengthBlock, metconBlock, accessoryBlock, notes). `handleLog()` now just calls it. A new debounced (600ms) `useEffect` — keyed on every meaningful piece of form state, firing only once `step === 2` — calls `buildSessionData()` and writes it to `localStorage` via `saveDraft()`, tagging `draft.id = initialSession.id` when editing an existing session (so update-vs-insert semantics survive the round-trip) and leaving `id` absent for a brand-new session (so it still inserts correctly on eventual save).
+- `App.jsx`: reads `loadDraft()` once on mount; if present, seeds `editingSession` with it directly and opens straight into the **minimized** "Workout in Progress" bar (not full-screen) so reopening the app doesn't interrupt whatever the user actually came to do — tap to expand and continue, or the existing ✕ to discard. `closeLog()` (Cancel / mini-bar ✕) and `handleSave()` (successful save) both call `clearDraft()`, so the two existing "leave the log flow" paths already double as "discard/consume the draft" — no new UI needed.
+- Reused the *existing* edit-session hydration path end to end: since a resumed draft (whether brand-new or mid-edit) is already shaped exactly like a saved session, passing it as `initialSession` means every existing `useState` initializer (`restoreStrengthMove`, `restoreMetconMove`, `parseStrengthStructure`, etc.) hydrates it correctly with **zero new bypass logic** — the only genuinely new code is the autosave effect itself and the resume-on-boot wiring in `App.jsx`.
+- Two label checks (`initialSession ? 'Edit Session' : 'Log Workout'`, and the footer Save/Log button + Saving/Logging text) were tightened to `initialSession?.id` specifically, so a resumed brand-new-workout draft (no `id`) still correctly reads "Log Workout"/"Logging…" rather than "Edit Session"/"Save Changes" — matches the convention `handleLog()` itself already used. The footer's "Cancel" button intentionally kept its broader `initialSession &&` check unchanged, so resumed drafts (new *or* edit) get an explicit discard affordance that a from-scratch new-workout flow never had — a deliberate, harmless bonus, not an oversight.
+
+**Verified live**, simulating a killed tab via a full page reload (not just minimizing within the same load):
+1. Started a new workout, typed a strength movement name, confirmed the draft landed in `localStorage` after the debounce.
+2. Reloaded the page cold — the "Workout in Progress" bar appeared automatically with no prompt, Home's "Log Workout" correctly disabled. Expanded it — every typed field, including the movement name, was intact; header correctly read "Log Workout" (not "Edit Session").
+3. Hit Cancel — draft cleared from `localStorage`, mini-bar gone, Home's CTA re-enabled.
+4. Opened Edit on a real saved session (id `bc3dfa4f-...`), confirmed the autosaved draft carried the correct `id`, reloaded cold, confirmed it resumed correctly labeled "Edit Session" with the real title fields intact, then Cancelled — draft cleared, **real session data left untouched** (Cancel never calls Supabase).
+
+---
+
 ## Metcon volume undercounted when segment `rounds` is null — RESOLVED (v211 / bb-wod-v186)
 
 **Follow-up to the "0 min EMOM" and timed-hold fixes above** — flagged in passing while fixing the hold-as-1-rep change, user confirmed: yes, fix it.

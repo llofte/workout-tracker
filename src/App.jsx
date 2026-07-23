@@ -8,6 +8,7 @@ import SessionDetailScreen from './screens/SessionDetailScreen'
 import SwipeBack from './components/shared/SwipeBack'
 import { useSessions } from './hooks/useSession'
 import { PILL_BOTTOM, TAB_HEIGHT } from './utils/pwa'
+import { loadDraft, clearDraft } from './utils/draftStorage'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -15,10 +16,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [tabNonce, setTabNonce] = useState(0)
   const [kbOpen, setKbOpen] = useState(false)
+  // If a session was left in-progress (tab killed, app backgrounded and purged, etc.),
+  // resume it straight into the minimized "Workout in Progress" bar rather than losing it.
+  const [draftResume] = useState(() => loadDraft())
   const [logging, setLogging] = useState(false)
-  const [editingSession, setEditingSession] = useState(null)
+  const [editingSession, setEditingSession] = useState(draftResume)
   const [savedSession, setSavedSession] = useState(null)
-  const [logMinimized, setLogMinimized] = useState(false)
+  const [logMinimized, setLogMinimized] = useState(!!draftResume)
   const [dragOffset, setDragOffset] = useState(0)
   const { sessions, refetch } = useSessions()
 
@@ -46,6 +50,7 @@ export default function App() {
 
   const closeLog = () => {
     refetch()
+    clearDraft()
     setLogging(false)
     setEditingSession(null)
     setLogMinimized(false)
@@ -54,6 +59,7 @@ export default function App() {
 
   const handleSave = (session) => {
     refetch()
+    clearDraft()
     setLogging(false)
     setEditingSession(null)
     setLogMinimized(false)

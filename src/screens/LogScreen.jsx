@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
 import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount } from '../utils/movements'
+import { saveDraft } from '../utils/draftStorage'
 
 // Full implement name → selector short code
 const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate', Rower: 'Rower' }
@@ -1471,11 +1472,9 @@ Rules:
     return parts.join(' / ') || 'BB WOD'
   }
 
-  async function handleLog() {
-    setSaving(true)
-    try {
-      const firstSeg = metconSegments[0]
-      const sessionData = {
+  function buildSessionData() {
+    const firstSeg = metconSegments[0]
+    return {
         title: generateSessionTitle(),
         date: date,
         program: 'BB WOD',
@@ -1582,8 +1581,34 @@ Rules:
         } : null,
         notes: sessionNotes,
         whiteboardPhotoUrl: null,
-      }
+    }
+  }
 
+  // Autosave the in-progress session to localStorage so it survives a killed tab, a
+  // backgrounded PWA getting purged by iOS, or just closing the app and coming back a day
+  // later — previously an abandoned-but-unsaved log lived only in React state and was lost
+  // the moment the page unloaded. Cleared on explicit save or discard (see App.jsx).
+  const autosaveTimer = useRef(null)
+  useEffect(() => {
+    if (step !== 2) return
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = setTimeout(() => {
+      const draft = buildSessionData()
+      if (initialSession?.id) draft.id = initialSession.id
+      saveDraft(draft)
+    }, 600)
+    return () => clearTimeout(autosaveTimer.current)
+  }, [
+    step, date, hasStrength, strengthType, strengthMode, strengthDuration, strengthInterval, strengthMoves,
+    hasMetcon, metconFormat, metconSegments, metconScore, hasBuyIn, buyInMoves, hasBuyOut, buyOutMoves,
+    hasAccessory, accessoryFormat, accessorySegments, accessoryScore, sessionNotes,
+    titleStrength, titleMetcon, titleAccessory,
+  ])
+
+  async function handleLog() {
+    setSaving(true)
+    try {
+      const sessionData = buildSessionData()
       const sessionId = initialSession?.id ?? uuidv4()
       const fullSession = { ...sessionData, id: sessionId }
       if (initialSession?.id) {
@@ -1796,7 +1821,7 @@ Rules:
             />
           </div>
           <h1 style={{ color: '#f5f0e8', fontSize: 20, fontWeight: 700, letterSpacing: -0.2, margin: 0, fontFamily: 'inherit' }}>
-            {initialSession ? 'Edit Session' : 'Log Workout'}
+            {initialSession?.id ? 'Edit Session' : 'Log Workout'}
           </h1>
           {initialSession && (
             <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -2547,7 +2572,7 @@ Rules:
           onClick={handleLog} disabled={saving}
           style={{ width: '100%', backgroundColor: saving ? 'rgba(15,247,197,0.4)' : '#0ff7c5', color: '#0a0a0a', border: 'none', borderRadius: 14, padding: '13px 24px', fontSize: 17, fontWeight: 700, cursor: saving ? 'default' : 'pointer', fontFamily: 'inherit', letterSpacing: -0.2 }}
         >
-          {saving ? (initialSession ? 'Saving…' : 'Logging…') : (initialSession ? 'Save Changes' : 'Log Workout')}
+          {saving ? (initialSession?.id ? 'Saving…' : 'Logging…') : (initialSession?.id ? 'Save Changes' : 'Log Workout')}
         </button>
         {initialSession && (
           <button
