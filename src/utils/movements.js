@@ -464,6 +464,26 @@ export function abbreviateForColumn(canonicalName) {
   return initials ? `${initials} ${last}` : last
 }
 
+// Counts distinct OTM minute-slots occupied by a list of movements, used to derive an
+// OTM segment's per-round duration (rounds × interval × slots). A movement normally
+// occupies just its own `minuteAssignment`, but one with `minuteSpan > 1` (e.g. "Min 1 & 2:
+// 350/300m Row" — one effort, a 2-minute cap to finish it, not two separate efforts)
+// occupies every minute from `minuteAssignment` through `minuteAssignment + minuteSpan - 1`.
+// Works on both DB shape (numbers, field `movements`) and LogScreen form-state shape
+// (numeric strings, field `moves`) — callers just pass the array directly.
+export function occupiedMinuteSlotCount(moves) {
+  const slots = new Set()
+  for (const m of moves ?? []) {
+    if (m.isRest) continue
+    if (m.minuteAssignment == null || m.minuteAssignment === '') continue
+    const start = Number(m.minuteAssignment)
+    if (!Number.isFinite(start)) continue
+    const span = Number(m.minuteSpan) || 1
+    for (let i = 0; i < span; i++) slots.add(start + i)
+  }
+  return slots.size || 1
+}
+
 let _measureCanvas = null
 export function measureTextWidth(text, font) {
   if (!_measureCanvas) _measureCanvas = document.createElement('canvas')

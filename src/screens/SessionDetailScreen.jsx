@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn, buildMultiMoveTitle, measureTextWidth } from '../utils/movements'
+import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn, buildMultiMoveTitle, measureTextWidth, occupiedMinuteSlotCount } from '../utils/movements'
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 const TIMED_RE = /\bplank\b/i
@@ -60,7 +60,7 @@ function metconSubtitle(block) {
       const hasRest = segments.some((s, i) => i > 0 && s.restBefore)
       if (hasRest) {
         const total = segments.reduce((sum, s) => {
-          const slots = [...new Set((s.movements ?? []).filter(m => !m.isRest && m.minuteAssignment != null).map(m => m.minuteAssignment))].length || 1
+          const slots = occupiedMinuteSlotCount(s.movements)
           return sum + (s.rounds || rounds || 0) * iv * slots
         }, 0)
         return `${total} min ${label}`
@@ -69,7 +69,7 @@ function metconSubtitle(block) {
       return r ? `${r * segments.length * iv} min ${label}` : `${segments.length} min ${label}`
     }
     const r = rounds || seg0?.rounds
-    if (r) return `${r * iv} min ${label}`
+    if (r) return `${r * iv * occupiedMinuteSlotCount(seg0?.movements)} min ${label}`
     const d = duration || seg0?.duration
     if (d) return `${d} min ${label}`
     return label
@@ -262,9 +262,7 @@ function calcMetconVol(block) {
     } else {
       let rounds = block.rounds || 1
       if (block.format === 'OTM' && block.duration && block.movements.some(mv => mv.minuteAssignment != null)) {
-        const slots = new Set(
-          block.movements.filter(mv => mv.minuteAssignment != null).map(mv => mv.minuteAssignment)
-        ).size
+        const slots = occupiedMinuteSlotCount(block.movements)
         if (slots > 0) rounds = Math.floor(block.duration / slots)
       }
       for (const mv of block.movements) {
@@ -406,8 +404,9 @@ function MetconMoveRow({ move, isOTM }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
       {isOTM && move.minuteAssignment != null && (
-        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 34, flexShrink: 0 }}>
+        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, minWidth: 34, flexShrink: 0 }}>
           Min {move.minuteAssignment}
+          {move.minuteSpan > 1 ? `-${move.minuteAssignment + move.minuteSpan - 1}` : ''}
         </span>
       )}
       <span style={{ color: '#f5f0e8', fontSize: 14, fontWeight: 500, fontFamily: ff, flex: 1 }}>

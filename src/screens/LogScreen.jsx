@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay } from '../utils/movements'
+import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount } from '../utils/movements'
 
 // Full implement name → selector short code
 const IMPL_SHORT = { Barbell: 'BB', Dumbbell: 'DB', Kettlebell: 'KB', Plate: 'Plate', Rower: 'Rower' }
@@ -22,7 +22,7 @@ function formatDate(dateStr) {
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false, isCompleted: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true, isCompleted: false } }
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
@@ -138,6 +138,7 @@ function restoreMetconMove(m) {
     name: canonName, reps: parsed.reps,
     weight: m.weight?.toString() ?? '',
     minuteAssignment: m.minuteAssignment?.toString() ?? '',
+    minuteSpan: m.minuteSpan?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
     implement, singleArm, side,
     cardioUnit: m.cardioUnit ?? parsed.cardioUnit,
@@ -814,7 +815,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         const hasRestBetween = segs.some((seg, i) => i > 0 && seg.restBefore)
         if (hasRestBetween) {
           const segDurations = segs.map(seg => {
-            const slots = [...new Set((seg.movements ?? []).filter(m => !m.isRest && m.minuteAssignment != null).map(m => m.minuteAssignment))].length || 1
+            const slots = occupiedMinuteSlotCount(seg.movements)
             return (seg.rounds || rounds || 0) * iv * slots
           })
           const allSame = segDurations.every(d => d === segDurations[0])
@@ -824,7 +825,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         }
         if (rounds) return `${rounds * segs.length * iv} min ${emomLabel}`
       }
-      if (rounds) return `${rounds * iv} min ${emomLabel}`
+      if (rounds) return `${rounds * iv * occupiedMinuteSlotCount(segs?.[0]?.movements)} min ${emomLabel}`
       if (duration) return `${duration} min ${emomLabel}`
       return emomLabel
     }
@@ -1222,7 +1223,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
       "duration": "15", "rounds": "", "interval": "1",
       "tabataWork": "20", "tabataRest": "10",
       "moves": [
-        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
+        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "minuteSpan": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
       ]
     }
   ],
@@ -1259,11 +1260,19 @@ PATTERN A — Rotating OTM (each minute is a different movement):
   "12 min OTM: Min 1 x8 Burpee Box Jump, Min 2 x5 DL" means every minute you do ONE movement, alternating.
   → interval="1", each move gets minuteAssignment "1", "2", etc. to show which minute it occupies.
   → Athlete does 6 rounds of each movement over 12 minutes.
+PATTERN A variant — a movement spanning multiple consecutive minutes (one longer effort, not one per minute):
+  "Min 1 & 2 x350/300m Row" (or "Min 1-2") means ONE row effort with 2 minutes to complete it — NOT two separate 350m rows, one each minute.
+  → ONE move entry: minuteAssignment = the first minute ("1"), minuteSpan = how many consecutive minutes it spans ("2"). Do not create a second entry for the same effort.
+  → The next move's minuteAssignment continues after the span (e.g. a move at "Min 3" still gets minuteAssignment "3", not "2").
+  → For a normal single-minute move, leave minuteSpan "" (defaults to 1) — only set it when the board explicitly gives a minute range for one effort.
 PATTERN B — Grouped OTM (all movements happen together every X minutes):
   "E2MOM: 5 DL + 8 Burpee Box Jump" means both movements happen within the same 2-minute window.
   → interval="2" (or however many minutes the window is), all moves get minuteAssignment "" (no assignment).
-The key signal: if the board says "Min 1", "Min 2" etc., it is PATTERN A (rotating, interval="1").
-If it says "E2MOM" or "every 2 min" with no per-minute labels, it is PATTERN B.
+The key signal: if the board says "Min 1", "Min 2" etc., it is PATTERN A (rotating, interval="1") —
+including the "Min 1 & 2" variant, which is still PATTERN A (interval stays "1"; only that one move's
+minuteSpan changes), not PATTERN B. If it says "E2MOM" or "every 2 min" applied to the WHOLE window with no
+per-minute labels, it is PATTERN B. The distinguishing question: does the range label ONE specific movement
+(PATTERN A variant, use minuteSpan) or the ENTIRE rotation of movements (PATTERN B, use interval)?
 PATTERN C — "N Rounds, X min ON, Y min OFF" (work/rest rounds):
   "5 Rounds, 2min ON 2min OFF" with movements listed below means each round is (X+Y) minutes total: X min working the listed movements, then Y min resting.
   → metconFormat="OTM", interval="X+Y" as a single number (e.g. "2min ON 2min OFF" → interval="4"), rounds="N" (e.g. "5"), duration="".
@@ -1292,7 +1301,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
       "tabataWork": "20",
       "tabataRest": "10",
       "moves": [
-        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
+        { "name": "Thruster", "reps": "9", "weight": "", "minuteAssignment": "", "minuteSpan": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
       ]
     }
   ],
@@ -1309,7 +1318,7 @@ Rules:
 - reps must be a string: "10", "21-15-9", "max", etc.
 - For AMRAP: put duration in minutes in first segment "duration", set "rounds" to ""
 - For For Time: put number of rounds in "rounds", set "duration" to ""
-- For OTM: set "duration" (total min) and "interval" (every X min); each move gets "minuteAssignment" "1", "2", etc.
+- For OTM: set "duration" (total min) and "interval" (every X min); each move gets "minuteAssignment" "1", "2", etc. If one move needs multiple consecutive minutes to complete (e.g. a longer row/run within a rotation), set its "minuteSpan" to how many minutes it spans (e.g. "2") and leave "minuteSpan" "" for every other move (defaults to 1).
 - For Tabata: set "rounds" (default "8"), "tabataWork" (sec), "tabataRest" (sec)
 - Multi-segment workouts: add extra segments with "restBeforeMin"/"restBeforeSec" set
 - If the request is only for a metcon, set strengthBlock to null
@@ -1404,7 +1413,7 @@ Rules:
           const hasRestBetween = metconSegments.some((s, i) => i > 0 && (s.restBeforeMin || s.restBeforeSec))
           if (hasRestBetween) {
             const segDurations = metconSegments.map(s => {
-              const slots = [...new Set(s.moves.filter(m => !m.isRest && m.minuteAssignment).map(m => m.minuteAssignment))].length || 1
+              const slots = occupiedMinuteSlotCount(s.moves)
               return Number(s.rounds || 0) * iv * slots
             })
             const allSame = segDurations.every(d => d === segDurations[0])
@@ -1440,7 +1449,7 @@ Rules:
         const iv = Number(seg?.interval) || 1
         const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
         const r = Number(seg?.rounds)
-        if (r) label = `${r * iv} min ${emomLabel}`
+        if (r) label = `${r * iv * occupiedMinuteSlotCount(seg?.moves)} min ${emomLabel}`
         else if (seg?.duration) label = `${seg.duration} min ${emomLabel}`
       } else if (metconFormat === 'For Time' && seg?.rounds) {
         label = Number(seg.rounds) === 1 ? 'Chipper' : `${seg.rounds} Rounds For Time`
@@ -1526,6 +1535,7 @@ Rules:
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+              minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
               cardioUnit: isCardioName(m.name) ? (isCarryName(m.name) ? (m.cardioUnit || 'm') : (m.cardioUnit || 'cal')) : null,
             }),
@@ -1555,6 +1565,7 @@ Rules:
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
+              minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
               cardioUnit: isCardioName(m.name) ? (isCarryName(m.name) ? (m.cardioUnit || 'm') : (m.cardioUnit || 'cal')) : null,
             }),
@@ -2175,6 +2186,12 @@ Rules:
                                 <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>min #</span>
                               </div>
                             )}
+                            {metconFormat === 'OTM' && (
+                              <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <input placeholder="1" value={move.minuteSpan} onChange={e => updateSegMove(si, mi, 'minuteSpan', e.target.value)} type="number" inputMode="numeric" style={{ width: 48, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                                <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>span</span>
+                              </div>
+                            )}
                           </>
                         )}
                       </div>
@@ -2456,6 +2473,12 @@ Rules:
                             <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
                               <input placeholder="—" value={move.minuteAssignment} onChange={e => updateAccessorySegMove(si, mi, 'minuteAssignment', e.target.value)} type="number" inputMode="numeric" style={{ width: 60, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
                               <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>min #</span>
+                            </div>
+                          )}
+                          {accessoryFormat === 'OTM' && (
+                            <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                              <input placeholder="1" value={move.minuteSpan} onChange={e => updateAccessorySegMove(si, mi, 'minuteSpan', e.target.value)} type="number" inputMode="numeric" style={{ width: 48, backgroundColor: 'rgba(255,255,255,0.07)', border: 'none', borderRadius: 8, padding: '8px 8px', fontSize: 15, color: '#f5f0e8', fontFamily: 'inherit', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }} />
+                              <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>span</span>
                             </div>
                           )}
                         </>
