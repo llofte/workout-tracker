@@ -1,5 +1,13 @@
 # Workout Tracker — Claude Code Spec
 
+## `minuteSpan` label misaligns movement names — RESOLVED (v209 / bb-wod-v184)
+
+**Bug:** in `MetconMoveRow` (`SessionDetailScreen.jsx`), the "Min X" label span only had `minWidth: 34`, not a fixed `width`. A short label like "Min 3" fits within 34px, but "Min 1-2" (from a `minuteSpan` movement) is wider than 34px and grows the span past it — since the movement-name span next to it is `flex: 1` starting immediately after, this pushed movement names in `minuteSpan` rows further right than movement names in plain single-minute rows within the same segment, breaking the intended vertical alignment (e.g. "Row" appeared indented relative to "Cluster").
+
+**Fix:** changed to a real fixed `width: 46` (comfortably fits "Min 1-2" and similar) with `whiteSpace: 'nowrap'`, replacing `minWidth: 34` — every label now occupies the exact same box regardless of content length, so movement names always start at the same x position. Verified live on the real 7/22 session — "Row" and "Cluster" (and every row in the second segment) now line up exactly.
+
+---
+
 ## Multi-segment OTM naming convention — RESOLVED (v208 / bb-wod-v183)
 
 **User feedback on the "0 min EMOM" fix below:** the fix initially made `metconSubtitle()` (top-of-card / section-subtitle label) sum each segment's work minutes into one total (e.g. "24 min EMOM" for two 12-min EMOMs separated by a 2-min rest). User pointed out this is misleading — it wasn't a single continuous 24-minute block, it was two 12-minute EMOMs + 2 min rest = 26 min elapsed. Correct convention: **"12 min EMOM ×2"** (each segment's own duration ×segment count), not a summed total — this already matched what `HomeScreen.jsx`/`LogScreen.jsx` were doing (they had an `allSame` check producing the `×N` format), so `metconSubtitle()` was actually the odd one out. Fixed by giving it the same `allSame` branching: `${segDurations[0]} min ${label} ×${segments.length}` when every segment's computed duration matches, falling back to a summed total only when segments genuinely differ in length.

@@ -415,7 +415,7 @@ function MetconMoveRow({ move, isOTM }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
       {isOTM && move.minuteAssignment != null && (
-        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, minWidth: 34, flexShrink: 0 }}>
+        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 46, flexShrink: 0, whiteSpace: 'nowrap' }}>
           Min {move.minuteAssignment}
           {move.minuteSpan > 1 ? `-${move.minuteAssignment + move.minuteSpan - 1}` : ''}
         </span>
