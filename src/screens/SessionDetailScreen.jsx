@@ -63,12 +63,18 @@ function metconSubtitle(block) {
         // board); fall back to the segment's own duration (already total minutes, no
         // further multiplying) when a segment has no rounds — e.g. Claude pre-computed
         // duration itself instead of transcribing "N rounds" literally.
-        const total = segments.reduce((sum, s) => {
+        const segDurations = segments.map(s => {
           const r = s.rounds || rounds
-          if (r) return sum + r * iv * occupiedMinuteSlotCount(s.movements)
-          return sum + (s.duration || duration || 0)
-        }, 0)
-        return `${total} min ${label}`
+          if (r) return r * iv * occupiedMinuteSlotCount(s.movements)
+          return s.duration || duration || 0
+        })
+        const allSame = segDurations.every(d => d === segDurations[0])
+        // Segments are separated by rest, not run back-to-back — "N min EMOM ×segments"
+        // (each segment's own work time) is accurate; summing into one total would wrongly
+        // imply a single continuous block of that length.
+        return allSame && segDurations[0]
+          ? `${segDurations[0]} min ${label} ×${segments.length}`
+          : `${segDurations.reduce((a, b) => a + b, 0)} min ${label}`
       }
       const r = rounds || seg0?.rounds
       return r ? `${r * segments.length * iv} min ${label}` : `${segments.length} min ${label}`
@@ -629,7 +635,11 @@ function segmentLabel(seg, block) {
   if (block.format === 'OTM') {
     const iv = seg.interval || 1
     const label = iv === 1 ? 'EMOM' : `E${iv}MOM`
-    return seg.rounds ? `${seg.rounds} Rounds · ${label}` : label
+    // Rounds isn't always populated directly (Claude sometimes pre-computes duration
+    // instead of transcribing "N rounds" literally) — derive it from duration when needed.
+    const slots = occupiedMinuteSlotCount(seg.movements)
+    const rounds = seg.rounds || (seg.duration ? Math.round(seg.duration / (iv * slots)) : null)
+    return rounds ? `${label} · ${rounds} Round${rounds === 1 ? '' : 's'}` : label
   }
   if (seg.rounds) return `${seg.rounds} Rounds`
   if (seg.duration) return `${seg.duration} min`
