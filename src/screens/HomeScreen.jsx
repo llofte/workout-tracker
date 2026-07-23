@@ -305,6 +305,7 @@ function weekBarLabel(dateStr) {
 }
 
 const CARRY_RE = /\bcarry\b|\bfarm/i
+const TIMED_RE = /\bplank\b|\bhold\b/i
 
 function parseReps(reps) {
   if (typeof reps === 'number') return reps
@@ -343,7 +344,8 @@ function calcPartialRoundVol(movements, extraReps) {
     if (remaining <= 0) break
     if (mv.isRest) continue
     if (CARRY_RE.test(mv.name ?? '')) continue
-    const mvReps = parseReps(mv.reps) || 0
+    // A timed hold's "reps" field is actually seconds — counts as 1 rep of work, not N.
+    const mvReps = TIMED_RE.test(mv.name ?? '') ? 1 : (parseReps(mv.reps) || 0)
     const used = Math.min(mvReps, remaining)
     if (mv.weight && used > 0) v += used * mv.weight
     remaining -= mvReps
@@ -369,7 +371,9 @@ function sessionVolume(session) {
         if (maxScore) vol += maxScore.total * mv.weight
         return
       }
-      const reps = parseReps(mv.reps)
+      // A timed hold's "reps" field is actually seconds — counts as 1 rep of load per
+      // round, not (seconds × weight), which would wildly overstate volume.
+      const reps = TIMED_RE.test(mv.name ?? '') ? 1 : parseReps(mv.reps)
       if (reps) vol += reps * mv.weight * mult
     }
 
@@ -831,7 +835,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v209</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v210</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

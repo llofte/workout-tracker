@@ -1,5 +1,19 @@
 # Workout Tracker — Claude Code Spec
 
+## Timed holds logged as reps instead of seconds — RESOLVED (v210 / bb-wod-v185)
+
+**User correction:** a hold movement (e.g. "DB Front Rack Hold" for 30 seconds) was displaying "30 reps" and being volume-calculated as `30 × weight` — wildly overstating load, since 30 is a duration, not a rep count. User: "update this to be logged at seconds. As for calculating total load, consider it 1 rep in the background."
+
+**Fix — two parts, in both `SessionDetailScreen.jsx` and `HomeScreen.jsx` (duplicate volume-calc logic, same pattern as every other fix in this file):**
+1. `TIMED_RE` (previously `/\bplank\b/i`, matching only "Plank" movements — a known gap flagged earlier as deferred) widened to `/\bplank\b|\bhold\b/i` so any "...Hold" movement (Front Rack Hold, Overhead Hold, etc.) is recognized as timed, not just Plank. `HomeScreen.jsx` didn't have `TIMED_RE` at all (it doesn't render per-movement reps text) — added it there too since it's now needed for volume calc.
+2. `addLoad()` (in `calcMetconVol` / `sessionVolume`) and `calcPartialRoundVol()` (AMRAP partial-round scoring) both now treat a `TIMED_RE`-matching movement's effective rep count as **1**, ignoring the actual stored number (which is seconds), for load-calculation purposes only — display (`formatReps`) still shows the real number with a "sec" suffix.
+
+**Verified live** on the real 7/22 session: "DB Front Rack Hold" now shows "30 sec" (was "30 reps"), and the metcon volume dropped from 1,206 lbs to 481 lbs (removed the 30× inflation: was counting 30 reps × 25 lbs = 750 lbs from one hold alone). Re-checked the Jun 24 session's "Side Plank" (already matched the old `\bplank\b` regex) for regressions — unaffected, volume unchanged at 2,340 lbs.
+
+**Found in passing, not fixed, flagged separately:** the corrected 481 lbs total is *still* wrong for an unrelated, pre-existing reason — `calcMetconVol`'s non-AMRAP branch computes rounds as `seg.rounds || 1`, with no fallback to duration-derived rounds the way the title/subtitle logic now does (see the "0 min EMOM" fix above). Since this segment's `seg.rounds` is null (same Claude-populated-`duration`-not-`rounds` root cause), volume is being computed for **1 round instead of the actual 4**, undercounting Cluster/Sit-Up/Hold contributions by 4×. This was masked before today's fix by coincidence (the hold's 30-rep inflation happened to roughly cancel out the missing 3 rounds). Not fixed here — changing volume math retroactively affects historical totals across potentially many sessions and deserves an explicit decision, not a silent bundle-in.
+
+---
+
 ## `minuteSpan` label misaligns movement names — RESOLVED (v209 / bb-wod-v184)
 
 **Bug:** in `MetconMoveRow` (`SessionDetailScreen.jsx`), the "Min X" label span only had `minWidth: 34`, not a fixed `width`. A short label like "Min 3" fits within 34px, but "Min 1-2" (from a `minuteSpan` movement) is wider than 34px and grows the span past it — since the movement-name span next to it is `flex: 1` starting immediately after, this pushed movement names in `minuteSpan` rows further right than movement names in plain single-minute rows within the same segment, breaking the intended vertical alignment (e.g. "Row" appeared indented relative to "Cluster").

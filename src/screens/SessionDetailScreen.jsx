@@ -4,7 +4,7 @@ import { useMovements } from '../hooks/useMovements'
 import { toWorkoutDisplay, normalizeMovement, resolveStrengthMode, abbreviateForColumn, buildMultiMoveTitle, measureTextWidth, occupiedMinuteSlotCount } from '../utils/movements'
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
-const TIMED_RE = /\bplank\b/i
+const TIMED_RE = /\bplank\b|\bhold\b/i
 const CARRY_RE = /\bcarry\b|\bfarm/i
 
 function formatReps(moveName, reps, cardioUnit) {
@@ -207,7 +207,8 @@ function calcPartialRoundVol(movements, extraReps) {
     if (remaining <= 0) break
     if (mv.isRest) continue
     if (CARRY_RE.test(mv.name ?? '')) continue
-    const mvReps = parseReps(mv.reps) || 0
+    // A timed hold's "reps" field is actually seconds — counts as 1 rep of work, not N.
+    const mvReps = TIMED_RE.test(mv.name ?? '') ? 1 : (parseReps(mv.reps) || 0)
     const used = Math.min(mvReps, remaining)
     if (mv.weight && used > 0) v += used * mv.weight
     remaining -= mvReps
@@ -240,7 +241,9 @@ function calcMetconVol(block) {
       if (maxScore) v += maxScore.total * mv.weight
       return
     }
-    const reps = parseReps(mv.reps)
+    // A timed hold's "reps" field is actually seconds — counts as 1 rep of load per
+    // round, not (seconds × weight), which would wildly overstate volume.
+    const reps = TIMED_RE.test(mv.name ?? '') ? 1 : parseReps(mv.reps)
     if (reps) v += reps * mv.weight * mult
   }
   const amrapSeg = block.format === 'AMRAP' ? parseAmrapScore(block.score) : null
