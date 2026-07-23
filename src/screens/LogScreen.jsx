@@ -87,8 +87,13 @@ function parseStrengthStructure(structure) {
   return { type: 'Traditional', duration: '', interval: '1' }
 }
 
-function restoreStrengthMove(m) {
-  let wn = 0, wkn = 0
+// Extracts {name, implement, singleArm, side} from a raw movement name — e.g. "KB Front
+// Rack Hold" -> name "Front Rack Hold" + implement 'KB', "OH Plate Sit-Up" -> name "Sit-Up"
+// + implement 'Plate' (via ALIAS_MAP, since "OH ...Plate..." doesn't fit a simple prefix
+// strip). Shared by the DB-restore path (editing a saved session) and the fresh
+// photo-parse path (Claude has no separate "implement" field for metcon/accessory moves,
+// so it bakes the implement into the name string — this is what pulls it back out).
+function normalizeMoveIdentity(m) {
   let implement = m.implement ?? null
   let singleArm = m.singleArm ?? false
   let side = m.side ?? null
@@ -100,6 +105,12 @@ function restoreStrengthMove(m) {
     if (m.name.trim().endsWith('(L)')) side = 'L'
     else if (m.name.trim().endsWith('(R)')) side = 'R'
   }
+  return { name: canonName, implement, singleArm, side }
+}
+
+function restoreStrengthMove(m) {
+  let wn = 0, wkn = 0
+  const { name: canonName, implement, singleArm, side } = normalizeMoveIdentity(m)
   return {
     name: canonName,
     sets: m.sets?.map(s => (s.notation === 'warmup' || s.isWarmup === true)
@@ -122,17 +133,7 @@ function restoreMetconMove(m) {
       restSec: t % 60 ? String(t % 60) : '', notes: '',
       implement: null, singleArm: false, side: null }
   }
-  let implement = m.implement ?? null
-  let singleArm = m.singleArm ?? false
-  let side = m.side ?? null
-  const norm = m.name ? normalizeMovement(m.name) : null
-  const canonName = norm?.name || m.name || ''
-  if (implement == null && norm?.implement) implement = IMPL_SHORT[norm.implement] ?? null
-  if (!singleArm && norm?.modifier === 'SA') singleArm = true
-  if (!side && m.name) {
-    if (m.name.trim().endsWith('(L)')) side = 'L'
-    else if (m.name.trim().endsWith('(R)')) side = 'R'
-  }
+  const { name: canonName, implement, singleArm, side } = normalizeMoveIdentity(m)
   const parsed = parseCardioReps(m.reps)
   return {
     name: canonName, reps: parsed.reps,
@@ -814,9 +815,12 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       if (segs?.length > 1) {
         const hasRestBetween = segs.some((seg, i) => i > 0 && seg.restBefore)
         if (hasRestBetween) {
+          // Prefer rounds×interval×slots when rounds is known; fall back to the segment's
+          // own duration (already total minutes) when a segment has no rounds.
           const segDurations = segs.map(seg => {
-            const slots = occupiedMinuteSlotCount(seg.movements)
-            return (seg.rounds || rounds || 0) * iv * slots
+            const r = seg.rounds || rounds
+            if (r) return r * iv * occupiedMinuteSlotCount(seg.movements)
+            return seg.duration || duration || 0
           })
           const allSame = segDurations.every(d => d === segDurations[0])
           return allSame && segDurations[0]
@@ -951,17 +955,19 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
             ...seg,
             moves: (seg.moves ?? []).map(m => {
               if (!m || m.isRest) return { ...newMetconMove(), ...m }
+              const identity = normalizeMoveIdentity(m)
               const rawReps = pickScaledReps(m.reps)
               const parsed = parseCardioReps(rawReps)
-              return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
+              return { ...newMetconMove(), ...m, ...identity, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
             }),
           })))
         }
         const processMetconMove = m => {
           if (!m || m.isRest) return { ...newMetconMove(), ...m }
+          const identity = normalizeMoveIdentity(m)
           const rawReps = pickScaledReps(m.reps)
           const parsed = parseCardioReps(rawReps)
-          return { ...newMetconMove(), ...m, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
+          return { ...newMetconMove(), ...m, ...identity, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
         }
         setHasBuyIn(!!result.hasBuyIn)
         if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves.map(processMetconMove))
@@ -1412,9 +1418,12 @@ Rules:
           const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
           const hasRestBetween = metconSegments.some((s, i) => i > 0 && (s.restBeforeMin || s.restBeforeSec))
           if (hasRestBetween) {
+            // Prefer rounds×interval×slots when rounds is known; fall back to the segment's
+            // own duration (already total minutes) when a segment has no rounds.
             const segDurations = metconSegments.map(s => {
-              const slots = occupiedMinuteSlotCount(s.moves)
-              return Number(s.rounds || 0) * iv * slots
+              const r = Number(s.rounds) || 0
+              if (r) return r * iv * occupiedMinuteSlotCount(s.moves)
+              return Number(s.duration) || 0
             })
             const allSame = segDurations.every(d => d === segDurations[0])
             label = allSame && segDurations[0]

@@ -59,9 +59,14 @@ function metconSubtitle(block) {
     if (segments?.length > 1) {
       const hasRest = segments.some((s, i) => i > 0 && s.restBefore)
       if (hasRest) {
+        // Prefer rounds×interval×slots when rounds is known (literal "N rounds" on the
+        // board); fall back to the segment's own duration (already total minutes, no
+        // further multiplying) when a segment has no rounds — e.g. Claude pre-computed
+        // duration itself instead of transcribing "N rounds" literally.
         const total = segments.reduce((sum, s) => {
-          const slots = occupiedMinuteSlotCount(s.movements)
-          return sum + (s.rounds || rounds || 0) * iv * slots
+          const r = s.rounds || rounds
+          if (r) return sum + r * iv * occupiedMinuteSlotCount(s.movements)
+          return sum + (s.duration || duration || 0)
         }, 0)
         return `${total} min ${label}`
       }

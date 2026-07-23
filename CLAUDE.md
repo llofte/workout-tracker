@@ -1,5 +1,35 @@
 # Workout Tracker — Claude Code Spec
 
+## "0 min EMOM" on real multi-segment-with-rest OTM sessions — RESOLVED (v207 / bb-wod-v182)
+
+**Found on real, live user data** (not test data): the actual 7/22 whiteboard session, logged for real via photo-parse, displayed "0 min EMOM" on both the Home list and session detail. Root cause: Claude's photo-parse populated `duration: 12` per segment but left `rounds: null` (the board said "4 rounds" for the second EMOM, but Claude pre-computed total segment minutes into `duration` instead of transcribing the round count literally). The multi-segment-with-rest duration math in every copy of this logic computed `(s.rounds || rounds || 0) * iv * slots` — with no fallback to `s.duration`/`duration` when rounds is unavailable on both the segment and the block, this collapsed to `0`.
+
+**Four separate duplicate copies of this exact calculation existed, all had the identical gap, all fixed identically** (add `if (r) return r*iv*slots; return s.duration || duration || 0`):
+- `SessionDetailScreen.jsx` `metconSubtitle()`'s `hasRest` branch.
+- `LogScreen.jsx` `titleMetcon` state initializer's `hasRestBetween` branch.
+- `LogScreen.jsx` `generateSessionTitle()`'s `hasRestBetween` branch.
+- `HomeScreen.jsx` `deriveSessionParts()`'s `hasRestBetween` branch — this one was a **fourth, previously-unknown copy**, found only because after fixing the first three the session detail page correctly showed "24 min EMOM" while the Home list still showed "0 min EMOM" for the same session. It also had its own inline minute-slot counting (a raw `Set` over `minuteAssignment` values) instead of calling the shared `occupiedMinuteSlotCount()` — replaced with the shared helper too, so it now also respects `minuteSpan`.
+
+**Verified against the real session** (Home list and detail page both, via the running dev server against production Supabase) — now shows "12 min EMOM ×2" / "24 min EMOM" — **without editing or deleting the underlying session data**; this was a pure display-logic fix, the stored row was never touched. Also re-checked the Jun 24 session (Pattern B grouped OTM, another multi-segment-with-rest case) for regressions — still correctly shows "20 min E5MOM".
+
+**Lesson for next time:** when the same calculation is duplicated across files (this feature now has this exact duration math in four places), grep for the distinctive computation shape (not just the function name) before declaring a fix complete — `deriveSessionParts` exists in both `HomeScreen.jsx` and `SessionDetailScreen.jsx` as two independently-written functions with the same name, easy to miss one.
+
+---
+
+## Implement baked into metcon/accessory movement names — RESOLVED (v207 / bb-wod-v182)
+
+**User request:** "OH Plate Sit-Up should log as 'Sit-Up' with Plate selected as weight. OH can be ignored for this movement. KB Front Rack Hold should log as 'Front Rack Hold' with KB selected." — both from the same 7/22 whiteboard photo.
+
+**Two-part fix:**
+1. `ALIAS_MAP` (`src/utils/movements.js`) — added `'OH PLATE SIT-UP'`/`'OH PLATE SIT UP'`/`'OVERHEAD PLATE SIT-UP'`/etc. and `'PLATE SIT-UP'`/`'PLATE SIT UP'` variants, all mapping to `{ name: 'Sit-Up', implement: 'Plate' }` — the leading "OH"/"Overhead" is dropped entirely (not kept as a modifier) since it isn't meaningfully distinct from a plain plate sit-up for logging. "KB Front Rack Hold" already worked via the existing generic `IMPLEMENT_PREFIXES` regex stripping (no ALIAS_MAP entry needed) — confirmed via `normalizeMovement('KB Front Rack Hold')` → `{ name: 'Front Rack Hold', implement: 'Kettlebell' }`.
+2. **The deeper gap:** metcon/accessory movements from photo-parse never got implement/singleArm/side auto-extracted at all — that machinery (`normalizeMovement` + implement mapping) only ran for *strength* movements (`restoreStrengthMove`), never for metcon ones, because Claude bakes the implement into the name string for metcon (`"KB Front Rack Hold"`) with no separate implement field, and nothing pulled it back out on the photo-parse path specifically. Fixed by extracting the shared logic into `normalizeMoveIdentity(m)` in `LogScreen.jsx` (used by both `restoreStrengthMove`/`restoreMetconMove` for the DB-restore path, and now also spread into every metcon/buyIn/buyOut move object in `handlePhotoSelect()`).
+
+**Verified:** `normalizeMovement('OH Plate Sit-Up')` → `{ name: 'Sit-Up', implement: 'Plate' }`, `normalizeMovement('KB Front Rack Hold')` → `{ name: 'Front Rack Hold', implement: 'Kettlebell' }` (re-confirmed live against the running dev server via dynamic import, not just at implementation time). Not verified against a live Claude photo-parse call (would require spending real API credits on a fresh photo) — confidence comes from the identity-extraction function being identical to the already-proven strength-movement path, now just wired into one more call site.
+
+**Known cosmetic gap, not fixed:** the actual 7/22 saved session predates this fix, so its stored movement names are still the older `normalizeMovement` output from before the ALIAS_MAP entries existed (shows "Plate Sit-Up" and "DB Front Rack Hold" rather than "Sit-Up"/plate-implement and "Front Rack Hold"/KB-implement). This is stored data, not recomputed on display — same category of issue as the `customTitle` staleness pattern documented elsewhere in this file. Also noticed: that same session's Front Rack Hold has implement `"DB"` stored, not `"KB"` — likely Claude misread the board ("KB" vs "DB") at photo-parse time, not a bug in this normalization code (which correctly processes whatever implement-prefixed string Claude actually output). Flagged to the user as a possible one-off transcription issue; not corrected automatically since it's real logged data and the true intended implement can't be confirmed from the data alone.
+
+---
+
 ## OTM movements spanning multiple minutes (`minuteSpan`) — RESOLVED (v206 / bb-wod-v181)
 
 **Edge case:** a whiteboard OTM can assign one movement to a *range* of minutes for one longer effort, not one movement per minute — e.g. "Min 1 & 2 x350/300m Row" means one 350/300m row with a 2-minute cap to finish it, then "Min 3 x3 Cluster" starts. This is meaningfully different from two separate 1-minute rows: duplicating the movement across `minuteAssignment: 1` and `minuteAssignment: 2` would double-count volume/distance, since volume calc multiplies each movement entry by the round count.

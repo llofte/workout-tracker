@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import SessionDetailScreen from './SessionDetailScreen'
 import SwipeBack from '../components/shared/SwipeBack'
 import { TAB_CLEARANCE } from '../utils/pwa'
-import { toWorkoutDisplay, buildMultiMoveTitle } from '../utils/movements'
+import { toWorkoutDisplay, buildMultiMoveTitle, occupiedMinuteSlotCount } from '../utils/movements'
 
 const APP_FONT = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
@@ -51,9 +51,12 @@ function deriveSessionParts(session) {
         const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
         const hasRestBetween = segments.some((s, i) => i > 0 && s.restBefore)
         if (hasRestBetween) {
+          // Prefer rounds×interval×slots when rounds is known; fall back to the segment's
+          // own duration (already total minutes) when a segment has no rounds.
           const segDurations = segments.map(s => {
-            const slots = [...new Set((s.movements ?? []).filter(m => !m.isRest && m.minuteAssignment != null).map(m => m.minuteAssignment))].length || 1
-            return (s.rounds || rounds || 0) * iv * slots
+            const r = s.rounds || rounds
+            if (r) return r * iv * occupiedMinuteSlotCount(s.movements)
+            return s.duration || duration || 0
           })
           const allSame = segDurations.every(d => d === segDurations[0])
           label = allSame && segDurations[0]
@@ -828,7 +831,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v206</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v207</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

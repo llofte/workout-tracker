@@ -14,6 +14,16 @@ const ALIAS_MAP = {
   'WEIGHTED SIT UP': { name: 'Sit-Up', implement: 'Med Ball' },
   'SIT-UPS':         { name: 'Sit-Up' },
   'SIT UPS':         { name: 'Sit-Up' },
+  // "OH" (overhead) is dropped entirely here, not kept as a modifier — it's not
+  // meaningfully distinct from a plain plate sit-up for logging purposes.
+  'OH PLATE SIT-UP':       { name: 'Sit-Up', implement: 'Plate' },
+  'OH PLATE SIT UP':       { name: 'Sit-Up', implement: 'Plate' },
+  'OVERHEAD PLATE SIT-UP': { name: 'Sit-Up', implement: 'Plate' },
+  'OVERHEAD PLATE SIT UP': { name: 'Sit-Up', implement: 'Plate' },
+  'PLATE OVERHEAD SIT-UP': { name: 'Sit-Up', implement: 'Plate' },
+  'PLATE OVERHEAD SIT UP': { name: 'Sit-Up', implement: 'Plate' },
+  'PLATE SIT-UP':          { name: 'Sit-Up', implement: 'Plate' },
+  'PLATE SIT UP':          { name: 'Sit-Up', implement: 'Plate' },
 
   // ── Overhead Lunge ────────────────────────────────────────────────────────
   'SA OH LUNGE':                    { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
