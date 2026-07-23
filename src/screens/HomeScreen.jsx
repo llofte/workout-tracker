@@ -392,7 +392,15 @@ function sessionVolume(session) {
         }
         vol += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
       } else {
-        const rounds = seg.rounds || 1
+        // Rounds isn't always populated directly (Claude sometimes pre-computes duration
+        // instead of transcribing "N rounds" literally) — derive it from duration when needed,
+        // same fallback as segmentLabel()/metconSubtitle() use for the display side.
+        let rounds = seg.rounds
+        if (!rounds && mb.format === 'OTM' && seg.duration) {
+          const slots = occupiedMinuteSlotCount(seg.movements)
+          rounds = Math.round(seg.duration / ((seg.interval || 1) * slots)) || 1
+        }
+        rounds = rounds || 1
         for (const mv of seg.movements ?? []) {
           if (mv.isRest || !mv.weight) continue
           if (CARRY_RE.test(mv.name ?? '')) {
@@ -835,7 +843,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v210</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v211</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

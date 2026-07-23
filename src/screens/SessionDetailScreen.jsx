@@ -256,7 +256,15 @@ function calcMetconVol(block) {
       }
       v += calcPartialRoundVol(seg.movements ?? [], amrapSeg.extraReps)
     } else {
-      const r = seg.rounds || 1
+      // Rounds isn't always populated directly (Claude sometimes pre-computes duration
+      // instead of transcribing "N rounds" literally) — derive it from duration when needed,
+      // same fallback as segmentLabel()/metconSubtitle() use for the display side.
+      let r = seg.rounds
+      if (!r && block.format === 'OTM' && seg.duration) {
+        const slots = occupiedMinuteSlotCount(seg.movements)
+        r = Math.round(seg.duration / ((seg.interval || 1) * slots)) || 1
+      }
+      r = r || 1
       for (const mv of seg.movements ?? []) {
         if (mv.isRest || !mv.weight) continue
         if (CARRY_RE.test(mv.name ?? '')) { v += carryVol(mv, r); continue }

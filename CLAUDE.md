@@ -1,5 +1,17 @@
 # Workout Tracker — Claude Code Spec
 
+## Metcon volume undercounted when segment `rounds` is null — RESOLVED (v211 / bb-wod-v186)
+
+**Follow-up to the "0 min EMOM" and timed-hold fixes above** — flagged in passing while fixing the hold-as-1-rep change, user confirmed: yes, fix it.
+
+**Root cause:** `calcMetconVol()` (`SessionDetailScreen.jsx`) and `sessionVolume()` (`HomeScreen.jsx`) both compute a segment's round count as `seg.rounds || 1` with no fallback — so on any segment where Claude populated `duration` instead of `rounds` (the same gap behind the "0 min EMOM" bug), volume was computed for 1 round instead of the real count. This was the **`segments`-array branch**; the older flat-`movements`-array branch already had an equivalent duration→rounds fallback (`Math.floor(block.duration / slots)`) — the segments branch just never got the same treatment when segments were introduced.
+
+**Fix:** both branches now derive `rounds` from `seg.duration / (seg.interval × occupied slots)` when `seg.rounds` is null and format is OTM — same fallback formula `segmentLabel()`/`metconSubtitle()` already use on the display side, just inverted for volume math (includes `interval` in the divisor, unlike the older flat-`movements` fallback, which is correct here since `interval` was directly available and mattering for non-1 intervals).
+
+**Verified live** on the real 7/22 session: total went from 481 lbs (1 round, post-hold-fix but pre-this-fix) to **1,924 lbs** (correct 4 rounds — Cluster 3×52×4 + Plate Sit-Up 12×25×4 + Hold 1×25×4 = 1,924). Re-checked Jun 24 (single-segment, old flat-`movements` format) for regressions — unaffected, still 2,340 lbs, since that session doesn't use the `segments` array at all.
+
+---
+
 ## Timed holds logged as reps instead of seconds — RESOLVED (v210 / bb-wod-v185)
 
 **User correction:** a hold movement (e.g. "DB Front Rack Hold" for 30 seconds) was displaying "30 reps" and being volume-calculated as `30 × weight` — wildly overstating load, since 30 is a duration, not a rep count. User: "update this to be logged at seconds. As for calculating total load, consider it 1 rep in the background."
