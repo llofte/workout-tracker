@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount } from '../utils/movements'
+import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount, appendsImplementSuffix } from '../utils/movements'
 import { saveDraft } from '../utils/draftStorage'
 
 // Full implement name → selector short code
@@ -524,7 +524,11 @@ function DbToggle({ value, onChange }) {
 // ─── Implement Selector ───────────────────────────────────────────────
 function ImplementSelector({ implement, singleArm, side, onChange, name }) {
   const canBeSA = implement === 'KB' || implement === 'DB'
-  const isKnownBarbell = BB_STRENGTH_MOVEMENTS.has(normalizeMovement(name ?? '').name)
+  const canonicalName = normalizeMovement(name ?? '').name
+  const isKnownBarbell = BB_STRENGTH_MOVEMENTS.has(canonicalName)
+  // "Over" movements (Box Jump Over, Lateral Burpee Over, etc.) name what's being
+  // cleared, not lifted — a rower is a real option there but never for a lifted implement.
+  const options = appendsImplementSuffix(canonicalName) ? ['BB', 'KB', 'DB', 'Plate', 'Rower'] : ['BB', 'KB', 'DB', 'Plate']
   const pill = (active) => ({
     backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
     color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
@@ -534,7 +538,7 @@ function ImplementSelector({ implement, singleArm, side, onChange, name }) {
   })
   return (
     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
-      {['BB', 'KB', 'DB', 'Plate'].map(imp => {
+      {options.map(imp => {
         const isActive = imp === 'BB'
           ? (implement === 'BB' || (implement == null && isKnownBarbell))
           : implement === imp
@@ -542,7 +546,7 @@ function ImplementSelector({ implement, singleArm, side, onChange, name }) {
           <button key={imp}
             onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
             style={pill(isActive)}
-          >{imp}</button>
+          >{imp === 'Rower' ? 'Row' : imp}</button>
         )
       })}
       {canBeSA && !singleArm && (

@@ -90,11 +90,18 @@ const ALIAS_MAP = {
   'BOX JUMP-OVER': { name: 'Box Jump Over' },
   'BOX JUMP OVER': { name: 'Box Jump Over' },
 
-  // ── Lateral Burpee Over (specific objects become the canonical variant) ───
-  'LATERAL BURPEE OVER BAR':   { name: 'Lateral Burpee Over Bar' },
-  'LATERAL BURPEE OVER ROWER': { name: 'Lateral Burpee Over Rower' },
-  'LAT. BURPEE OVER BAR':      { name: 'Lateral Burpee Over Bar' },
-  'LAT. BURPEE OVER ROWER':    { name: 'Lateral Burpee Over Rower' },
+  // ── Lateral Burpee Over (object → implement field, same pattern as Lateral Sprawl
+  // Jump Over above — the bare name normalizes as-is via the fallback path below) ───
+  'LATERAL BURPEE OVER BAR':       { name: 'Lateral Burpee Over', implement: 'Barbell' },
+  'LATERAL BURPEE OVER BARBELL':   { name: 'Lateral Burpee Over', implement: 'Barbell' },
+  'LAT. BURPEE OVER BAR':          { name: 'Lateral Burpee Over', implement: 'Barbell' },
+  'LATERAL BURPEE OVER ROWER':     { name: 'Lateral Burpee Over', implement: 'Rower' },
+  'LAT. BURPEE OVER ROWER':        { name: 'Lateral Burpee Over', implement: 'Rower' },
+  'LATERAL BURPEE OVER DB':        { name: 'Lateral Burpee Over', implement: 'Dumbbell' },
+  'LATERAL BURPEE OVER DUMBBELL':  { name: 'Lateral Burpee Over', implement: 'Dumbbell' },
+  'LATERAL BURPEE OVER PLATE':     { name: 'Lateral Burpee Over', implement: 'Plate' },
+  'LATERAL BURPEE OVER KB':        { name: 'Lateral Burpee Over', implement: 'Kettlebell' },
+  'LATERAL BURPEE OVER KETTLEBELL':{ name: 'Lateral Burpee Over', implement: 'Kettlebell' },
 
   // ── KB Swing / Russian KB Swing ───────────────────────────────────────────
   'KB SWING':         { name: 'KB Swing' },
@@ -379,6 +386,15 @@ export function normalizeMovement(rawName) {
   return { name: trimmed }
 }
 
+// Movements where the implement is really "what's being cleared" (a bar, a rower, a
+// plate…) rather than something lifted — displayed as a trailing suffix instead of a
+// leading prefix, and BB isn't silent like it is for a lifted implement (e.g. "Box Jump
+// Over BB" needs the BB spelled out, unlike "BB" being the assumed default for a squat).
+const APPENDS_IMPLEMENT_RE = /jump.?over|burpee over/i
+export function appendsImplementSuffix(name) {
+  return APPENDS_IMPLEMENT_RE.test(name ?? '')
+}
+
 // Session-detail display: "SA DB Overhead Lunge (R)", "DB RDL", "Deficit Deadlift"
 // Explicit move.implement (short code: 'BB'|'KB'|'DB'|'Plate') takes precedence over normalized.
 // Explicit move.singleArm / move.side take precedence over 'SA' modifier from alias map (old data).
@@ -403,9 +419,9 @@ export function toWorkoutDisplay(move, { abbreviate = true } = {}) {
 
   let display = abbreviate ? (SESSION_ABBREV[name] ?? name) : name
 
-  const isJumpOver = name.toLowerCase().includes('jump over') || name.toLowerCase().includes('jump-over')
+  const isJumpOver = appendsImplementSuffix(name)
 
-  // Implement — jump-over movements append the object; all others prepend (BB silent for non-jump-over)
+  // Implement — jump/burpee-over movements append the object; all others prepend (BB silent for non-jump-over)
   if (move.implement) {
     if (isJumpOver) {
       const suffix = { BB: 'BB', KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement]

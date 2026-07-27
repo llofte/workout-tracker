@@ -1,5 +1,20 @@
 # Workout Tracker — Claude Code Spec
 
+## "Lateral Burpee Over" wasn't showing its object — RESOLVED (v213 / bb-wod-v188)
+
+**User request:** "Lateral Burpee Over" should let you choose what's being jumped over (BB, Plate, DB, Row, etc.) and display it as a suffix — "Lateral Burpee Over BB", not bare "Lateral Burpee Over". Prompted by the real 7/27 session, which was silently dropping this.
+
+**This mechanism already existed** — `toWorkoutDisplay()` in `movements.js` already has an implement-as-suffix path (BB not silent, unlike the normal lifted-implement prefix path) for movements like "Box Jump Over" and "Lateral Sprawl Jump Over" — the gate was `name.toLowerCase().includes('jump over') || includes('jump-over')`, which "Lateral Burpee Over" doesn't match (no "jump" in it). Investigated via the real 7/27 session's stored data directly (Supabase `metcon_block.segments[0].movements[1]`): `implement: "BB"` was already correctly stored (photo-parse had already extracted it fine) — the implement was being captured correctly and then silently swallowed at display time because the suffix path never triggered for this movement.
+
+**Fix:**
+- Extracted the gate into an exported `appendsImplementSuffix(name)` in `movements.js` (regex `/jump.?over|burpee over/i`), so "burpee over" now also qualifies. `toWorkoutDisplay()` calls it instead of the inline substring check.
+- `ImplementSelector` (`LogScreen.jsx`) now checks the same helper and adds a 5th pill, **"Row"** (`implement: 'Rower'`, matching the existing short-code convention — `Rower` maps to itself, unlike BB/DB/KB), only for movements where the suffix path applies. All other movements keep the original 4-pill BB/KB/DB/Plate layout — "Row" as an obstacle only makes sense for something you jump/burpee over, not something you lift.
+- `ALIAS_MAP`: replaced the old `'LATERAL BURPEE OVER BAR': { name: 'Lateral Burpee Over Bar' }`-style entries (which baked the object directly into the canonical *name* string — a dead end, since a baked-in name can't be re-split into a selectable implement later) with the same `{ name: 'Lateral Burpee Over', implement: 'Barbell' }` pattern "Lateral Sprawl Jump Over" already used, covering Bar/Barbell, Rower, DB/Dumbbell, Plate, KB/Kettlebell. The bare, object-less "Lateral Burpee Over" needed no new entry — `normalizeMovement`'s fallback already returns it as-is with no implement, which is exactly the right starting state for manual selection via the new "Row" pill (or the existing BB/KB/DB/Plate ones).
+
+**Verified live** on the real 7/27 session: confirmed via direct Supabase read that `implement: "BB"` was already stored, then confirmed the fix makes both the session-detail page and the Home card correctly show "Lateral Burpee Over BB" (previously bare "Lateral Burpee Over" on both). Re-checked "Sprawl Jump to Plate" (7/22 session — doesn't match the suffix regex, unrelated movement) for regressions — unaffected.
+
+---
+
 ## In-progress log/edit sessions now survive app restarts — RESOLVED (v212 / bb-wod-v187)
 
 **User-reported data loss:** started logging a workout, forgot to hit "Log Workout," and came back a day later to find the whole in-progress session gone. Root cause: `logging`/`editingSession`/`logMinimized` in `App.jsx` were plain React state — purely in-memory. Minimizing (the existing mini-player pattern) kept `LogScreen` mounted and preserved state *within the same page load*, but a killed tab, an iOS-purged backgrounded PWA, or just closing the app lost everything with no recovery path.
