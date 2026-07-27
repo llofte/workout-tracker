@@ -90,7 +90,8 @@ function deriveSessionParts(session) {
     else if (format === 'OTM') {
       const iv = segments?.[0]?.interval || 1
       const emomLabel = iv === 1 ? 'EMOM' : `E${iv}MOM`
-      if (rounds) label = `${rounds * iv} min ${emomLabel}`
+      const r = rounds || segments?.[0]?.rounds
+      if (r) label = `${r * iv * occupiedMinuteSlotCount(segments?.[0]?.movements)} min ${emomLabel}`
       else if (duration) label = `${duration} min ${emomLabel}`
     }
     else if (format === 'For Time') {
@@ -843,7 +844,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v213</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v214</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

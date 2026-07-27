@@ -1,5 +1,29 @@
 # Workout Tracker — Claude Code Spec
 
+## Metcon naming: duration up top, prescription detail in the card — RESOLVED (v214 / bb-wod-v189)
+
+**User rule, stated explicitly (worth preserving verbatim as the spec for this):**
+- The top-level title — Home list card, and the page-top title in Session Detail — should stay duration-first: "12 min E2MOM". Quick glance, no context needed, tells you how long it was. **Not to be changed.**
+- The gray subtitle *inside* the Metcon/Accessory card body should instead show how it was actually prescribed: "E2MOM · 6 Rounds" — format first, then round count.
+- **Exception, already correct, do not touch:** when a metcon has multiple segments separated by rest (e.g. 7/22 — two EMOM blocks with a 2-min rest between), the top title AND card subtitle both stay as the aggregate duration ("12 min EMOM ×2"), and each *segment* gets its own "EMOM · 4 Rounds" mini-header (this was already built for the "0 min EMOM" fix above, via `segmentLabel()`). Only a single homogeneous OTM structure (one segment, no rest breakdown) gets the new format-first card subtitle instead of repeating the duration.
+
+**Fix:** new `metconStructureSubtitle(block)` in `SessionDetailScreen.jsx`, used only for the Metcon/Accessory card's own `subtitle` (not `deriveSessionParts()`'s top title, which keeps calling `metconSubtitle()` exactly as before). For `format !== 'OTM'` or genuinely multi-segment blocks, it just delegates to the existing `metconSubtitle()` unchanged. For a single-segment (or legacy flat-`movements`) OTM block, it computes `rounds` (falling back to duration ÷ (interval × occupied slots) when rounds isn't populated directly — same derivation used elsewhere in this file) and returns `"{EMOM label} · {rounds} Round(s)"`.
+
+**A real, independent bug found while implementing this (not just the naming-convention change):** the user flagged 6/17's *top-level* title as itself wrong ("needs to be changed to 20 min EMOM") — investigating turned up a genuine bug, not a convention question: `HomeScreen.jsx`'s own copy of `deriveSessionParts()` has a single-segment OTM branch (`else if (format === 'OTM') { if (rounds) label = `${rounds * iv} min ${emomLabel}` ... }`) that **never got the `occupiedMinuteSlotCount` multiplication** fix applied to `SessionDetailScreen.jsx`'s equivalent logic back in the `minuteSpan` feature work — a sixth instance of the "same calculation duplicated across files, only some copies fixed" pattern this file keeps warning about. Confirmed live: 6/17 (no stored `customTitle`, so fully dynamic) showed "5 min EMOM" on the Home list while the *same session's* detail-page top title correctly showed "20 min EMOM" — proof the bug was isolated to this one copy. Fixed by porting the exact same `r * iv * occupiedMinuteSlotCount(...)` logic into `HomeScreen.jsx`'s branch.
+
+**Audited every other real OTM session for both issues** (queried Supabase directly for every session with `format === 'OTM'` on either block, not just visual inspection):
+- **7/27** — card subtitle → "E2MOM · 6 Rounds" (top title already correct, has `customTitle: "12 min E2MOM"`).
+- **7/22** — multi-segment-with-rest, confirmed **unchanged**: "12 min EMOM ×2" + per-segment "EMOM · 4 Rounds" ×2.
+- **6/29** — card subtitle → "E4MOM · 5 Rounds" (rounds derived from `duration: 20, interval: 4, slots: 1`; not explicitly requested by the user but caught by the audit — top title unaffected, stays customTitle `"Row + C&J"`).
+- **6/24** — card subtitle → "E5MOM · 4 Rounds" (also audit-caught; top title unaffected, stays customTitle `"20 min E5MOM"`).
+- **6/17** — top title fixed to "20 min EMOM" (see bug above) + card subtitle → "EMOM · 5 Rounds".
+- **6/12** — card subtitle → "EMOM · 6 Rounds" (top title already correct via stored `customTitle: "12 min EMOM"`).
+- **6/03** — multi-segment-with-rest, confirmed **unchanged**: "10 min EMOM ×2" + per-segment "EMOM · 5 Rounds" ×2.
+
+All eight verified live against the running dev server (production Supabase), including a fresh screenshot of 6/17 showing both the corrected top title and the new card subtitle simultaneously.
+
+---
+
 ## "Lateral Burpee Over" wasn't showing its object — RESOLVED (v213 / bb-wod-v188)
 
 **User request:** "Lateral Burpee Over" should let you choose what's being jumped over (BB, Plate, DB, Row, etc.) and display it as a suffix — "Lateral Burpee Over BB", not bare "Lateral Burpee Over". Prompted by the real 7/27 session, which was silently dropping this.

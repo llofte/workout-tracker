@@ -642,6 +642,27 @@ function StrengthBlock({ block, allMovements }) {
   )
 }
 
+// Detail-view subtitle shown inside the Metcon/Accessory card — distinct from the
+// duration-focused top-level title ("12 min E2MOM"), this answers "how was it actually
+// prescribed" ("E2MOM · 6 Rounds"). A single "X min" duration doesn't tell you the
+// round count, and vice versa — the user wants both visible, just in different places.
+// Multi-segment blocks separated by rest already convey this per-segment via
+// segmentLabel() below (e.g. two "EMOM · 4 Rounds" blocks) — that's left untouched, so
+// this only kicks in for a single homogeneous OTM structure.
+function metconStructureSubtitle(block) {
+  if (block.format !== 'OTM' || (block.segments?.length ?? 0) > 1) return metconSubtitle(block)
+  const seg0 = block.segments?.[0]
+  const iv = seg0?.interval || 1
+  const label = iv === 1 ? 'EMOM' : `E${iv}MOM`
+  let r = block.rounds || seg0?.rounds
+  if (!r) {
+    const d = block.duration || seg0?.duration
+    const slots = occupiedMinuteSlotCount(seg0?.movements ?? block.movements)
+    if (d) r = Math.round(d / (iv * slots)) || null
+  }
+  return r ? `${label} · ${r} Round${r === 1 ? '' : 's'}` : label
+}
+
 function segmentLabel(seg, block) {
   if (block.format === 'OTM') {
     const iv = seg.interval || 1
@@ -661,7 +682,7 @@ function MetconBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
   const vol = calcMetconVol(block)
-  const subtitle = metconSubtitle(block)
+  const subtitle = metconStructureSubtitle(block)
   const displayScore = block.score ? formatScore(block.score) : null
 
   const segments = block.segments?.length
@@ -750,7 +771,7 @@ function AccessoryBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
   const vol = calcAccessoryVol(block)
-  const rawSubtitle = metconSubtitle(block)
+  const rawSubtitle = metconStructureSubtitle(block)
   const subtitle = rawSubtitle === 'For Time' ? 'Rounds' : rawSubtitle.replace(' For Time', '')
   const displayScore = block.score ? formatScore(block.score) : null
 
