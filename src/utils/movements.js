@@ -196,31 +196,16 @@ const ALIAS_MAP = {
   'AIR SQS':    { name: 'Air Squat' },
   'AIR SQUATS': { name: 'Air Squat' },
 
-  // ── Push-Up variants ──────────────────────────────────────────────────────
-  'PUSH-UPS':               { name: 'Push-Up' },
-  'PUSH UPS':               { name: 'Push-Up' },
-  'PLATE ELEVATED PUSH-UP': { name: 'Push-Up', modifier: 'Plate Elevated' },
-  'PLATE ELEVATED P.U.':    { name: 'Push-Up', modifier: 'Plate Elevated' },
-  'DEFICIT PUSH-UP':        { name: 'Push-Up', modifier: 'Deficit' },
-  'DEFICIT PUSH-UPS':       { name: 'Push-Up', modifier: 'Deficit' },
-  'DB DEF. PUSH-UP':        { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
-  'DB DEFICIT PUSH-UP':     { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
-  'DB DEFICIT PUSH-UPS':    { name: 'Push-Up', implement: 'Dumbbell', modifier: 'Deficit' },
-
-  // ── Pull-Up / Chin-Up variants ────────────────────────────────────────────
+  // ── Push-Up / Pull-Up / Chin-Up base forms (modifier variants are handled
+  // generically at the top of normalizeMovement() — see PLAIN_PUSH_PULL_RE — since the
+  // user never does weighted/deficit/elevated/strict/etc. variations of these) ────────
+  'PUSH-UPS':         { name: 'Push-Up' },
+  'PUSH UPS':         { name: 'Push-Up' },
   'PULL-UPS':         { name: 'Pull-Up' },
   'PULL UPS':         { name: 'Pull-Up' },
-  'STRICT PULL-UP':   { name: 'Pull-Up', modifier: 'Strict' },
-  'STRICT PULL-UPS':  { name: 'Pull-Up', modifier: 'Strict' },
-  'STRICT PULL UP':   { name: 'Pull-Up', modifier: 'Strict' },
-  'STRICT PULL UPS':  { name: 'Pull-Up', modifier: 'Strict' },
   'CHIN-UPS':         { name: 'Chin-Up' },
   'CHIN UPS':         { name: 'Chin-Up' },
   'CHIN UP':          { name: 'Chin-Up' },
-  'STRICT CHIN-UPS':  { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN-UP':   { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN UPS':  { name: 'Chin-Up', modifier: 'Strict' },
-  'STRICT CHIN UP':   { name: 'Chin-Up', modifier: 'Strict' },
 
   // ── HSPU / MU abbreviations ───────────────────────────────────────────────
   'HSPU': { name: 'Push Press' },     // always sub push press
@@ -367,12 +352,30 @@ const LIBRARY_ABBREV = {
   Rower:      'Rower',
 }
 
+// Push-Up/Pull-Up/Chin-Up: the user never does modified variations (weighted, deficit,
+// plate-elevated, strict, banded, DB/ring, etc.) — any such modifier on the whiteboard
+// is intentionally discarded, always logged as the plain bodyweight movement. Checked
+// before the alias/implement lookups below so it overrides them uniformly, including
+// implement-prefixed forms like "DB Deficit Push-Up". Excludes Chest-to-Bar Pull-Up, a
+// genuinely distinct movement that happens to end the same way.
+const PLAIN_PUSH_PULL_RE = /^(.+\s)?(push[\s-]?ups?|pull[\s-]?ups?|chin[\s-]?ups?)$/i
+
 // Returns {name, implement?, modifier?} for a raw movement name string.
 // Falls back to stripping known implement prefixes, then returns the name as-is.
 export function normalizeMovement(rawName) {
   if (!rawName) return { name: '' }
   const trimmed = rawName.trim()
   const upper = trimmed.toUpperCase()
+
+  if (!/chest.?to.?bar/i.test(trimmed)) {
+    const plainMatch = trimmed.match(PLAIN_PUSH_PULL_RE)
+    if (plainMatch) {
+      const core = plainMatch[2].toLowerCase()
+      if (core.startsWith('push')) return { name: 'Push-Up' }
+      if (core.startsWith('pull')) return { name: 'Pull-Up' }
+      return { name: 'Chin-Up' }
+    }
+  }
 
   const alias = ALIAS_MAP[upper]
   if (alias) return { ...alias }

@@ -1,5 +1,38 @@
 # Workout Tracker — Claude Code Spec
 
+## Score type selector — disambiguates what a bare score number means — RESOLVED
+
+**Root issue, surfaced while discussing the "For Time"→"Rounds" rename:** a bare score like `"25"` is ambiguous — could mean 25 calories, 25 rounds, 25 reps. `formatScore()` guessed purely from the string's shape (comma-list → max reps, `MM:SS` → time, `N`/`N+M` → AMRAP rounds+reps), with zero awareness of what the workout was actually scored by. Typing the unit explicitly (`"25 cal"`) already worked around this (raw passthrough), but a bare number the user would naturally type gets silently misinterpreted — e.g. a calorie score of `"25"` displayed as **"25 rounds"**, not a cosmetic issue but a real correctness bug.
+
+**User's ask:** a pill selector like the existing `ImplementSelector` (BB/KB/DB/Plate) — Claude auto-selects based on the whiteboard, but the pick stays visible and overridable.
+
+**Fix — new `scoreType` field on `metconBlock`** (`'time' | 'cal' | 'rounds' | 'reps' | 'other' | null`), plumbed through:
+- `LogScreen.jsx` — new `ScoreTypeSelector` component (same pill styling as `ImplementSelector`), rendered under the Score input for every format **except AMRAP** (which already has its own unambiguous rounds+reps convention and doesn't need this). New `metconScoreType` state, defaulting to `'time'` for legacy Ladder sessions with no stored `scoreType` (Ladder is virtually always time-scored), otherwise `null` until set. The old per-format label hack (`"Time (MM:SS)"` for Ladder) was dropped now that the pill row conveys this more precisely — label is just "Score" for everything except AMRAP's "Score (rounds + reps)".
+- `buildPhotoPrompt()` — new `"metconScoreType"` field in the JSON schema, with a rule telling Claude to infer it from how the board states the workout is scored (e.g. "Score is total cal" → `"cal"`), leaving `""` when the board doesn't say. Not added to `buildGeneratePrompt()` (the natural-language flow) — out of scope, no real whiteboard to infer from there.
+- `handlePhotoSelect()` — consumes `result.metconScoreType` into state, same pattern as `metconFormat`.
+- `buildSessionData()` — persists `scoreType` alongside `score` (`null` when format is AMRAP, since the field is meaningless there).
+- `SessionDetailScreen.jsx` — `formatScore(score, scoreType)` now takes the explicit type and branches on it directly (`cal` → `"N cal"`, `reps` → `"N reps"`, `time`/`rounds` reuse the existing MM:SS/AMRAP-style parsing) — **falls back to the original shape-guessing heuristic when `scoreType` is absent**, so every session logged before this feature (no stored `scoreType`) keeps displaying exactly as before. Both `MetconBlock` and `AccessoryBlock` pass `block.scoreType` through (`AccessoryBlock` doesn't have a score input yet, so this is inert there for now — no regression, no new capability either).
+
+**Verified live** end-to-end with a temporary test session (created and deleted after): selected "Rounds" format, tapped the "Cal" pill, typed bare `"142"`, saved — confirmed `scoreType: "cal"` persisted in Supabase and the session detail page displayed **"142 cal"** (not "142 rounds"). Re-checked a real legacy AMRAP session (7/21, score `"4+150"`, no `scoreType` key at all) for regressions — still correctly displays "4 rounds + 150 reps" via the fallback path.
+
+---
+
+## Push-Up/Pull-Up/Chin-Up: modifiers always discarded — RESOLVED
+
+**User request:** "for push ups and pull ups, make it a rule than any modifier on the board like weighted or deficit or anything just ignores it and logs as normal pull up or pushup. I'm not good enough to do these variations and never do them." Prompted by the real 7/29 disposable session's "Def Plate Push Up" collapsing to a bare, un-implemented "Push-Up" — confirmed the underlying gap was real, not just a hypothetical.
+
+**Fix — `movements.js`:** new `PLAIN_PUSH_PULL_RE` regex checked at the very top of `normalizeMovement()`, before the `ALIAS_MAP`/`IMPLEMENT_PREFIXES` lookups — so it overrides everything uniformly, including implement-prefixed forms like "DB Deficit Push-Up" that would otherwise hit `IMPLEMENT_PREFIXES` first and keep the implement. Matches any raw name ending in "push-up(s)"/"pull-up(s)"/"chin-up(s)" (hyphen, space, or nothing between the two words — whiteboards rarely use the hyphen) with **any** leading words, and collapses straight to the bare `{ name: 'Push-Up' }` / `{ name: 'Pull-Up' }` / `{ name: 'Chin-Up' }` — no modifier, no implement, regardless of what the leading words said. Explicitly excludes "Chest-to-Bar Pull-Up" (and its `C2B`/`CTB` aliases), since that's a genuinely distinct movement that happens to end the same way, not a modifier on a plain pull-up.
+
+Removed the now-superseded `ALIAS_MAP` entries that used to hand-carry modifiers for these three movements (Plate Elevated Push-Up, Deficit Push-Up, DB Deficit Push-Up, Strict Pull-Up, Strict Chin-Up, etc.) — they're unreachable now (the new check intercepts first) and would have been misleading dead code to leave in place. Chin-Up and Pull-Up remain distinct from each other (different grip, not merged) — only the *modifier* is discarded, not the base movement identity.
+
+**Verified** via direct `normalizeMovement()` calls against the running dev server: "Push Up", "Weighted Push Up", "Def Plate Push Up", "DB Deficit Push Up", "Ring Push Up" all → `Push-Up`; "Pull Up", "Strict Pull Up", "Banded Pull Up" all → `Pull-Up`; "Chin Up", "Strict Chin Up" → `Chin-Up` (correctly not merged into Pull-Up); "Chest-to-Bar Pull-Up", "C2B", "CTB" → correctly preserved distinct, unaffected. Caught and fixed a regex gap mid-verification: the first version only allowed an optional *hyphen* between the two words, missing the space-separated form ("Push Up") that's actually how whiteboards write it — widened to `[\s-]?`.
+
+---
+
+## Backlog — non-urgent enhancements
+
+- **Distinguish genuinely time-scored "For Time" workouts from generic "Rounds" ones.** The "For Time" → "Rounds" display rename (see below) currently applies uniformly to every session with `format === 'For Time'`, regardless of what the score actually represents. But 7/28 is a real counterexample: it's genuinely scored by elapsed time ("you can tell because the score is a time"), so calling it "3 Rounds" loses real information — "3 Rounds For Time" was correct for that one. The rename was still the right call for cases like 7/29 (score = calories, not time), so the real fix is teaching the title logic to tell these apart (e.g. by inspecting whether `score` matches a time pattern) rather than a blanket rename. Deliberately not done now — flagged by the user as "revisit later," not urgent.
+
 ## Metcon naming: duration up top, prescription detail in the card — RESOLVED (v214 / bb-wod-v189)
 
 **User rule, stated explicitly (worth preserving verbatim as the spec for this):**

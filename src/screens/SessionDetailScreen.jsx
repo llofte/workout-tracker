@@ -95,14 +95,14 @@ function metconSubtitle(block) {
       const segRounds = segments.map(s => s.rounds).filter(r => r != null && r > 0)
       if (segRounds.length > 0) {
         const allSame = segRounds.every(r => r === segRounds[0])
-        return allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : segRounds.map(r => `${r} RFT`).join(' + ')
+        return allSame ? `${segRounds[0]} Rounds ×${segRounds.length}` : segRounds.map(r => `${r} Rounds`).join(' + ')
       }
-      return 'For Time'
+      return 'Rounds'
     }
     const r = rounds || seg0?.rounds
     if (Number(r) === 1) return 'Chipper'
-    if (r) return `${r} Rounds For Time`
-    return 'For Time'
+    if (r) return `${r} Rounds`
+    return 'Rounds'
   }
   if (format === 'Tabata') {
     const seg = segments?.[0]
@@ -306,24 +306,43 @@ function calcAccessoryVol(block) {
   return calcMetconVol(block)
 }
 
-function formatScore(score) {
-  if (!score) return null
-  const s = String(score).trim()
-  const maxList = parseCommaRepsList(s)
-  if (maxList) return `${maxList.total} ${maxList.total === 1 ? 'rep' : 'reps'} | ${maxList.parts.join(', ')}`
+function formatTimeScore(s) {
   const timeMatch = s.match(/^(\d+):(\d{2})$/)
-  if (timeMatch) {
-    const min = parseInt(timeMatch[1], 10)
-    const sec = parseInt(timeMatch[2], 10)
-    if (min && sec) return `${min} min ${sec} sec`
-    if (min) return `${min} min`
-    return `${sec} sec`
-  }
+  if (!timeMatch) return s
+  const min = parseInt(timeMatch[1], 10)
+  const sec = parseInt(timeMatch[2], 10)
+  if (min && sec) return `${min} min ${sec} sec`
+  if (min) return `${min} min`
+  return `${sec} sec`
+}
+
+function formatRoundsScore(s) {
   const amrap = parseAmrapScore(s)
   if (!amrap) return s
   const roundsPart = `${amrap.completedRounds} ${amrap.completedRounds === 1 ? 'round' : 'rounds'}`
   if (!amrap.extraReps) return roundsPart
   return `${roundsPart} + ${amrap.extraReps} ${amrap.extraReps === 1 ? 'rep' : 'reps'}`
+}
+
+// scoreType is an explicit user-selected (or Claude-inferred) marker — 'time' | 'cal' |
+// 'rounds' | 'reps' | 'other' — that disambiguates what a bare score number actually
+// means (e.g. "25" as calories vs. rounds completed, which look identical as strings).
+// Older sessions logged before this field existed have no scoreType — for those, fall
+// back to the original shape-guessing heuristic (comma-list, then time-shape, then
+// rounds-shape) rather than showing nothing.
+function formatScore(score, scoreType) {
+  if (!score) return null
+  const s = String(score).trim()
+  const maxList = parseCommaRepsList(s)
+  if (maxList) return `${maxList.total} ${maxList.total === 1 ? 'rep' : 'reps'} | ${maxList.parts.join(', ')}`
+  if (scoreType === 'cal') return `${s} cal`
+  if (scoreType === 'reps') return `${s} ${s === '1' ? 'rep' : 'reps'}`
+  if (scoreType === 'time') return formatTimeScore(s)
+  if (scoreType === 'rounds') return formatRoundsScore(s)
+  if (scoreType === 'other') return s
+  const timeGuess = formatTimeScore(s)
+  if (timeGuess !== s) return timeGuess
+  return formatRoundsScore(s)
 }
 
 function SummaryBox({ score, vol }) {
@@ -683,7 +702,7 @@ function MetconBlock({ block }) {
   const isOTM = block.format === 'OTM'
   const vol = calcMetconVol(block)
   const subtitle = metconStructureSubtitle(block)
-  const displayScore = block.score ? formatScore(block.score) : null
+  const displayScore = block.score ? formatScore(block.score, block.scoreType) : null
 
   const segments = block.segments?.length
     ? block.segments
@@ -771,9 +790,11 @@ function AccessoryBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
   const vol = calcAccessoryVol(block)
-  const rawSubtitle = metconStructureSubtitle(block)
-  const subtitle = rawSubtitle === 'For Time' ? 'Rounds' : rawSubtitle.replace(' For Time', '')
-  const displayScore = block.score ? formatScore(block.score) : null
+  // metconStructureSubtitle()/metconSubtitle() never emit "For Time" text anymore (see
+  // the Rounds rename) — this used to strip that phrase out for the Accessory card
+  // specifically, now a no-op, left removed rather than kept as dead pattern-matching.
+  const subtitle = metconStructureSubtitle(block)
+  const displayScore = block.score ? formatScore(block.score, block.scoreType) : null
 
   const segments = block.segments?.length
     ? block.segments

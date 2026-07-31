@@ -521,6 +521,36 @@ function DbToggle({ value, onChange }) {
   )
 }
 
+// ─── Score Type Selector ────────────────────────────────────────────────
+// Disambiguates what a bare score number means — "25" reads identically whether it's
+// calories, rounds, or reps. Not shown for AMRAP, which already has its own unambiguous
+// rounds+reps convention.
+const SCORE_TYPES = [
+  { key: 'time', label: 'Time' },
+  { key: 'cal', label: 'Cal' },
+  { key: 'rounds', label: 'Rounds' },
+  { key: 'reps', label: 'Reps' },
+  { key: 'other', label: 'Other' },
+]
+function ScoreTypeSelector({ value, onChange }) {
+  const pill = (active) => ({
+    backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
+    color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
+    border: 'none', borderRadius: 8, padding: '5px 11px',
+    fontSize: 12, fontWeight: active ? 700 : 500, letterSpacing: 0.2,
+    fontFamily: 'inherit', cursor: 'pointer',
+  })
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+      {SCORE_TYPES.map(({ key, label }) => (
+        <button key={key} onClick={() => onChange(value === key ? null : key)} style={pill(value === key)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // ─── Implement Selector ───────────────────────────────────────────────
 function ImplementSelector({ implement, singleArm, side, onChange, name }) {
   const canBeSA = implement === 'KB' || implement === 'DB'
@@ -782,6 +812,14 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     return [newMetconSegment(false)]
   })
   const [metconScore, setMetconScore] = useState(s?.metconBlock?.score ?? '')
+  // Disambiguates what a bare score number means ('time' | 'cal' | 'rounds' | 'reps' |
+  // 'other') — Ladder workouts default to 'time' since that's virtually always how
+  // they're scored; every other format starts unset until Claude infers it from the
+  // whiteboard or the user picks a pill manually. Not used for AMRAP (always rounds+reps).
+  const [metconScoreType, setMetconScoreType] = useState(() => {
+    if (s?.metconBlock?.scoreType) return s.metconBlock.scoreType
+    return s?.metconBlock?.format === 'Ladder' ? 'time' : null
+  })
   const [hasBuyIn, setHasBuyIn] = useState(!!(s?.metconBlock?.buyIn?.length))
   const [buyInMoves, setBuyInMoves] = useState(() =>
     s?.metconBlock?.buyIn?.length ? s.metconBlock.buyIn.map(restoreMetconMove) : [newMetconMove()]
@@ -840,8 +878,8 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
     }
     if (format === 'For Time') {
       if (Number(rounds) === 1) return 'Chipper'
-      if (rounds) return `${rounds} Rounds For Time`
-      return 'For Time'
+      if (rounds) return `${rounds} Rounds`
+      return 'Rounds'
     }
     return format || ''
   })
@@ -950,34 +988,45 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
         setHasStrength(false)
       }
 
+      const processMetconMove = m => {
+        if (!m || m.isRest) return { ...newMetconMove(), ...m }
+        const identity = normalizeMoveIdentity(m)
+        const rawReps = pickScaledReps(m.reps)
+        const parsed = parseCardioReps(rawReps)
+        return { ...newMetconMove(), ...m, ...identity, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
+      }
+
       if (result.hasMetcon === false) {
         setHasMetcon(false)
       } else {
         setHasMetcon(true)
         if (result.metconFormat) setMetconFormat(result.metconFormat)
+        if (result.metconScoreType) setMetconScoreType(result.metconScoreType)
         if (result.metconSegments?.length) {
           setMetconSegments(result.metconSegments.map(seg => ({
             ...seg,
-            moves: (seg.moves ?? []).map(m => {
-              if (!m || m.isRest) return { ...newMetconMove(), ...m }
-              const identity = normalizeMoveIdentity(m)
-              const rawReps = pickScaledReps(m.reps)
-              const parsed = parseCardioReps(rawReps)
-              return { ...newMetconMove(), ...m, ...identity, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
-            }),
+            moves: (seg.moves ?? []).map(processMetconMove),
           })))
-        }
-        const processMetconMove = m => {
-          if (!m || m.isRest) return { ...newMetconMove(), ...m }
-          const identity = normalizeMoveIdentity(m)
-          const rawReps = pickScaledReps(m.reps)
-          const parsed = parseCardioReps(rawReps)
-          return { ...newMetconMove(), ...m, ...identity, reps: parsed.reps, cardioUnit: m.cardioUnit ?? parsed.cardioUnit, weight: clearSlashWeight(m.weight) }
         }
         setHasBuyIn(!!result.hasBuyIn)
         if (result.hasBuyIn && result.buyInMoves?.length) setBuyInMoves(result.buyInMoves.map(processMetconMove))
         setHasBuyOut(!!result.hasBuyOut)
         if (result.hasBuyOut && result.buyOutMoves?.length) setBuyOutMoves(result.buyOutMoves.map(processMetconMove))
+      }
+
+      // A labeled (or unlabeled-but-not-first) third section — Core, Accessory, Gymnastics,
+      // etc. — is independent of whether a Metcon exists, so this isn't nested in the
+      // hasMetcon branch above. The board's own label becomes the display title verbatim.
+      setHasAccessory(!!result.hasAccessory)
+      if (result.hasAccessory) {
+        if (result.accessoryFormat) setAccessoryFormat(result.accessoryFormat)
+        setTitleAccessory(result.accessoryLabel?.trim() || 'Accessory')
+        if (result.accessorySegments?.length) {
+          setAccessorySegments(result.accessorySegments.map(seg => ({
+            ...seg,
+            moves: (seg.moves ?? []).map(processMetconMove),
+          })))
+        }
       }
 
       setStep(2)
@@ -1228,6 +1277,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
   },
   "hasMetcon": true,
   "metconFormat": "AMRAP",
+  "metconScoreType": "",
   "metconSegments": [
     {
       "restBeforeMin": "", "restBeforeSec": "",
@@ -1239,8 +1289,29 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
     }
   ],
   "hasBuyIn": false, "buyInMoves": [],
-  "hasBuyOut": false, "buyOutMoves": []
+  "hasBuyOut": false, "buyOutMoves": [],
+  "hasAccessory": false,
+  "accessoryLabel": "Accessory",
+  "accessoryFormat": "OTM",
+  "accessorySegments": [
+    {
+      "restBeforeMin": "", "restBeforeSec": "",
+      "duration": "8", "rounds": "", "interval": "1",
+      "tabataWork": "20", "tabataRest": "10",
+      "moves": [
+        { "name": "Overhead Hold", "reps": "30", "weight": "", "minuteAssignment": "1", "minuteSpan": "", "isRest": false, "restMin": "", "restSec": "", "notes": "" }
+      ]
+    }
+  ]
 }
+
+Section classification — the board may have 2 or 3 distinct sections. Route each one:
+- The FIRST section: Strength, whether or not it's explicitly labeled "Strength".
+- A section explicitly labeled "Metcon" (or "WOD"): the Metcon block.
+- Any OTHER section — unlabeled and not first, OR labeled with anything besides "Strength"/"Metcon" (e.g. "Core", "Accessory", "Gymnastics", "Extra Credit") — is the Accessory block. Set "hasAccessory": true and "accessoryLabel" to the board's own label verbatim (title case), or "Accessory" if that section had no label of its own.
+- There is only one Accessory slot. If the board somehow has more than one such extra section, use only the first and ignore the rest.
+- Accessory sections follow the exact same rules as Metcon below (weight, bodyweight exceptions, OTM patterns A/B/C, minuteAssignment, minuteSpan) — just fill in "accessoryFormat"/"accessorySegments" instead of "metconFormat"/"metconSegments".
+- When a movement offers a choice of implement ("KB or DB Overhead Hold"), do not guess one — write the plain movement name with no implement prefix ("Overhead Hold") and let the athlete select which one she actually used after logging.
 
 Strength rules:
 - If no strength, set "strengthBlock" to null
@@ -1265,6 +1336,7 @@ Metcon rules:
 - Multi-segment: add extra segments with restBeforeMin/restBeforeSec set
 - Buy-in/buy-out: movements done once before/after the main piece
 - Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed
+- "metconScoreType" — a bare score number is ambiguous ("25" could mean calories, rounds, or reps), so infer how the board says THIS workout is scored (independent of metconFormat): "time" (a clock/elapsed-time score, e.g. "for time"), "cal" (total calories, e.g. "score is total cal"), "rounds" (a count of rounds completed, optionally "+reps"), "reps" (total reps completed), or "" if the board doesn't state a scoring method or it's genuinely unclear. Not needed for AMRAP — that format always scores rounds+reps implicitly.
 
 OTM/EMOM metcon — THREE distinct patterns, handle carefully:
 PATTERN A — Rotating OTM (each minute is a different movement):
@@ -1402,7 +1474,7 @@ Rules:
     if (st || mt || at) {
       const titleParts = []
       if (hasStrength) titleParts.push(st || strengthMoves.map(m => m.name.trim()).filter(Boolean).slice(0, 2).join(' + ') || 'Strength')
-      if (hasMetcon) titleParts.push(mt || metconFormat || 'Metcon')
+      if (hasMetcon) titleParts.push(mt || (metconFormat === 'For Time' ? 'Rounds' : metconFormat) || 'Metcon')
       if (hasAccessory) titleParts.push(at || 'Accessory')
       return titleParts.join(' / ') || 'BB WOD'
     }
@@ -1416,7 +1488,7 @@ Rules:
 
     if (hasMetcon) {
       const seg = metconSegments[0]
-      let label = metconFormat
+      let label = metconFormat === 'For Time' ? 'Rounds' : metconFormat
       if (metconSegments.length > 1) {
         if (metconFormat === 'OTM') {
           const iv = Number(seg?.interval) || 1
@@ -1442,9 +1514,9 @@ Rules:
           const segRounds = metconSegments.map(s => Number(s.rounds)).filter(r => r > 0)
           if (segRounds.length > 0) {
             const allSame = segRounds.every(r => r === segRounds[0])
-            label = allSame ? `${segRounds[0]} Rounds For Time ×${segRounds.length}` : segRounds.map(r => `${r} RFT`).join(' + ')
+            label = allSame ? `${segRounds[0]} Rounds ×${segRounds.length}` : segRounds.map(r => `${r} Rounds`).join(' + ')
           } else {
-            label = metconFormat
+            label = metconFormat === 'For Time' ? 'Rounds' : metconFormat
           }
         } else {
           const totalWorkMin = metconSegments.reduce((sum, s) => sum + (Number(s.duration) || 0), 0)
@@ -1466,7 +1538,7 @@ Rules:
         if (r) label = `${r * iv * occupiedMinuteSlotCount(seg?.moves)} min ${emomLabel}`
         else if (seg?.duration) label = `${seg.duration} min ${emomLabel}`
       } else if (metconFormat === 'For Time' && seg?.rounds) {
-        label = Number(seg.rounds) === 1 ? 'Chipper' : `${seg.rounds} Rounds For Time`
+        label = Number(seg.rounds) === 1 ? 'Chipper' : `${seg.rounds} Rounds`
       }
       parts.push(label)
     }
@@ -1513,6 +1585,7 @@ Rules:
           duration: metconFormat !== 'For Time' && metconFormat !== 'Ladder' && metconFormat !== 'Tabata' && firstSeg.duration !== '' ? Number(firstSeg.duration) : null,
           rounds: (metconFormat === 'For Time' || metconFormat === 'OTM' || metconFormat === 'Tabata') && firstSeg.rounds !== '' ? Number(firstSeg.rounds) : null,
           score: metconScore || null,
+          scoreType: metconFormat !== 'AMRAP' ? (metconScoreType || null) : null,
           buyIn: hasBuyIn ? buyInMoves.map(m => m.isRest ? {
             isRest: true,
             restSeconds: (m.restMin !== '' ? Number(m.restMin) * 60 : 0) + (m.restSec !== '' ? Number(m.restSec) : 0),
@@ -2023,7 +2096,7 @@ Rules:
             <div style={{ display: 'flex', gap: 6, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
               {FORMATS.map(fmt => (
                 <button key={fmt} onClick={() => setMetconFormat(fmt)} style={{ flexShrink: 0, backgroundColor: metconFormat === fmt ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)', color: metconFormat === fmt ? '#0ff7c5' : 'rgba(245,240,232,0.5)', border: 'none', borderRadius: 20, padding: '8px 14px', fontSize: 13, fontWeight: metconFormat === fmt ? 700 : 500, fontFamily: 'inherit', cursor: 'pointer' }}>
-                  {fmt}
+                  {fmt === 'For Time' ? 'Rounds' : fmt}
                 </button>
               ))}
             </div>
@@ -2269,13 +2342,16 @@ Rules:
             {/* Score — single field for the whole metcon */}
             <div style={{ marginTop: 16 }}>
               <p style={labelStyle}>
-                {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : (metconFormat === 'For Time' || metconFormat === 'Ladder') ? 'Time (MM:SS)' : 'Score'}
+                {metconFormat === 'AMRAP' ? 'Score (rounds + reps)' : 'Score'}
               </p>
               <input
                 className="log-hint"
                 placeholder="—"
                 value={metconScore} onChange={e => setMetconScore(e.target.value)} style={inputBase}
               />
+              {metconFormat !== 'AMRAP' && (
+                <ScoreTypeSelector value={metconScoreType} onChange={setMetconScoreType} />
+              )}
             </div>
 
             {/* Buy Out */}
