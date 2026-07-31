@@ -1332,6 +1332,7 @@ Metcon rules:
 - reps must be a string: "10", "21-15-9", "max", etc.
 - For AMRAP: duration in minutes in first segment "duration", set "rounds" to ""
 - For For Time: number of rounds in "rounds", set "duration" to ""
+- For Ladder: when the board shows ONE shared ascending/descending rep scheme applied across every movement in the round — e.g. "21-15-9", "10-9-8-7-6-5-4-3-2-1" — set metconFormat="Ladder". Put that exact comma-separated scheme (e.g. "10,9,8,7,6,5,4,3,2,1") in EVERY movement's "reps" field, not just the first one — it's the same shared rung sequence for each movement, not independently-equal per-movement reps.
 - For Tabata: set "rounds" (default "8"), tabataWork (sec), tabataRest (sec)
 - Multi-segment: add extra segments with restBeforeMin/restBeforeSec set
 - Buy-in/buy-out: movements done once before/after the main piece
@@ -2237,7 +2238,9 @@ Rules:
                       </div>
                     </SwipeToDelete>
                     <div>
-                      {!move.isRest && (
+                      {/* Pure cardio movements (Row, Bike, Run, Ski Erg…) don't take a lifted
+                          implement — but Farmer Carry etc. genuinely do, so exclude those. */}
+                      {!move.isRest && !(isCardioName(move.name) && !isCarryName(move.name)) && (
                         <ImplementSelector
                           implement={move.implement}
                           singleArm={move.singleArm}
@@ -2285,6 +2288,26 @@ Rules:
                                 ) : (
                                   <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>{/\bplank\b/i.test(move.name) ? 'sec' : 'reps'}</span>
                                 )}
+                              </div>
+                            )}
+                            {/* Ladder mode shares one rep scheme across movements (entered once,
+                                at the segment level), so the reps input itself stays hidden — but
+                                a cardio movement's UNIT (cal/m/mi/sec) is still per-movement and
+                                still needs picking, so show just the unit pills here too. */}
+                            {metconFormat === 'Ladder' && isCardioName(move.name) && (
+                              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}>
+                                <div style={{ display: 'flex', gap: 3 }}>
+                                  {['cal', 'm', 'mi', 'sec'].map(u => (
+                                    <button key={u} onClick={() => updateSegMove(si, mi, 'cardioUnit', u)} style={{
+                                      flex: 1, backgroundColor: (move.cardioUnit || 'cal') === u ? 'rgba(15,247,197,0.18)' : 'rgba(255,255,255,0.05)',
+                                      color: (move.cardioUnit || 'cal') === u ? '#0ff7c5' : 'rgba(245,240,232,0.35)',
+                                      border: 'none', borderRadius: 5, padding: '3px 0', fontSize: 10, fontWeight: 700,
+                                      fontFamily: 'inherit', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.4,
+                                    }}>
+                                      {u}
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
                             )}
                             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -2529,7 +2552,9 @@ Rules:
                         </button>
                       </div>
                     </SwipeToDelete>
-                    {!move.isRest && (
+                    {/* Pure cardio movements (Row, Bike, Run, Ski Erg…) don't take a lifted
+                        implement — but Farmer Carry etc. genuinely do, so exclude those. */}
+                    {!move.isRest && !(isCardioName(move.name) && !isCarryName(move.name)) && (
                       <ImplementSelector
                         implement={move.implement}
                         singleArm={move.singleArm}
@@ -2577,6 +2602,26 @@ Rules:
                               ) : (
                                 <span style={{ textAlign: 'center', fontSize: 9, fontWeight: 600, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit' }}>{/\bplank\b/i.test(move.name) ? 'sec' : 'reps'}</span>
                               )}
+                            </div>
+                          )}
+                          {/* Ladder mode shares one rep scheme across movements (entered once,
+                              at the segment level), so the reps input itself stays hidden — but
+                              a cardio movement's UNIT (cal/m/mi/sec) is still per-movement and
+                              still needs picking, so show just the unit pills here too. */}
+                          {accessoryFormat === 'Ladder' && isCardioName(move.name) && (
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center' }}>
+                              <div style={{ display: 'flex', gap: 3 }}>
+                                {['cal', 'm', 'mi', 'sec'].map(u => (
+                                  <button key={u} onClick={() => updateAccessorySegMove(si, mi, 'cardioUnit', u)} style={{
+                                    flex: 1, backgroundColor: (move.cardioUnit || 'cal') === u ? 'rgba(15,247,197,0.18)' : 'rgba(255,255,255,0.05)',
+                                    color: (move.cardioUnit || 'cal') === u ? '#0ff7c5' : 'rgba(245,240,232,0.35)',
+                                    border: 'none', borderRadius: 5, padding: '3px 0', fontSize: 10, fontWeight: 700,
+                                    fontFamily: 'inherit', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 0.4,
+                                  }}>
+                                    {u}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           )}
                           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 2 }}>
