@@ -1,5 +1,20 @@
 # Workout Tracker — Claude Code Spec
 
+## Focused input hidden behind the on-screen keyboard — SHIPPED, NOT YET DEVICE-VERIFIED
+
+**User report:** typing into a field, especially one lower in a form, often left the field itself hidden behind the keyboard — no way to see what you're typing.
+
+**Root cause:** `App.jsx` already tracked keyboard state (`kbOpen`, toggled on `focusin`/`focusout`) to hide the tab bar and shrink Home's bottom padding — but nothing actually scrolled the *focused field itself* into view. iOS doesn't do this automatically inside a custom-scrolling PWA layout like this one (multiple nested scroll containers: `<main>`, the LogScreen overlay, the SessionDetailScreen portal, the LibrarySheet bottom sheet).
+
+**Fix — `App.jsx`'s existing focus-tracking `useEffect`:**
+- New shared `isField(el)` helper hoisted to module scope (previously declared inline, now reused by two call sites).
+- `onFocusIn`: after a 300ms delay (long enough for the keyboard's own open animation to finish, so the field lands relative to its *final* position, not the taller pre-keyboard viewport), calls `document.activeElement.scrollIntoView({ block: 'center', behavior: 'smooth' })`. `scrollIntoView()` walks up and scrolls whichever ancestor is actually the scrolling container, so this works correctly regardless of which of the app's several nested scroll contexts the field happens to be in — no need to know or specify which one.
+- Also listens on `window.visualViewport`'s `resize` event (already used elsewhere in this file, for `LibrarySheet`) as a safety net — re-runs the same scroll-into-view check whenever the visible viewport itself changes size, covering cases the fixed 300ms focus delay might not (tabbing between fields via the keyboard's own "next" accessory, orientation change, split keyboard, etc.).
+
+**Not yet verified on a real device or simulator** — this is specifically an iOS-Safari on-screen-keyboard behavior that cannot be observed in the desktop browser preview (no real keyboard there to push content out of view). Attempted to verify via the iOS Simulator tool; it crashed and stopped retrying, unrelated to this change. Shipped on confidence in the pattern (a well-established fix for this exact class of bug) per user's explicit call to ship now rather than wait on simulator recovery. **If this doesn't fully fix it in real use, the first thing to check is the 300ms delay** — iOS keyboard animation duration can vary; if the field is scrolling too early (before the keyboard has finished opening) it'll land in the wrong spot relative to the final keyboard position.
+
+---
+
 ## Ladder auto-detection + cardio movements showing weight pills instead of cardio pills — RESOLVED
 
 **User report, described as "regressions"** after the v215 batch: (1) a real workout with a descending rep scheme ("10,9,8,7,6,5,4,3,2,1") wasn't auto-classified as Ladder format, and (2) Row/Assault Bike showed BB/KB/DB/Plate weight pills instead of cal/m/mi/sec cardio pills. **Investigated and confirmed neither was actually caused by the v215 batch** — both are pre-existing gaps that simply hadn't been exercised by a real session before (this looks to be the first Ladder-format workout with a cardio movement mixed in, and the first photo-parsed descending-scheme workout in a while). Worth stating plainly rather than silently fixing, since "regression" implies something *I* broke — the audit confirmed the recent changes (accessory schema, scoreType, For Time rename, push-up/pull-up stripping) never touched any of the code involved here.

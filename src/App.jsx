@@ -12,6 +12,8 @@ import { loadDraft, clearDraft } from './utils/draftStorage'
 
 const ff = '-apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif'
 
+const isField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
+
 export default function App() {
   const [activeTab, setActiveTab] = useState('home')
   const [tabNonce, setTabNonce] = useState(0)
@@ -33,16 +35,35 @@ export default function App() {
     document.querySelector('main')?.scrollTo({ top: 0 })
   }
 
-  // Hide the tab bar while a text field is focused so it doesn't ride up above the keyboard.
+  // Hide the tab bar while a text field is focused so it doesn't ride up above the keyboard,
+  // and make sure the focused field itself is actually visible above the keyboard — iOS
+  // doesn't do this automatically inside a custom-scrolling PWA layout like this one, so a
+  // field near the bottom of a form (or the whole form, once the keyboard eats ~40% of the
+  // screen) can end up hidden behind the keyboard with no way to see what you're typing.
   useEffect(() => {
-    const isField = el => el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)
-    const onFocusIn = e => { if (isField(e.target)) setKbOpen(true) }
+    const scrollFieldIntoView = () => {
+      const active = document.activeElement
+      if (isField(active)) active.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }
+    const onFocusIn = e => {
+      if (!isField(e.target)) return
+      setKbOpen(true)
+      // Wait for the keyboard's own open animation (and the visualViewport resize it
+      // triggers) to finish before scrolling, so the field lands above the keyboard's
+      // final position rather than where it'd sit in the taller pre-keyboard viewport.
+      setTimeout(scrollFieldIntoView, 300)
+    }
     const onFocusOut = () => { setTimeout(() => { if (!isField(document.activeElement)) { setKbOpen(false); window.scrollTo(0, 0) } }, 0) }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
+    // Safety net for cases focusin's fixed delay doesn't cover well — tabbing between
+    // fields via the keyboard's own "next" accessory (no new focusin timing quirks) or a
+    // rotation/split-keyboard change — re-check whenever the visible viewport itself resizes.
+    window.visualViewport?.addEventListener('resize', scrollFieldIntoView)
     return () => {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
+      window.visualViewport?.removeEventListener('resize', scrollFieldIntoView)
     }
   }, [])
 
