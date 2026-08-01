@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { v4 as uuidv4 } from 'uuid'
 import { supabase, sessionToRow } from '../db/supabase'
 import { useMovements } from '../hooks/useMovements'
-import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount, appendsImplementSuffix } from '../utils/movements'
+import { normalizeMovement, resolveStrengthMode, abbreviateForColumn, toWorkoutDisplay, occupiedMinuteSlotCount, appendsImplementSuffix, measureTextWidth } from '../utils/movements'
 import { saveDraft } from '../utils/draftStorage'
 
 // Full implement name → selector short code
@@ -597,8 +597,16 @@ function ImplementSelector({ implement, singleArm, side, onChange, name }) {
   )
 }
 
+// Full movement names are tried first — only abbreviated when the full name actually
+// wouldn't fit the real rendered column width. Mirrors SessionDetailScreen.jsx's
+// multiTableHeaders(), computed against this table's own (different) padding/gap chrome.
 function multiColumnHeaders(moves) {
   if (moves.length >= 4) return moves.map((_, i) => String(i + 1))
+  const n = moves.length
+  const columnWidth = (window.innerWidth - 40 - 44 - (n + 1) * 3) / n
+  const font = `700 9px -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif`
+  const fulls = moves.map(m => normalizeMovement(m.name ?? '').name.toUpperCase())
+  if (fulls.every(f => measureTextWidth(f, font) <= columnWidth)) return fulls
   const abbrevs = moves.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name).toUpperCase())
   const tooLong = abbrevs.some(a => a.length > 12)
   const hasCollision = new Set(abbrevs).size !== abbrevs.length
@@ -983,6 +991,9 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
             const implement = restored.implement ?? (BB_STRENGTH_MOVEMENTS.has(restored.name) ? 'BB' : null)
             return { ...restored, sets, implement }
           }))
+          // 2+ strength movements are virtually always a synced superset for this user —
+          // default to Multi rather than leaving the toggle at Single's default.
+          if (result.strengthBlock.movements.length >= 2) setStrengthMode('multi')
         }
       } else {
         setHasStrength(false)
@@ -1068,7 +1079,15 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function updateStrengthMove(i, field, val) {
     setStrengthMoves(prev => prev.map((m, j) => j === i ? { ...m, [field]: val } : m))
   }
-  function addStrengthMove() { setStrengthMoves(prev => [...prev, newStrengthMove()]) }
+  function addStrengthMove() {
+    // Going from 1 movement to 2 is the natural "this is now a superset" moment — default
+    // to Multi there, but don't keep re-forcing it on every later add (respects a
+    // deliberate switch back to Single with 3+ independent movements).
+    setStrengthMoves(prev => {
+      if (prev.length === 1) setStrengthMode('multi')
+      return [...prev, newStrengthMove()]
+    })
+  }
   function removeStrengthMove(i) { setStrengthMoves(prev => prev.filter((_, j) => j !== i)) }
   function addWorkingSet(mi) {
     setStrengthMoves(prev => prev.map((m, i) => {

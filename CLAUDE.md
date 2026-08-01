@@ -1,5 +1,21 @@
 # Workout Tracker — Claude Code Spec
 
+## Four small fixes from a real logging session — RESOLVED
+
+**1. Multi-Set table column headers now try the full movement name first.** `multiTableHeaders()` (`SessionDetailScreen.jsx`) and `multiColumnHeaders()` (`LogScreen.jsx`) previously always abbreviated (e.g. "Box Jump" → "B Jump"), even when the full name would have fit comfortably. Fixed the same way `buildMultiMoveTitle()` already decides full-vs-abbreviated elsewhere in this app: compute the real per-column pixel width (`window.innerWidth` minus that table's own padding/label-column/divider chrome — the two tables have different layouts, so different constants), measure the full name at the header's actual font via `measureTextWidth()`, and only fall back to `abbreviateForColumn()` when it wouldn't fit. Verified live on the real 7/31 session ("Deadlift + Box Jump"): columns now read "DEADLIFT" / "BOX JUMP" in full, not "B JUMP".
+
+**2. Strength section defaults to Multi mode once a 2nd movement exists.** Two entry points, both in `LogScreen.jsx`: `handlePhotoSelect()` now calls `setStrengthMode('multi')` when Claude returns 2+ strength movements; `addStrengthMove()` does the same specifically on the 1→2 transition (not on every subsequent add, so a deliberate later switch back to Single with 3+ independent movements isn't fought). Verified live: adding a 2nd movement via "+ Add Movement" auto-switches the toggle to Multi.
+
+**3. "Core" gets its own icon.** New `accessoryIcon(label)` helper (duplicated in both `HomeScreen.jsx` and `SessionDetailScreen.jsx`, matching this app's established pattern for this kind of small per-file display helper) — returns 🔥 for a label of exactly "Core" (case-insensitive), ⭐ for everything else (Accessory, Gymnastics, etc.). Landed on 🔥 after several rounds of user rejecting other options (🌀/🎯/🔘/⭐/🛡️/⚓/🧱/🥋).
+
+**4. Ladder format no longer repeats the rep scheme on every movement row.** Real bug on the real 7/31 session: every movement (DB Front Squat, DB Push Press, Row) was showing the full "10,9,8,7,6,5,4,3,2,1" scheme redundantly on its own row (with " cal" appended for Row) — since all movements share one scheme in Ladder mode, this was the same value repeated 3 times for no reason. Fixed in `SessionDetailScreen.jsx`:
+   - `MetconBlock`/`AccessoryBlock` now show the scheme **once**, right-justified on the same line as the "Ladder" subtitle (`display: flex, justifyContent: space-between`), pulled from the first non-rest movement's `reps` field (commas rendered as hyphens: "10-9-8-7-6-5-4-3-2-1").
+   - `MetconMoveRow` takes a new `isLadder` prop; when true, calls a new `formatLadderUnit(moveName, cardioUnit)` instead of `formatReps()` — shows just the unit ("reps", "cal", "m", "sec") since the number itself is now shown once, above.
+
+**Verified live** against the real 7/31 session (a real Ladder-format workout, confirming all of #1 and #4 simultaneously) and re-checked 7/27 (E2MOM, unaffected) and 6/24 (Rounds-format Accessory, unaffected) for regressions.
+
+---
+
 ## Focused input hidden behind the on-screen keyboard — SHIPPED, NOT YET DEVICE-VERIFIED
 
 **User report:** typing into a field, especially one lower in a form, often left the field itself hidden behind the keyboard — no way to see what you're typing.

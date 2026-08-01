@@ -26,6 +26,12 @@ function isLadderReps(val) {
   return parts.length >= 3 && parts.every(p => /^\d+$/.test(p) && Number(p) > 0)
 }
 
+// "Core" gets its own icon (distinct from the generic Accessory star) — any other label
+// (Accessory, Gymnastics, Extra Credit, etc.) falls back to the star.
+function accessoryIcon(label) {
+  return label?.trim().toLowerCase() === 'core' ? '🔥' : '⭐'
+}
+
 function deriveSessionParts(session) {
   const parts = []
 
@@ -106,7 +112,10 @@ function deriveSessionParts(session) {
     parts.push(`⚡ ${label}`)
   }
 
-  if (session.accessoryBlock) parts.push(`⭐ ${session.accessoryBlock.customTitle || 'Accessory'}`)
+  if (session.accessoryBlock) {
+    const label = session.accessoryBlock.customTitle || 'Accessory'
+    parts.push(`${accessoryIcon(label)} ${label}`)
+  }
 
   return parts.length ? parts : ['BB WOD']
 }
@@ -844,7 +853,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v217</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v218</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

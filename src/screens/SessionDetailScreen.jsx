@@ -23,6 +23,20 @@ function formatReps(moveName, reps, cardioUnit) {
   return `${n} ${n === 1 ? 'rep' : 'reps'}`
 }
 
+// In Ladder mode every movement shares the same rung sequence (shown once, on the segment
+// label line) — so a movement's own row shows just its unit (reps/cal/m/sec) instead of
+// repeating the full scheme redundantly on every row.
+function formatLadderUnit(moveName, cardioUnit) {
+  if (CARDIO_RE.test(moveName ?? '')) {
+    if (cardioUnit === 'm') return 'm'
+    if (cardioUnit === 'mi') return 'mi'
+    if (cardioUnit === 'sec') return 'sec'
+    return 'cal'
+  }
+  if (TIMED_RE.test(moveName ?? '')) return 'sec'
+  return 'reps'
+}
+
 function formatRestSeconds(secs) {
   if (!secs) return ''
   const m = Math.floor(secs / 60)
@@ -113,6 +127,12 @@ function metconSubtitle(block) {
   return format || ''
 }
 
+// "Core" gets its own icon (distinct from the generic Accessory star) — any other label
+// (Accessory, Gymnastics, Extra Credit, etc.) falls back to the star.
+function accessoryIcon(label) {
+  return label?.trim().toLowerCase() === 'core' ? '🔥' : '⭐'
+}
+
 function deriveSessionParts(session) {
   const mb = session.metconBlock
   const ladderOverride = mb && (mb.format === 'For Time' || mb.format === 'Ladder') && [
@@ -135,7 +155,10 @@ function deriveSessionParts(session) {
     const custom = session.metconBlock.customTitle
     parts.push(`⚡ ${custom || (ladderOverride ? 'Ladder' : metconSubtitle(session.metconBlock))}`)
   }
-  if (session.accessoryBlock) parts.push(`⭐ ${session.accessoryBlock.customTitle || 'Accessory'}`)
+  if (session.accessoryBlock) {
+    const label = session.accessoryBlock.customTitle || 'Accessory'
+    parts.push(`${accessoryIcon(label)} ${label}`)
+  }
   return parts.length ? parts : ['BB WOD']
 }
 
@@ -429,7 +452,7 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   })
 }
 
-function MetconMoveRow({ move, isOTM }) {
+function MetconMoveRow({ move, isOTM, isLadder }) {
   if (move.isRest) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
@@ -440,7 +463,7 @@ function MetconMoveRow({ move, isOTM }) {
       </div>
     )
   }
-  const repsText = formatReps(move.name, move.reps, move.cardioUnit)
+  const repsText = isLadder ? formatLadderUnit(move.name, move.cardioUnit) : formatReps(move.name, move.reps, move.cardioUnit)
   const weightText = move.weight ? `${move.weight} lbs` : '—'
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
@@ -478,8 +501,17 @@ function SectionHeader({ title, subtitle, right }) {
   )
 }
 
+// Full movement names are tried first (e.g. "Box Jumps" beats an unnecessary "B Jumps") —
+// only abbreviated when the full name actually wouldn't fit the real rendered column width.
+// Mirrors buildMultiMoveTitle()'s "measure the real width, don't guess from string length"
+// approach, computed against this table's specific padding/divider/label-column chrome.
 function multiTableHeaders(movements) {
   if (movements.length >= 4) return movements.map((_, i) => String(i + 1))
+  const n = movements.length
+  const columnWidth = (window.innerWidth - 40 - 32 - MULTI_LABEL_COL_WIDTH - (n + 1) * 1.5) / n
+  const font = `700 10px ${ff}`
+  const fulls = movements.map(m => normalizeMovement(m.name ?? '').name.toUpperCase())
+  if (fulls.every(f => measureTextWidth(f, font) <= columnWidth)) return fulls
   const abbrevs = movements.map(m => abbreviateForColumn(normalizeMovement(m.name ?? '').name).toUpperCase())
   const tooLong = abbrevs.some(a => a.length > 12)
   const hasCollision = new Set(abbrevs).size !== abbrevs.length
@@ -700,6 +732,7 @@ function segmentLabel(seg, block) {
 function MetconBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
+  const isLadder = block.format === 'Ladder'
   const vol = calcMetconVol(block)
   const subtitle = metconStructureSubtitle(block)
   const displayScore = block.score ? formatScore(block.score, block.scoreType) : null
@@ -711,6 +744,11 @@ function MetconBlock({ block }) {
       : []
 
   const isMultiSeg = segments.length > 1
+  // Every movement shares the same rung sequence in Ladder mode — show it once here,
+  // instead of repeating it redundantly on every movement's own row below.
+  const ladderScheme = isLadder
+    ? segments.flatMap(s => s.movements ?? []).find(m => !m.isRest && m.reps)?.reps?.replace(/,/g, '-')
+    : null
 
   return (
     <div style={{ padding: '22px 20px 0' }}>
@@ -718,7 +756,10 @@ function MetconBlock({ block }) {
 
         <div style={{ padding: '14px 16px 8px' }}>
           <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Metcon</p>
-          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
+          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+            <span>{subtitle}</span>
+            {ladderScheme && <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 14, textAlign: 'right' }}>{ladderScheme}</span>}
+          </p>
         </div>
 
         {block.buyIn?.length > 0 && (
@@ -726,7 +767,7 @@ function MetconBlock({ block }) {
             <div style={{ padding: '4px 16px 2px' }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>Buy In</span>
             </div>
-            {block.buyIn.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
+            {block.buyIn.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} isLadder={isLadder} />)}
           </>
         )}
 
@@ -754,7 +795,7 @@ function MetconBlock({ block }) {
                 </span>
               </div>
             )}
-            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
+            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} isLadder={isLadder} />)}
           </div>
         ))}
 
@@ -763,7 +804,7 @@ function MetconBlock({ block }) {
             <div style={{ padding: '8px 16px 2px' }}>
               <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', color: 'rgba(245,240,232,0.28)', fontFamily: ff }}>Buy Out</span>
             </div>
-            {block.buyOut.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} />)}
+            {block.buyOut.map((m, i) => <MetconMoveRow key={i} move={m} isOTM={false} isLadder={isLadder} />)}
           </>
         )}
 
@@ -789,6 +830,7 @@ function MetconBlock({ block }) {
 function AccessoryBlock({ block }) {
   if (!block) return null
   const isOTM = block.format === 'OTM'
+  const isLadder = block.format === 'Ladder'
   const vol = calcAccessoryVol(block)
   // metconStructureSubtitle()/metconSubtitle() never emit "For Time" text anymore (see
   // the Rounds rename) — this used to strip that phrase out for the Accessory card
@@ -803,6 +845,9 @@ function AccessoryBlock({ block }) {
       : []
 
   const isMultiSeg = segments.length > 1
+  const ladderScheme = isLadder
+    ? segments.flatMap(s => s.movements ?? []).find(m => !m.isRest && m.reps)?.reps?.replace(/,/g, '-')
+    : null
 
   return (
     <div style={{ padding: '22px 20px 0' }}>
@@ -810,7 +855,10 @@ function AccessoryBlock({ block }) {
 
         <div style={{ padding: '14px 16px 8px' }}>
           <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Accessory</p>
-          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff }}>{subtitle}</p>
+          <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+            <span>{subtitle}</span>
+            {ladderScheme && <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 14, textAlign: 'right' }}>{ladderScheme}</span>}
+          </p>
         </div>
 
         {segments.map((seg, si) => (
@@ -837,7 +885,7 @@ function AccessoryBlock({ block }) {
                 </span>
               </div>
             )}
-            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} />)}
+            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} isLadder={isLadder} />)}
           </div>
         ))}
 
