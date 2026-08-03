@@ -1,5 +1,28 @@
 # Workout Tracker — Claude Code Spec
 
+## Session handoff — read this first
+
+**Current version:** v219 / `bb-wod-v194` (`HomeScreen.jsx` badge / `public/sw.js` CACHE). Not yet committed or pushed — see below.
+
+**Deploy mechanism:** GitHub Actions (`.github/workflows/deploy.yml`) auto-builds and deploys to GitHub Pages on every push to `main`. There is no separate manual deploy step — `git push` is the entire deploy process. Env secrets (`VITE_ANTHROPIC_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) are already configured as GitHub repo secrets, injected at CI build time.
+
+**Two real bugs just fixed (v219), found via a real 7/29 re-log attempt — not yet verified against a real photo-parse call:**
+1. **Accessory/Core card showed "Accessory" even when `customTitle` was "Core."** `AccessoryBlock`'s card eyebrow in `SessionDetailScreen.jsx` (~line 857) was hardcoded to the literal string `"Accessory"` instead of reading `block.customTitle` — fixed to `{block.customTitle || 'Accessory'}`. (The page-top title already read `customTitle` correctly via `deriveSessionParts()`/`accessoryIcon()` — this was an isolated miss on the in-card label only.)
+2. **Accessory/Core always rendered after Metcon, even when the whiteboard had it before Metcon** (e.g. "Core" listed above "Metcon"). Nothing in the data model recorded original board position. Added a new `accessoryBlock.beforeMetcon` boolean, populated by a new `buildPhotoPrompt()` instruction/JSON field (`"accessoryBeforeMetcon"`) telling Claude to record whether the section was physically above or below Metcon on the board. Plumbed through `LogScreen.jsx` (new `accessoryBeforeMetcon` state, `handlePhotoSelect()`, `buildSessionData()`, autosave deps) and both display files: `SessionDetailScreen.jsx` (953–956, conditionally renders `<AccessoryBlock>` before or after `<MetconBlock>`) and `HomeScreen.jsx`'s `deriveSessionParts()` (same conditional ordering for the one-line card summary). Old sessions with no stored `beforeMetcon` default to `false` (after Metcon) — unchanged behavior, confirmed no regression against real historical sessions (7/22, 7/27, 7/31 all still render identically).
+
+**Not yet verified against a real Claude photo-parse call** (would cost real API credits) — logic was verified by reading the actual stored Supabase data for the real (still-broken) 7/29 session directly via React fiber inspection, confirming the root cause was genuinely in the saved data (not a display-only bug), then fixing both the prompt and both display paths. **User was about to re-log the real 7/29 workout from scratch with a fresh photo to test this end-to-end — if it comes back not working, check first whether Claude actually returned `"accessoryLabel": "Core"` and `"accessoryBeforeMetcon": true` in its raw JSON response, before assuming the display logic is still broken.**
+
+**One loose end from before this:** there was an earlier v218 commit sitting locally ahead of `origin/main`, unpushed. Since v219 adds new changes on top of that same working tree, **the ship command below will carry both v218's and v219's changes in one push** — no separate action needed for the old loose end.
+
+```bash
+cd "/Users/llofte/Desktop/Workout Tracker" && git add -A && git commit -m "v219 — Fix Accessory/Core card label + before/after-Metcon ordering" && git push
+```
+Reminder: Bash/git is permanently blocked in the Claude Code environment itself for this project — Claude cannot run this command; always hand it to the user to run themselves.
+
+**Backlog (deferred, not urgent):** distinguish genuinely time-scored "For Time"/"Rounds" workouts (score is an actual elapsed time, e.g. the real 7/28 session) from generic non-time-scored ones, so the display doesn't uniformly relabel every such workout "Rounds" when some should keep "Rounds For Time" or similar. See the dedicated Backlog section further down.
+
+---
+
 ## Four small fixes from a real logging session — RESOLVED
 
 **1. Multi-Set table column headers now try the full movement name first.** `multiTableHeaders()` (`SessionDetailScreen.jsx`) and `multiColumnHeaders()` (`LogScreen.jsx`) previously always abbreviated (e.g. "Box Jump" → "B Jump"), even when the full name would have fit comfortably. Fixed the same way `buildMultiMoveTitle()` already decides full-vs-abbreviated elsewhere in this app: compute the real per-column pixel width (`window.innerWidth` minus that table's own padding/label-column/divider chrome — the two tables have different layouts, so different constants), measure the full name at the header's actual font via `measureTextWidth()`, and only fall back to `abbreviateForColumn()` when it wouldn't fit. Verified live on the real 7/31 session ("Deadlift + Box Jump"): columns now read "DEADLIFT" / "BOX JUMP" in full, not "B JUMP".

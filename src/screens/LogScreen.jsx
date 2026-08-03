@@ -845,6 +845,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       : [newMetconSegment(false)]
   )
   const [accessoryScore, setAccessoryScore] = useState(s?.accessoryBlock?.score ?? '')
+  const [accessoryBeforeMetcon, setAccessoryBeforeMetcon] = useState(s?.accessoryBlock?.beforeMetcon ?? false)
 
   const [sessionNotes, setSessionNotes] = useState(s?.notes ?? '')
   const [titleStrength, setTitleStrength] = useState(() => {
@@ -1032,6 +1033,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       if (result.hasAccessory) {
         if (result.accessoryFormat) setAccessoryFormat(result.accessoryFormat)
         setTitleAccessory(result.accessoryLabel?.trim() || 'Accessory')
+        setAccessoryBeforeMetcon(!!result.accessoryBeforeMetcon)
         if (result.accessorySegments?.length) {
           setAccessorySegments(result.accessorySegments.map(seg => ({
             ...seg,
@@ -1311,6 +1313,7 @@ Return ONLY a valid JSON object — no markdown fences, no explanation. Use this
   "hasBuyOut": false, "buyOutMoves": [],
   "hasAccessory": false,
   "accessoryLabel": "Accessory",
+  "accessoryBeforeMetcon": false,
   "accessoryFormat": "OTM",
   "accessorySegments": [
     {
@@ -1329,6 +1332,7 @@ Section classification — the board may have 2 or 3 distinct sections. Route ea
 - A section explicitly labeled "Metcon" (or "WOD"): the Metcon block.
 - Any OTHER section — unlabeled and not first, OR labeled with anything besides "Strength"/"Metcon" (e.g. "Core", "Accessory", "Gymnastics", "Extra Credit") — is the Accessory block. Set "hasAccessory": true and "accessoryLabel" to the board's own label verbatim (title case), or "Accessory" if that section had no label of its own.
 - There is only one Accessory slot. If the board somehow has more than one such extra section, use only the first and ignore the rest.
+- "accessoryBeforeMetcon": set to true if this section is physically written ABOVE/BEFORE the Metcon section on the board (e.g. "Core" listed above "Metcon"), false if it comes after Metcon or there is no Metcon section at all. This preserves the board's actual layout order.
 - Accessory sections follow the exact same rules as Metcon below (weight, bodyweight exceptions, OTM patterns A/B/C, minuteAssignment, minuteSpan) — just fill in "accessoryFormat"/"accessorySegments" instead of "metconFormat"/"metconSegments".
 - When a movement offers a choice of implement ("KB or DB Overhead Hold"), do not guess one — write the plain movement name with no implement prefix ("Overhead Hold") and let the athlete select which one she actually used after logging.
 
@@ -1648,6 +1652,7 @@ Rules:
         } : null,
         accessoryBlock: hasAccessory ? {
           customTitle: titleAccessory.trim() || null,
+          beforeMetcon: accessoryBeforeMetcon,
           format: accessoryFormat,
           score: accessoryScore || null,
           segments: accessorySegments.map(seg => ({
@@ -1698,7 +1703,7 @@ Rules:
   }, [
     step, date, hasStrength, strengthType, strengthMode, strengthDuration, strengthInterval, strengthMoves,
     hasMetcon, metconFormat, metconSegments, metconScore, hasBuyIn, buyInMoves, hasBuyOut, buyOutMoves,
-    hasAccessory, accessoryFormat, accessorySegments, accessoryScore, sessionNotes,
+    hasAccessory, accessoryFormat, accessorySegments, accessoryScore, accessoryBeforeMetcon, sessionNotes,
     titleStrength, titleMetcon, titleAccessory,
   ])
 

@@ -46,6 +46,11 @@ function deriveSessionParts(session) {
     }
   }
 
+  const accessoryPart = session.accessoryBlock
+    ? `${accessoryIcon(session.accessoryBlock.customTitle || 'Accessory')} ${session.accessoryBlock.customTitle || 'Accessory'}`
+    : null
+  if (accessoryPart && session.accessoryBlock.beforeMetcon) parts.push(accessoryPart)
+
   if (session.metconBlock) {
     const { format, duration, rounds, segments } = session.metconBlock
     let label = (format === 'For Time' ? 'Rounds' : format) || 'Metcon'
@@ -112,10 +117,7 @@ function deriveSessionParts(session) {
     parts.push(`⚡ ${label}`)
   }
 
-  if (session.accessoryBlock) {
-    const label = session.accessoryBlock.customTitle || 'Accessory'
-    parts.push(`${accessoryIcon(label)} ${label}`)
-  }
+  if (accessoryPart && !session.accessoryBlock.beforeMetcon) parts.push(accessoryPart)
 
   return parts.length ? parts : ['BB WOD']
 }
@@ -853,7 +855,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v218</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v219</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

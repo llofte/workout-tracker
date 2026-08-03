@@ -854,7 +854,7 @@ function AccessoryBlock({ block }) {
       <div style={{ backgroundColor: '#201a2a', borderRadius: 14, border: '0.5px solid rgba(255,255,255,0.07)', overflow: 'hidden' }}>
 
         <div style={{ padding: '14px 16px 8px' }}>
-          <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>Accessory</p>
+          <p style={{ color: 'rgba(15,247,197,0.5)', fontSize: 17, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', margin: '0 0 3px', fontFamily: ff }}>{block.customTitle || 'Accessory'}</p>
           <p style={{ color: 'rgba(245,240,232,0.55)', fontSize: 16, fontWeight: 500, margin: 0, fontFamily: ff, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
             <span>{subtitle}</span>
             {ladderScheme && <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 14, textAlign: 'right' }}>{ladderScheme}</span>}
@@ -951,8 +951,9 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
       </div>
 
       <StrengthBlock block={strengthBlock} allMovements={allMovements} />
+      {accessoryBlock?.beforeMetcon && <AccessoryBlock block={accessoryBlock} />}
       <MetconBlock block={metconBlock} />
-      <AccessoryBlock block={accessoryBlock} />
+      {!accessoryBlock?.beforeMetcon && <AccessoryBlock block={accessoryBlock} />}
 
       {notes ? (
         <>
