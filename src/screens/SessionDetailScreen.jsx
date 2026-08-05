@@ -452,27 +452,11 @@ function SetRows({ sets, moveName, allMovements, inlineLayout }) {
   })
 }
 
-function MetconMoveRow({ move, isOTM, isLadder }) {
-  if (move.isRest) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
-        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: ff }}>Rest</span>
-        {!!move.restSeconds && (
-          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: ff }}>{formatRestSeconds(move.restSeconds)}</span>
-        )}
-      </div>
-    )
-  }
+function MetconMoveContent({ move, isLadder }) {
   const repsText = isLadder ? formatLadderUnit(move.name, move.cardioUnit) : formatReps(move.name, move.reps, move.cardioUnit)
   const weightText = move.weight ? `${move.weight} lbs` : '—'
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
-      {isOTM && move.minuteAssignment != null && (
-        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 46, flexShrink: 0, whiteSpace: 'nowrap' }}>
-          Min {move.minuteAssignment}
-          {move.minuteSpan > 1 ? `-${move.minuteAssignment + move.minuteSpan - 1}` : ''}
-        </span>
-      )}
+    <>
       <span style={{ color: '#f5f0e8', fontSize: 14, fontWeight: 500, fontFamily: ff, flex: 1 }}>
         {toWorkoutDisplay(move)}
       </span>
@@ -485,6 +469,70 @@ function MetconMoveRow({ move, isOTM, isLadder }) {
       }}>
         {weightText}
       </span>
+    </>
+  )
+}
+
+function MetconMoveRow({ move, isOTM, isLadder }) {
+  if (move.isRest) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 16px' }}>
+        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.6, fontFamily: ff }}>Rest</span>
+        {!!move.restSeconds && (
+          <span style={{ color: 'rgba(245,240,232,0.4)', fontSize: 13, fontFamily: ff }}>{formatRestSeconds(move.restSeconds)}</span>
+        )}
+      </div>
+    )
+  }
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+      {isOTM && move.minuteAssignment != null && (
+        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 46, flexShrink: 0, whiteSpace: 'nowrap' }}>
+          Min {move.minuteAssignment}
+          {move.minuteSpan > 1 ? `-${move.minuteAssignment + move.minuteSpan - 1}` : ''}
+        </span>
+      )}
+      <MetconMoveContent move={move} isLadder={isLadder} />
+    </div>
+  )
+}
+
+// Two+ movements can share one minuteAssignment (a superset done together within that
+// single minute, e.g. "Min 1: 5 Hang Power Clean + 5 Shoulder to Overhead") — group
+// consecutive movements with the same minute so "Min 1" is shown once, not once per move.
+function groupMovesByMinute(movements) {
+  const groups = []
+  let lastKey
+  for (const m of movements ?? []) {
+    const key = m.isRest ? undefined : m.minuteAssignment
+    if (key != null && key === lastKey && groups.length) {
+      groups[groups.length - 1].push(m)
+    } else {
+      groups.push([m])
+    }
+    lastKey = key
+  }
+  return groups
+}
+
+function MetconMoveGroupRow({ moves, isOTM, isLadder }) {
+  if (moves.length === 1) return <MetconMoveRow move={moves[0]} isOTM={isOTM} isLadder={isLadder} />
+  const first = moves[0]
+  return (
+    <div style={{ display: 'flex', gap: 8, padding: '9px 16px', borderBottom: '0.5px solid rgba(255,255,255,0.05)' }}>
+      {isOTM && first.minuteAssignment != null && (
+        <span style={{ color: 'rgba(245,240,232,0.35)', fontSize: 11, fontWeight: 700, fontFamily: ff, width: 46, flexShrink: 0, whiteSpace: 'nowrap', paddingTop: 3 }}>
+          Min {first.minuteAssignment}
+          {first.minuteSpan > 1 ? `-${first.minuteAssignment + first.minuteSpan - 1}` : ''}
+        </span>
+      )}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {moves.map((m, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MetconMoveContent move={m} isLadder={isLadder} />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -795,7 +843,9 @@ function MetconBlock({ block }) {
                 </span>
               </div>
             )}
-            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} isLadder={isLadder} />)}
+            {groupMovesByMinute(seg.movements).map((group, gi) => (
+              <MetconMoveGroupRow key={gi} moves={group} isOTM={isOTM} isLadder={isLadder} />
+            ))}
           </div>
         ))}
 
@@ -885,7 +935,9 @@ function AccessoryBlock({ block }) {
                 </span>
               </div>
             )}
-            {seg.movements?.map((m, mi) => <MetconMoveRow key={mi} move={m} isOTM={isOTM} isLadder={isLadder} />)}
+            {groupMovesByMinute(seg.movements).map((group, gi) => (
+              <MetconMoveGroupRow key={gi} moves={group} isOTM={isOTM} isLadder={isLadder} />
+            ))}
           </div>
         ))}
 
