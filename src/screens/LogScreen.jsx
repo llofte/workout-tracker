@@ -234,23 +234,29 @@ function LibrarySheet({ movements, onSelect, onClose }) {
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
+    let timer = null
     const update = () => {
       const kbH = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
       setSheetBottom(kbH)
       setSheetMaxH(`${Math.round(vv.height * 0.9)}px`)
     }
-    vv.addEventListener('resize', update)
-    vv.addEventListener('scroll', update)
+    // Debounced so typing in the search field (which triggers repeated resize events as
+    // iOS's QuickType bar changes height) doesn't re-run this on every keystroke.
+    const onResize = () => { clearTimeout(timer); timer = setTimeout(update, 150) }
+    update()
+    vv.addEventListener('resize', onResize)
+    vv.addEventListener('scroll', onResize)
     return () => {
-      vv.removeEventListener('resize', update)
-      vv.removeEventListener('scroll', update)
+      vv.removeEventListener('resize', onResize)
+      vv.removeEventListener('scroll', onResize)
+      clearTimeout(timer)
     }
   }, [])
 
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', zIndex: 200 }} />
-      <div style={{
+      <div data-kb-self-managed style={{
         position: 'fixed', bottom: sheetBottom, left: 0, right: 0,
         backgroundColor: '#201a2a', borderRadius: '20px 20px 0 0', zIndex: 201,
         maxHeight: sheetMaxH, display: 'flex', flexDirection: 'column',

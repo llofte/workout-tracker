@@ -41,29 +41,58 @@ export default function App() {
   // field near the bottom of a form (or the whole form, once the keyboard eats ~40% of the
   // screen) can end up hidden behind the keyboard with no way to see what you're typing.
   useEffect(() => {
-    const scrollFieldIntoView = () => {
-      const active = document.activeElement
-      if (isField(active)) active.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    let resizeTimer = null
+
+    // iOS's own QuickType/predictive-text bar changes height as you type, which fires
+    // visualViewport 'resize' events continuously WHILE typing (not just on keyboard
+    // open/close) — treat every one as "final" and this re-scrolls on every keystroke,
+    // which both looks like the screen "blinking" (overlapping smooth-scroll animations
+    // interrupting each other) and can drift the field off-screen (each call recalculates
+    // against a still-settling layout). A field already visible must be left alone.
+    const fieldNeedsScroll = el => {
+      const rect = el.getBoundingClientRect()
+      const vv = window.visualViewport
+      const top = vv ? vv.offsetTop : 0
+      const bottom = vv ? vv.offsetTop + vv.height : window.innerHeight
+      return rect.top < top || rect.bottom > bottom
     }
+
+    const scrollFieldIntoView = (smooth) => {
+      const active = document.activeElement
+      if (!isField(active)) return
+      // Self-positioning surfaces (e.g. LibrarySheet) already track the keyboard and
+      // reposition themselves — don't fight them with a second, uncoordinated scroll.
+      if (active.closest('[data-kb-self-managed]')) return
+      if (!fieldNeedsScroll(active)) return
+      active.scrollIntoView({ block: 'center', behavior: smooth ? 'smooth' : 'auto' })
+    }
+
     const onFocusIn = e => {
       if (!isField(e.target)) return
       setKbOpen(true)
       // Wait for the keyboard's own open animation (and the visualViewport resize it
       // triggers) to finish before scrolling, so the field lands above the keyboard's
       // final position rather than where it'd sit in the taller pre-keyboard viewport.
-      setTimeout(scrollFieldIntoView, 300)
+      setTimeout(() => scrollFieldIntoView(true), 300)
     }
     const onFocusOut = () => { setTimeout(() => { if (!isField(document.activeElement)) { setKbOpen(false); window.scrollTo(0, 0) } }, 0) }
     document.addEventListener('focusin', onFocusIn)
     document.addEventListener('focusout', onFocusOut)
     // Safety net for cases focusin's fixed delay doesn't cover well — tabbing between
-    // fields via the keyboard's own "next" accessory (no new focusin timing quirks) or a
-    // rotation/split-keyboard change — re-check whenever the visible viewport itself resizes.
-    window.visualViewport?.addEventListener('resize', scrollFieldIntoView)
+    // fields via the keyboard's own "next" accessory, orientation change, split keyboard.
+    // Debounced so continuous resize events (QuickType bar changing while typing) only
+    // trigger a correction once the viewport has actually settled, and the correction
+    // itself is instant (not smooth) so any residual nudge isn't visible as a jump.
+    const onViewportResize = () => {
+      clearTimeout(resizeTimer)
+      resizeTimer = setTimeout(() => scrollFieldIntoView(false), 150)
+    }
+    window.visualViewport?.addEventListener('resize', onViewportResize)
     return () => {
       document.removeEventListener('focusin', onFocusIn)
       document.removeEventListener('focusout', onFocusOut)
-      window.visualViewport?.removeEventListener('resize', scrollFieldIntoView)
+      window.visualViewport?.removeEventListener('resize', onViewportResize)
+      clearTimeout(resizeTimer)
     }
   }, [])
 
