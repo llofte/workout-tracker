@@ -359,19 +359,26 @@ function calcPartialRoundVol(movements, extraReps) {
     // A timed hold's "reps" field is actually seconds — counts as 1 rep of work, not N.
     const mvReps = TIMED_RE.test(mv.name ?? '') ? 1 : (parseReps(mv.reps) || 0)
     const used = Math.min(mvReps, remaining)
-    if (mv.weight && used > 0) v += used * mv.weight
+    if (mv.weight && used > 0) v += used * mv.weight * (mv.dumbbellCount ?? 1)
     remaining -= mvReps
   }
   return v
+}
+
+function carryVol(mv, rounds) {
+  const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
+  const count = mv.dumbbellCount ?? (bilateral ? 2 : 1)
+  return mv.weight * count * rounds
 }
 
 function sessionVolume(session) {
   let vol = 0
 
   for (const mv of session.strengthBlock?.movements ?? []) {
+    const dbMult = mv.dumbbellCount ?? 1
     for (const s of mv.sets ?? []) {
       if (s.notation === 'warmup') continue
-      if (s.reps && s.weight) vol += s.reps * s.weight
+      if (s.reps && s.weight) vol += s.reps * s.weight * dbMult
     }
   }
 
@@ -386,7 +393,7 @@ function sessionVolume(session) {
       // A timed hold's "reps" field is actually seconds — counts as 1 rep of load per
       // round, not (seconds × weight), which would wildly overstate volume.
       const reps = TIMED_RE.test(mv.name ?? '') ? 1 : parseReps(mv.reps)
-      if (reps) vol += reps * mv.weight * mult
+      if (reps) vol += reps * mv.weight * (mv.dumbbellCount ?? 1) * mult
     }
 
     // New format: segments
@@ -396,8 +403,7 @@ function sessionVolume(session) {
         for (const mv of seg.movements ?? []) {
           if (mv.isRest || !mv.weight) continue
           if (CARRY_RE.test(mv.name ?? '')) {
-            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-            vol += mv.weight * (bilateral ? 2 : 1) * amrapSeg.completedRounds
+            vol += carryVol(mv, amrapSeg.completedRounds)
           } else {
             addLoad(mv, amrapSeg.completedRounds)
           }
@@ -416,8 +422,7 @@ function sessionVolume(session) {
         for (const mv of seg.movements ?? []) {
           if (mv.isRest || !mv.weight) continue
           if (CARRY_RE.test(mv.name ?? '')) {
-            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-            vol += mv.weight * (bilateral ? 2 : 1) * rounds
+            vol += carryVol(mv, rounds)
           } else {
             addLoad(mv, rounds)
           }
@@ -432,8 +437,7 @@ function sessionVolume(session) {
         for (const mv of mb.movements) {
           if (mv.isRest || !mv.weight) continue
           if (CARRY_RE.test(mv.name ?? '')) {
-            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-            vol += mv.weight * (bilateral ? 2 : 1) * amrap.completedRounds
+            vol += carryVol(mv, amrap.completedRounds)
           } else {
             addLoad(mv, amrap.completedRounds)
           }
@@ -450,8 +454,7 @@ function sessionVolume(session) {
         for (const mv of mb.movements) {
           if (mv.isRest || !mv.weight) continue
           if (CARRY_RE.test(mv.name ?? '')) {
-            const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-            vol += mv.weight * (bilateral ? 2 : 1) * rounds
+            vol += carryVol(mv, rounds)
           } else {
             addLoad(mv, rounds)
           }
@@ -463,8 +466,7 @@ function sessionVolume(session) {
     for (const mv of [...(mb.buyIn ?? []), ...(mb.buyOut ?? [])]) {
       if (mv.isRest || !mv.weight) continue
       if (CARRY_RE.test(mv.name ?? '')) {
-        const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-        vol += mv.weight * (bilateral ? 2 : 1)
+        vol += carryVol(mv, 1)
       } else {
         addLoad(mv, 1)
       }
@@ -472,9 +474,10 @@ function sessionVolume(session) {
   }
 
   for (const mv of session.accessoryBlock?.movements ?? []) {
+    const dbMult = mv.dumbbellCount ?? 1
     for (const s of mv.sets ?? []) {
       if (s.notation === 'warmup') continue
-      if (s.reps && s.weight) vol += s.reps * s.weight
+      if (s.reps && s.weight) vol += s.reps * s.weight * dbMult
     }
   }
 
@@ -855,7 +858,7 @@ export default function HomeScreen({ sessions, onLogWorkout, onEdit, kbOpen, log
         <p style={S.dateLabel}>{today()}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <h1 style={S.title}>LL Workouts</h1>
-          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v221</span>
+          <span style={{ backgroundColor: 'transparent', color: '#f560ff', fontSize: 10, fontWeight: 700, borderRadius: 5, padding: '2px 5px', letterSpacing: 0.3, border: '1px solid #f560ff' }}>v222</span>
         </div>
         {sessions !== null && sessions.length > 0 && (
           <div style={{ display: 'flex', gap: 16, marginTop: 10 }}>

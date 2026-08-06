@@ -22,8 +22,8 @@ function formatDate(dateStr) {
 
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false, isCompleted: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true, isCompleted: false } }
-function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, cardioUnit: 'cal' } }
+function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, cardioUnit: 'cal' } }
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
@@ -143,6 +143,7 @@ function restoreMetconMove(m) {
     minuteSpan: m.minuteSpan?.toString() ?? '',
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
     implement, singleArm, side,
+    dumbbellCount: m.dumbbellCount ?? null,
     cardioUnit: m.cardioUnit ?? parsed.cardioUnit,
   }
 }
@@ -506,27 +507,6 @@ function SuggestButton({ name, sets }) {
   )
 }
 
-// ─── DB Toggle (metcon) ───────────────────────────────────────────────
-function DbToggle({ value, onChange }) {
-  const pill = (active) => ({
-    backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
-    border: `1px solid ${active ? 'rgba(15,247,197,0.3)' : 'transparent'}`,
-    borderRadius: 8, padding: '5px 11px',
-    fontSize: 12, fontWeight: active ? 700 : 500, letterSpacing: 0.2,
-    color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
-    fontFamily: 'inherit', cursor: 'pointer',
-  })
-  return (
-    <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-      {[1, 2].map(n => (
-        <button key={n} onClick={() => onChange(value === n ? null : n)} style={pill(value === n)}>
-          {n} DB
-        </button>
-      ))}
-    </div>
-  )
-}
-
 // ─── Score Type Selector ────────────────────────────────────────────────
 // Disambiguates what a bare score number means — "25" reads identically whether it's
 // calories, rounds, or reps. Not shown for AMRAP, which already has its own unambiguous
@@ -558,8 +538,11 @@ function ScoreTypeSelector({ value, onChange }) {
 }
 
 // ─── Implement Selector ───────────────────────────────────────────────
-function ImplementSelector({ implement, singleArm, side, onChange, name }) {
+function ImplementSelector({ implement, singleArm, side, dumbbellCount, onChange, name }) {
   const canBeSA = implement === 'KB' || implement === 'DB'
+  // Whether it's 1 or 2 dumbbells isn't implied by "DB" alone, and single-arm already
+  // means one dumbbell in one hand — so the count picker only applies bilaterally.
+  const canPickDbCount = implement === 'DB' && !singleArm
   const canonicalName = normalizeMovement(name ?? '').name
   const isKnownBarbell = BB_STRENGTH_MOVEMENTS.has(canonicalName)
   // "Over" movements (Box Jump Over, Lateral Burpee Over, etc.) name what's being
@@ -580,22 +563,25 @@ function ImplementSelector({ implement, singleArm, side, onChange, name }) {
           : implement === imp
         return (
           <button key={imp}
-            onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null })}
+            onClick={() => onChange({ implement: implement === imp ? null : imp, singleArm: false, side: null, dumbbellCount: null })}
             style={pill(isActive)}
           >{imp === 'Rower' ? 'Row' : imp}</button>
         )
       })}
-      {canBeSA && !singleArm && (
-        <span style={{ color: 'rgba(15,247,197,0.55)', fontSize: 11, fontWeight: 700, alignSelf: 'center', letterSpacing: 0.3 }}>×2</span>
-      )}
+      {canPickDbCount && [1, 2].map(n => (
+        <button key={n}
+          onClick={() => onChange({ implement, singleArm, side, dumbbellCount: dumbbellCount === n ? null : n })}
+          style={pill(dumbbellCount === n)}
+        >{n} DB</button>
+      ))}
       {canBeSA && (
-        <button onClick={() => onChange({ implement, singleArm: !singleArm, side: null })} style={pill(singleArm)}>
+        <button onClick={() => onChange({ implement, singleArm: !singleArm, side: null, dumbbellCount: null })} style={pill(singleArm)}>
           SA
         </button>
       )}
       {canBeSA && singleArm && ['L', 'R'].map(s => (
         <button key={s}
-          onClick={() => onChange({ implement, singleArm, side: side === s ? null : s })}
+          onClick={() => onChange({ implement, singleArm, side: side === s ? null : s, dumbbellCount: null })}
           style={pill(side === s)}
         >{s}</button>
       ))}
@@ -704,6 +690,7 @@ function MultiSetStrengthInput({
               implement={move.implement}
               singleArm={move.singleArm}
               side={move.side}
+              dumbbellCount={move.dumbbellCount}
               name={move.name}
               onChange={patch => onImplementChange(mi, patch)}
             />
@@ -1596,6 +1583,7 @@ Rules:
             implement: m.implement ?? null,
             singleArm: m.singleArm ?? false,
             side: m.side ?? null,
+            dumbbellCount: m.dumbbellCount ?? null,
             sets: m.sets.map((s, idx) => ({
               setNumber: idx + 1,
               reps: s.reps !== '' ? Number(s.reps) : null,
@@ -1649,6 +1637,7 @@ Rules:
               implement: m.implement ?? null,
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
+              dumbbellCount: m.dumbbellCount ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
@@ -1680,6 +1669,7 @@ Rules:
               implement: m.implement ?? null,
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
+              dumbbellCount: m.dumbbellCount ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
@@ -2029,9 +2019,10 @@ Rules:
                   implement={move.implement}
                   singleArm={move.singleArm}
                   side={move.side}
+                  dumbbellCount={move.dumbbellCount}
                   name={move.name}
-                  onChange={({ implement, singleArm, side }) =>
-                    setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side } : m))
+                  onChange={({ implement, singleArm, side, dumbbellCount }) =>
+                    setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side, dumbbellCount } : m))
                   }
                 />
                 <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
@@ -2275,12 +2266,13 @@ Rules:
                           implement={move.implement}
                           singleArm={move.singleArm}
                           side={move.side}
+                          dumbbellCount={move.dumbbellCount}
                           name={move.name}
-                          onChange={({ implement, singleArm, side }) =>
+                          onChange={({ implement, singleArm, side, dumbbellCount }) =>
                             setMetconSegments(prev => prev.map((sg, sgi) =>
                               sgi === si ? {
                                 ...sg,
-                                moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side } : m)
+                                moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side, dumbbellCount } : m)
                               } : sg
                             ))
                           }
@@ -2589,12 +2581,13 @@ Rules:
                         implement={move.implement}
                         singleArm={move.singleArm}
                         side={move.side}
+                        dumbbellCount={move.dumbbellCount}
                         name={move.name}
-                        onChange={({ implement, singleArm, side }) =>
+                        onChange={({ implement, singleArm, side, dumbbellCount }) =>
                           setAccessorySegments(prev => prev.map((sg, sgi) =>
                             sgi === si ? {
                               ...sg,
-                              moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side } : m)
+                              moves: sg.moves.map((m, mii) => mii === mi ? { ...m, implement, singleArm, side, dumbbellCount } : m)
                             } : sg
                           ))
                         }

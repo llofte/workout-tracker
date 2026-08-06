@@ -430,9 +430,14 @@ export function toWorkoutDisplay(move, { abbreviate = true } = {}) {
       const suffix = { BB: 'BB', KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement]
       if (suffix) display = `${display} ${suffix}`
     } else {
-      const prefix = { KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement] // BB is silent
+      const bareLabel = { KB: 'KB', DB: 'DB', Plate: 'Plate', Rower: 'Rower' }[move.implement] // BB is silent
       // Skip if the abbreviation is already a standalone word in the canonical name (e.g. "Russian KB Swing")
-      if (prefix && !new RegExp(`\\b${prefix}\\b`).test(name)) display = `${prefix} ${display}`
+      if (bareLabel && !new RegExp(`\\b${bareLabel}\\b`).test(name)) {
+        // A count only applies to DB (e.g. "1 DB Step Up" vs "2 DB Thruster") — disambiguates
+        // whether one or both hands are loaded, since that isn't implied by "DB" alone.
+        const prefix = move.implement === 'DB' && move.dumbbellCount ? `${move.dumbbellCount} DB` : bareLabel
+        display = `${prefix} ${display}`
+      }
     }
   } else if (normalized.implement) {
     const prefix = SESSION_PREFIX[normalized.implement]

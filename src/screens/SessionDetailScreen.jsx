@@ -233,7 +233,7 @@ function calcPartialRoundVol(movements, extraReps) {
     // A timed hold's "reps" field is actually seconds — counts as 1 rep of work, not N.
     const mvReps = TIMED_RE.test(mv.name ?? '') ? 1 : (parseReps(mv.reps) || 0)
     const used = Math.min(mvReps, remaining)
-    if (mv.weight && used > 0) v += used * mv.weight
+    if (mv.weight && used > 0) v += used * mv.weight * (mv.dumbbellCount ?? 1)
     remaining -= mvReps
   }
   return v
@@ -242,9 +242,10 @@ function calcPartialRoundVol(movements, extraReps) {
 function calcStrengthVol(block) {
   let v = 0
   for (const mv of block?.movements ?? []) {
+    const dbMult = mv.dumbbellCount ?? 1
     for (const s of mv.sets ?? []) {
       if (s.notation === 'warmup') continue
-      if (s.reps && s.weight) v += s.reps * s.weight
+      if (s.reps && s.weight) v += s.reps * s.weight * dbMult
     }
   }
   return v
@@ -252,7 +253,8 @@ function calcStrengthVol(block) {
 
 function carryVol(mv, rounds) {
   const bilateral = !mv.singleArm && (mv.implement === 'DB' || mv.implement === 'KB')
-  return mv.weight * (bilateral ? 2 : 1) * rounds
+  const count = mv.dumbbellCount ?? (bilateral ? 2 : 1)
+  return mv.weight * count * rounds
 }
 
 function calcMetconVol(block) {
@@ -267,7 +269,7 @@ function calcMetconVol(block) {
     // A timed hold's "reps" field is actually seconds — counts as 1 rep of load per
     // round, not (seconds × weight), which would wildly overstate volume.
     const reps = TIMED_RE.test(mv.name ?? '') ? 1 : parseReps(mv.reps)
-    if (reps) v += reps * mv.weight * mult
+    if (reps) v += reps * mv.weight * (mv.dumbbellCount ?? 1) * mult
   }
   const amrapSeg = block.format === 'AMRAP' ? parseAmrapScore(block.score) : null
   for (const seg of block.segments ?? []) {
@@ -385,13 +387,16 @@ function SummaryBox({ score, vol }) {
   )
 }
 
-function computeSetPRStatus(set, moveName, allMovements) {
+function computeSetPRStatus(set, moveName, allMovements, dumbbellCount) {
   const record = allMovements?.find(m => m.name === moveName)
   const best = record?.prs
     ?.filter(p => p.reps === set.reps)
     ?.reduce((b, p) => p.weight > (b?.weight ?? -1) ? p : b, null)
   if (!best || set.weight == null) return null
-  if (set.weight >= best.weight) return 'current'
+  // Stored PR weight is total load (weight × dumbbellCount, per detectPRs in LogScreen.jsx) —
+  // compare against the same total, not the raw per-dumbbell weight.
+  const totalLoad = set.weight * (dumbbellCount ?? 1)
+  if (totalLoad >= best.weight) return 'current'
   if (set.isPR) return 'former'
   return null
 }
@@ -408,9 +413,9 @@ function PRBadgeLabel({ label, color }) {
   )
 }
 
-function SetRows({ sets, moveName, allMovements, inlineLayout }) {
+function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) {
   function prStatus(set) {
-    return computeSetPRStatus(set, moveName, allMovements)
+    return computeSetPRStatus(set, moveName, allMovements, dumbbellCount)
   }
 
   let workNum = 0
@@ -638,7 +643,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
     let anyPR = false
     const cells = movements.map((move, mi) => {
       const set = isWarmupSection ? perMove[mi].warm[sectionIndex] : perMove[mi].work[sectionIndex]
-      const pr = set ? computeSetPRStatus(set, move.name, allMovements) : null
+      const pr = set ? computeSetPRStatus(set, move.name, allMovements, move.dumbbellCount) : null
       if (pr === 'current') anyPR = true
       return (
         <div key={mi} style={{ display: 'contents' }}>
@@ -724,7 +729,7 @@ function StrengthBlock({ block, allMovements }) {
                 </span>
               </div>
             )}
-            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout />
+            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout dumbbellCount={move.dumbbellCount} />
           </div>
         ))}
 
