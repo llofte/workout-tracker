@@ -427,7 +427,9 @@ function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) 
     const label = isWarmup ? 'W' : workNum
     const color = isCurrentPR ? '#0ff7c5' : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8')
     const repsText = set.reps != null ? `${set.reps} ${set.reps === 1 ? 'rep' : 'reps'}` : '—'
-    const weightText = set.weight != null ? `${set.weight} lbs` : '—'
+    // Bodyweight sets (weight explicitly 0) show no weight at all, not "0 lbs" — a
+    // genuinely unset weight (null) still shows the "—" placeholder.
+    const weightText = set.weight === 0 ? '' : (set.weight != null ? `${set.weight} lbs` : '—')
     return (
       <div key={si} style={{
         display: 'flex', gap: 4, alignItems: 'center',
@@ -616,7 +618,7 @@ function MultiSetCell({ set, isPR, weightSlotWidth }) {
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center' }}>
       <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff }}>x{set.reps}</span>
-      {weight != null && (
+      {weight != null && weight !== 0 && (
         <>
           <span style={{ fontSize: 13, fontWeight: 500, color, fontFamily: ff, margin: '0 4px' }}>·</span>
           <span style={{
