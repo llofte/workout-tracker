@@ -387,7 +387,16 @@ function SummaryBox({ score, vol }) {
   )
 }
 
-function computeSetPRStatus(set, moveName, allMovements, dumbbellCount) {
+// 'current': this set genuinely set a new record (set.isPR, saved once at log time by
+//   detectPRs() with a strict > comparison) and it's still the best on file.
+// 'former': this set set a record once, but a later session has since beaten it.
+// 'max': this set ties the existing best exactly, but didn't set it — and that record
+//   belongs to a DIFFERENT (earlier) session, so it's a tie, not a new PR. A tie against
+//   a record set earlier in THIS SAME session (e.g. a second set landing on a PR another
+//   set here just set) is intentionally not flagged at all — set.isPR already reflects
+//   "first time achieving" correctly, both within a workout and across workouts, since
+//   detectPRs mutates its running prs list as it iterates a movement's sets in order.
+function computeSetPRStatus(set, moveName, allMovements, dumbbellCount, sessionId) {
   const record = allMovements?.find(m => m.name === moveName)
   const best = record?.prs
     ?.filter(p => p.reps === set.reps)
@@ -396,26 +405,26 @@ function computeSetPRStatus(set, moveName, allMovements, dumbbellCount) {
   // Stored PR weight is total load (weight × dumbbellCount, per detectPRs in LogScreen.jsx) —
   // compare against the same total, not the raw per-dumbbell weight.
   const totalLoad = set.weight * (dumbbellCount ?? 1)
-  if (totalLoad >= best.weight) return 'current'
-  if (set.isPR) return 'former'
+  if (set.isPR) return totalLoad >= best.weight ? 'current' : 'former'
+  if (totalLoad === best.weight && best.sessionId !== sessionId) return 'max'
   return null
 }
 
-function PRBadgeLabel({ label, color }) {
+function PRBadgeLabel({ label, color, text = 'PR' }) {
   return (
     <span style={{ flexShrink: 0, fontSize: 13, fontWeight: 600, fontFamily: ff, color, display: 'flex', alignItems: 'center', gap: 2 }}>
       {label}
       <svg width="10" height="10" viewBox="0 0 24 24" fill={color} stroke="none">
         <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
       </svg>
-      PR
+      {text}
     </span>
   )
 }
 
-function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) {
+function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount, sessionId }) {
   function prStatus(set) {
-    return computeSetPRStatus(set, moveName, allMovements, dumbbellCount)
+    return computeSetPRStatus(set, moveName, allMovements, dumbbellCount, sessionId)
   }
 
   let workNum = 0
@@ -424,8 +433,9 @@ function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) 
     if (!isWarmup) workNum++
     const pr = prStatus(set)
     const isCurrentPR = pr === 'current'
+    const isMax = pr === 'max'
     const label = isWarmup ? 'W' : workNum
-    const color = isCurrentPR ? '#0ff7c5' : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8')
+    const color = isCurrentPR ? '#0ff7c5' : isMax ? '#d4af37' : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8')
     const repsText = set.reps != null ? `${set.reps} ${set.reps === 1 ? 'rep' : 'reps'}` : '—'
     // Bodyweight sets (weight explicitly 0) show no weight at all, not "0 lbs" — a
     // genuinely unset weight (null) still shows the "—" placeholder.
@@ -438,7 +448,9 @@ function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) 
           ? '0.5px solid rgba(255,255,255,0.05)'
           : si < sets.length - 1 ? '0.5px solid rgba(255,255,255,0.05)' : 'none',
       }}>
-        {isCurrentPR ? <PRBadgeLabel label={label} color={color} /> : (
+        {isCurrentPR ? <PRBadgeLabel label={label} color={color} text="PR" />
+          : isMax ? <PRBadgeLabel label={label} color={color} text="MAX" />
+          : (
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <span style={{ ...S.setNum(isWarmup), width: 22 }}>{label}</span>
             {pr === 'former' && (
@@ -447,11 +459,11 @@ function SetRows({ sets, moveName, allMovements, inlineLayout, dumbbellCount }) 
           </span>
         )}
         <div style={{ flex: 1 }} />
-        <span style={{ width: 56, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8') }}>
+        <span style={{ width: 56, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: (isCurrentPR || isMax) ? color : (isWarmup ? 'rgba(245,240,232,0.4)' : '#f5f0e8') }}>
           {repsText}
         </span>
         <span style={{ width: 18, flexShrink: 0 }} />
-        <span style={{ width: 64, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: isCurrentPR ? color : (isWarmup ? 'rgba(245,240,232,0.28)' : set.weight ? '#f5f0e8' : 'rgba(245,240,232,0.25)') }}>
+        <span style={{ width: 64, flexShrink: 0, textAlign: 'right', fontSize: 14, fontWeight: isWarmup ? 400 : 500, fontFamily: ff, color: (isCurrentPR || isMax) ? color : (isWarmup ? 'rgba(245,240,232,0.28)' : set.weight ? '#f5f0e8' : 'rgba(245,240,232,0.25)') }}>
           {weightText}
         </span>
       </div>
@@ -611,9 +623,9 @@ function majorityWeightSlotWidth(sets) {
 // browser's automatic content-based minimum size, so an overflowing value (e.g. "100 lbs"
 // in a column otherwise full of 2-digit weights) spills past the slot visually without
 // growing the box, keeping the reps/dot position identical across every row in the column.
-function MultiSetCell({ set, isPR, weightSlotWidth }) {
+function MultiSetCell({ set, status, weightSlotWidth }) {
   if (!set) return <span style={{ fontSize: 13, color: 'rgba(245,240,232,0.25)', fontFamily: ff }}>—</span>
-  const color = isPR ? '#0ff7c5' : '#f5f0e8'
+  const color = status === 'current' ? '#0ff7c5' : status === 'max' ? '#d4af37' : '#f5f0e8'
   const weight = set.weight != null ? set.weight : null
   return (
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'center' }}>
@@ -631,7 +643,7 @@ function MultiSetCell({ set, isPR, weightSlotWidth }) {
   )
 }
 
-function MultiSetStrengthTable({ movements, allMovements }) {
+function MultiSetStrengthTable({ movements, allMovements, sessionId }) {
   const headers = multiTableHeaders(movements)
   const perMove = movements.map(m => ({
     warm: (m.sets ?? []).filter(s => s.notation === 'warmup'),
@@ -642,15 +654,17 @@ function MultiSetStrengthTable({ movements, allMovements }) {
   const weightSlotWidths = perMove.map(p => majorityWeightSlotWidth([...p.warm, ...p.work]))
 
   function renderRow({ key, label, labelColor, isWarmupSection, sectionIndex }) {
-    let anyPR = false
+    let anyCurrent = false
+    let anyMax = false
     const cells = movements.map((move, mi) => {
       const set = isWarmupSection ? perMove[mi].warm[sectionIndex] : perMove[mi].work[sectionIndex]
-      const pr = set ? computeSetPRStatus(set, move.name, allMovements, move.dumbbellCount) : null
-      if (pr === 'current') anyPR = true
+      const pr = set ? computeSetPRStatus(set, move.name, allMovements, move.dumbbellCount, sessionId) : null
+      if (pr === 'current') anyCurrent = true
+      if (pr === 'max') anyMax = true
       return (
         <div key={mi} style={{ display: 'contents' }}>
           <div style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center' }}>
-            <MultiSetCell set={set} isPR={pr === 'current'} weightSlotWidth={weightSlotWidths[mi]} />
+            <MultiSetCell set={set} status={pr} weightSlotWidth={weightSlotWidths[mi]} />
           </div>
           <ColumnDivider />
         </div>
@@ -659,7 +673,9 @@ function MultiSetStrengthTable({ movements, allMovements }) {
     return (
       <div key={key} style={{ display: 'flex', alignItems: 'center', padding: '7px 16px', borderTop: '0.5px solid rgba(255,255,255,0.05)' }}>
         <div style={{ width: MULTI_LABEL_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
-          {anyPR ? <PRBadgeLabel label={label} color="#0ff7c5" /> : (
+          {anyCurrent ? <PRBadgeLabel label={label} color="#0ff7c5" text="PR" />
+            : anyMax ? <PRBadgeLabel label={label} color="#d4af37" text="MAX" />
+            : (
             <span style={{ fontSize: 13, fontWeight: 600, fontFamily: ff, color: labelColor }}>{label}</span>
           )}
         </div>
@@ -698,7 +714,7 @@ function MultiSetStrengthTable({ movements, allMovements }) {
   )
 }
 
-function StrengthBlock({ block, allMovements }) {
+function StrengthBlock({ block, allMovements, sessionId }) {
   if (!block) return null
   const moves = block.movements ?? []
   const mode = resolveStrengthMode(block)
@@ -721,7 +737,7 @@ function StrengthBlock({ block, allMovements }) {
         </div>
 
         {mode === 'multi' ? (
-          <MultiSetStrengthTable movements={moves} allMovements={allMovements} />
+          <MultiSetStrengthTable movements={moves} allMovements={allMovements} sessionId={sessionId} />
         ) : moves.map((move, i) => (
           <div key={i}>
             {isMultiMove && (
@@ -731,7 +747,7 @@ function StrengthBlock({ block, allMovements }) {
                 </span>
               </div>
             )}
-            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout dumbbellCount={move.dumbbellCount} />
+            <SetRows sets={move.sets} moveName={move.name} allMovements={allMovements} inlineLayout dumbbellCount={move.dumbbellCount} sessionId={sessionId} />
           </div>
         ))}
 
@@ -1009,7 +1025,7 @@ export default function SessionDetailScreen({ session, onBack, onEdit }) {
         )}
       </div>
 
-      <StrengthBlock block={strengthBlock} allMovements={allMovements} />
+      <StrengthBlock block={strengthBlock} allMovements={allMovements} sessionId={session.id} />
       {accessoryBlock?.beforeMetcon && <AccessoryBlock block={accessoryBlock} />}
       <MetconBlock block={metconBlock} />
       {!accessoryBlock?.beforeMetcon && <AccessoryBlock block={accessoryBlock} />}
