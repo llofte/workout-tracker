@@ -2,7 +2,9 @@
 
 ## Session handoff — read this first
 
-**Current version:** v224 / `bb-wod-v199` (`HomeScreen.jsx` badge / `public/sw.js` CACHE). Not yet committed or pushed — see below.
+**Current version:** v225 / `bb-wod-v200` (`HomeScreen.jsx` badge / `public/sw.js` CACHE). Not yet committed or pushed — see below.
+
+**v225 — "Bike" now always logs as "Row".** User request: they never actually do the bike, always substituting Row (matching whatever unit the board assigns, e.g. "10 cal bike" → "10 cal Row"). Changed the 4 Bike-variant `ALIAS_MAP` entries in `movements.js` (`BIKE`, `ASSAULT BIKE`, `AIR BIKE`, `ECHO BIKE`) from `{ name: 'Assault Bike' }` to `{ name: 'Row' }`. Verified `CARDIO_RE` (LogScreen.jsx/SessionDetailScreen.jsx) already matches both `bike` and `row` patterns, so cardio-unit defaulting/implement-pill suppression is unaffected. Found a stray old local-seed note (`db.js`, unused Dexie/IndexedDB leftover from the original pre-Supabase spec, not live data) reading `'cal — bike sub'` — a nice confirmation this exact substitution is what the user was already doing manually. Verified live via `normalizeMovement()`: "Bike"/"Assault Bike"/"Air Bike"/"Echo Bike" all resolve to `{ name: 'Row' }`.
 
 **v224 — Three Strength-logging bugs fixed.**
 1. **Deleting movements back down to 1 left a stale OTM type / Multi mode active.** `removeStrengthMove()` never reset `strengthType`/`strengthMode` — only the 1→2 direction (`addStrengthMove`) was ever handled. Fixed: dropping back to 1 movement now resets both to `'Traditional'`/`'single'`.

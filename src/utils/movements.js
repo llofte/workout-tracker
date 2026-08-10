@@ -314,11 +314,12 @@ const ALIAS_MAP = {
   'SUITCASE CARRY':   { name: 'Farmer Carry' },
   'SUITCASE CARRIES': { name: 'Farmer Carry' },
 
-  // ── Bike variants → Assault Bike ─────────────────────────────────────────
-  'BIKE':         { name: 'Assault Bike' },
-  'ASSAULT BIKE': { name: 'Assault Bike' },
-  'AIR BIKE':     { name: 'Assault Bike' },
-  'ECHO BIKE':    { name: 'Assault Bike' },
+  // ── Bike variants → Row (never actually rides the bike, substitutes Row 1:1 —
+  // whatever unit the board assigns, e.g. "10 cal bike", carries straight over) ────
+  'BIKE':         { name: 'Row' },
+  'ASSAULT BIKE': { name: 'Row' },
+  'AIR BIKE':     { name: 'Row' },
+  'ECHO BIKE':    { name: 'Row' },
 }
 
 // Generic fallback for raw names NOT covered by an explicit ALIAS_MAP entry — strips a
