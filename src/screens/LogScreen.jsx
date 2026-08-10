@@ -22,6 +22,15 @@ function formatDate(dateStr) {
 
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false, isCompleted: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true, isCompleted: false } }
+// Re-derives every set's num from its position, independently for warmup (W1, W2…) and
+// working (1, 2, 3…) sets — call after any add/delete so num always matches display order.
+// Without this, adds/deletes that derive the new num from the current array length (not
+// the max existing num) drift out of sync with position after the first delete, producing
+// duplicate/skipped numbers (e.g. "2, 2, 3, 4, 5, 6, 7").
+function renumberSets(sets) {
+  let wn = 0, wkn = 0
+  return sets.map(s => s.isWarmup ? { ...s, num: `W${++wn}` } : { ...s, num: ++wkn })
+}
 function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, modifier: null } }
 function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, modifier: null, cardioUnit: 'cal' } }
 
@@ -1118,21 +1127,35 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       return [...prev, newStrengthMove()]
     })
   }
-  function removeStrengthMove(i) { setStrengthMoves(prev => prev.filter((_, j) => j !== i)) }
+  function removeStrengthMove(i) {
+    setStrengthMoves(prev => {
+      const next = prev.filter((_, j) => j !== i)
+      // Down to 1 movement — a leftover OTM type or Multi mode from when there were
+      // more movements no longer makes sense, so fall back to the plain default.
+      if (next.length === 1) {
+        setStrengthType('Traditional')
+        setStrengthMode('single')
+      }
+      return next
+    })
+  }
   function addWorkingSet(mi) {
     setStrengthMoves(prev => prev.map((m, i) => {
       if (i !== mi) return m
-      const n = m.sets.filter(s => !s.isWarmup).length
-      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+      const working = m.sets.filter(s => !s.isWarmup)
+      const last = working[working.length - 1]
+      const newSet = { ...newWorkingSet(0), reps: last?.reps ?? '', weight: last?.weight ?? '' }
+      return { ...m, sets: renumberSets([...m.sets, newSet]) }
     }))
   }
   function addWarmupSet(mi) {
     setStrengthMoves(prev => prev.map((m, i) => {
       if (i !== mi) return m
-      const wn = m.sets.filter(s => s.isWarmup).length
       const warm = m.sets.filter(s => s.isWarmup)
       const work = m.sets.filter(s => !s.isWarmup)
-      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+      const last = warm[warm.length - 1]
+      const newSet = { ...newWarmupSet(0), reps: last?.reps ?? '', weight: last?.weight ?? '' }
+      return { ...m, sets: renumberSets([...warm, newSet, ...work]) }
     }))
   }
   function updateSet(mi, si, field, val) {
@@ -1153,7 +1176,7 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function deleteSet(mi, si) {
     setStrengthMoves(prev => prev.map((m, i) => {
       if (i !== mi) return m
-      return { ...m, sets: m.sets.filter((_, j) => j !== si) }
+      return { ...m, sets: renumberSets(m.sets.filter((_, j) => j !== si)) }
     }))
   }
 
@@ -1163,34 +1186,41 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   // they happen before the shared complex/superset rounds begin.
   // Switching Single -> Multi: pad any movement whose working-set count is below
   // the max found, so every movement shares the same round count. Warmups untouched.
-  // Switching Multi -> Single is always safe as-is (no changes needed).
+  // Both directions renumber — num can already be stale/duplicated from an earlier
+  // add/delete (multi mode displays rounds by loop index, not num, so corruption there
+  // was invisible until switching to Single, which does display num directly).
   function handleStrengthModeChange(nextMode) {
     if (nextMode === 'multi') {
       setStrengthMoves(prev => {
         const maxWork = Math.max(...prev.map(m => m.sets.filter(s => !s.isWarmup).length))
         return prev.map(m => {
           const work = m.sets.filter(s => !s.isWarmup)
-          if (work.length >= maxWork) return m
+          if (work.length >= maxWork) return { ...m, sets: renumberSets(m.sets) }
           const warm = m.sets.filter(s => s.isWarmup)
-          const extra = Array.from({ length: maxWork - work.length }, (_, i) => newWorkingSet(work.length + i + 1))
-          return { ...m, sets: [...warm, ...work, ...extra] }
+          const extra = Array.from({ length: maxWork - work.length }, () => newWorkingSet(0))
+          return { ...m, sets: renumberSets([...warm, ...work, ...extra]) }
         })
       })
+    } else {
+      setStrengthMoves(prev => prev.map(m => ({ ...m, sets: renumberSets(m.sets) })))
     }
     setStrengthMode(nextMode)
   }
   function addMultiRound() {
     setStrengthMoves(prev => prev.map(m => {
-      const n = m.sets.filter(s => !s.isWarmup).length
-      return { ...m, sets: [...m.sets, newWorkingSet(n + 1)] }
+      const working = m.sets.filter(s => !s.isWarmup)
+      const last = working[working.length - 1]
+      const newSet = { ...newWorkingSet(0), reps: last?.reps ?? '', weight: last?.weight ?? '' }
+      return { ...m, sets: renumberSets([...m.sets, newSet]) }
     }))
   }
   function addMultiWarmupRound() {
     setStrengthMoves(prev => prev.map(m => {
-      const wn = m.sets.filter(s => s.isWarmup).length
       const warm = m.sets.filter(s => s.isWarmup)
       const work = m.sets.filter(s => !s.isWarmup)
-      return { ...m, sets: [...warm, newWarmupSet(wn + 1), ...work] }
+      const last = warm[warm.length - 1]
+      const newSet = { ...newWarmupSet(0), reps: last?.reps ?? '', weight: last?.weight ?? '' }
+      return { ...m, sets: renumberSets([...warm, newSet, ...work]) }
     }))
   }
   // sectionIndex is per-movement position within its own warmup or working sub-list —
@@ -1201,10 +1231,10 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
       const work = m.sets.filter(s => !s.isWarmup)
       if (isWarmupSection) {
         if (sectionIndex >= warm.length) return m
-        return { ...m, sets: [...warm.filter((_, i) => i !== sectionIndex), ...work] }
+        return { ...m, sets: renumberSets([...warm.filter((_, i) => i !== sectionIndex), ...work]) }
       }
       if (sectionIndex >= work.length) return m
-      return { ...m, sets: [...warm, ...work.filter((_, i) => i !== sectionIndex)] }
+      return { ...m, sets: renumberSets([...warm, ...work.filter((_, i) => i !== sectionIndex)]) }
     }))
   }
   function addMultiMovement() {
