@@ -1,6 +1,8 @@
-// Alias map: uppercase raw name → canonical {name, implement?, modifier?}
+// Alias map: uppercase raw name → canonical {name, implement?, modifier?, singleArm?}
 // 'implement' is one of: 'Barbell' | 'Dumbbell' | 'Kettlebell' | 'Med Ball' | 'Band' | 'Plate'
-// 'modifier' is a display-level prefix: 'SA' | 'Strict' | 'Banded' | 'Prisoner' | etc.
+// 'modifier' is a display-level prefix: 'Strict' | 'Banded' | 'Prisoner' | 'Split-Stance' | etc.
+//   — do NOT use 'SA' here; single-arm is the structured 'singleArm' field below.
+// 'singleArm' (boolean) — set true when the raw name indicates single-arm execution.
 const ALIAS_MAP = {
   // ── V-Up variants ─────────────────────────────────────────────────────────
   'V-UPS':          { name: 'V-Up' },
@@ -26,14 +28,14 @@ const ALIAS_MAP = {
   'PLATE SIT UP':          { name: 'Sit-Up', implement: 'Plate' },
 
   // ── Overhead Lunge ────────────────────────────────────────────────────────
-  'SA OH LUNGE':                    { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SA OVERHEAD LUNGE':              { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE-ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE-ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
-  'SINGLE-ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', modifier: 'SA' },
+  'SA OH LUNGE':                    { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SA OVERHEAD LUNGE':              { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE-ARM OVERHEAD LUNGE':      { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE-ARM OVERHEAD LUNGE (L)':  { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
+  'SINGLE-ARM OVERHEAD LUNGE (R)':  { name: 'Overhead Lunge', implement: 'Dumbbell', singleArm: true },
   'OH LUNGE':                       { name: 'Overhead Lunge' },
   'OVERHEAD PLATE LUNGE':           { name: 'Overhead Lunge', implement: 'Plate' },
   'OVERHEAD PLATE LUNGES':          { name: 'Overhead Lunge', implement: 'Plate' },
@@ -46,7 +48,7 @@ const ALIAS_MAP = {
 
   // ── DB Snatch → merged into Snatch (implement: Dumbbell) ─────────────────
   'DB SNATCH':     { name: 'Snatch', implement: 'Dumbbell' },
-  'SA DB SNATCH':  { name: 'Snatch', implement: 'Dumbbell', modifier: 'SA' },
+  'SA DB SNATCH':  { name: 'Snatch', implement: 'Dumbbell', singleArm: true },
   'ALT DB SNATCH': { name: 'Snatch', implement: 'Dumbbell' },
   'DB SN':         { name: 'Snatch', implement: 'Dumbbell' },
   'ALT DB SN':     { name: 'Snatch', implement: 'Dumbbell' },
@@ -90,6 +92,12 @@ const ALIAS_MAP = {
   'BOX JUMP-OVER': { name: 'Box Jump Over' },
   'BOX JUMP OVER': { name: 'Box Jump Over' },
 
+  // ── Plate Jump — "Plate" here is the object jumped onto (like Box Jump), not a
+  // substitutable lifted implement, so it must NOT be stripped by the generic
+  // implement-word fallback below. Explicit protection entry.
+  'PLATE JUMP':  { name: 'Plate Jump' },
+  'PLATE JUMPS': { name: 'Plate Jump' },
+
   // ── Lateral Burpee Over (object → implement field, same pattern as Lateral Sprawl
   // Jump Over above — the bare name normalizes as-is via the fallback path below) ───
   'LATERAL BURPEE OVER BAR':       { name: 'Lateral Burpee Over', implement: 'Barbell' },
@@ -103,14 +111,14 @@ const ALIAS_MAP = {
   'LATERAL BURPEE OVER KB':        { name: 'Lateral Burpee Over', implement: 'Kettlebell' },
   'LATERAL BURPEE OVER KETTLEBELL':{ name: 'Lateral Burpee Over', implement: 'Kettlebell' },
 
-  // ── KB Swing / Russian KB Swing ───────────────────────────────────────────
+  // ── KB Swing / Russian KB Swing (Russian is a modifier on the same base move) ─────
   'KB SWING':         { name: 'KB Swing' },
   'BANDED SWING':     { name: 'KB Swing', modifier: 'Banded' },
   'BANDED SWINGS':    { name: 'KB Swing', modifier: 'Banded' },
-  'RUSSIAN SWING':    { name: 'Russian KB Swing' },
-  'RUSSIAN SWINGS':   { name: 'Russian KB Swing' },
-  'RUSSIAN KB SWING': { name: 'Russian KB Swing' },
-  'RUSSIAN KB SWINGS':{ name: 'Russian KB Swing' },
+  'RUSSIAN SWING':    { name: 'KB Swing', modifier: 'Russian' },
+  'RUSSIAN SWINGS':   { name: 'KB Swing', modifier: 'Russian' },
+  'RUSSIAN KB SWING': { name: 'KB Swing', modifier: 'Russian' },
+  'RUSSIAN KB SWINGS':{ name: 'KB Swing', modifier: 'Russian' },
 
   // ── Gorilla Row (always KB) / Devil Press ─────────────────────────────────
   'GORILLA ROW':      { name: 'Gorilla Row', implement: 'Kettlebell' },
@@ -119,24 +127,25 @@ const ALIAS_MAP = {
   'KB GORILLA ROW':   { name: 'Gorilla Row', implement: 'Kettlebell' },
   'DEVIL PRESS':      { name: 'Devil Press' },
   'DB DEVIL PRESS':   { name: 'Devil Press' },
-  "SA DEVIL'S PRESS": { name: 'Devil Press', modifier: 'SA' },
+  "SA DEVIL'S PRESS": { name: 'Devil Press', singleArm: true },
 
   // ── Prisoner Step-Up ──────────────────────────────────────────────────────
   'PRISONER STEP-UP': { name: 'Step-Up', modifier: 'Prisoner' },
   'PRISONER STEP UP': { name: 'Step-Up', modifier: 'Prisoner' },
 
-  // ── Split-Stance Press (single-arm, DB/KB — "Single-Arm" lives in modifier, not the name) ──
-  'SPLIT STANCE SINGLE ARM PRESS':          { name: 'Split-Stance Press', modifier: 'SA' },
-  'SPLIT-STANCE SINGLE-ARM PRESS':          { name: 'Split-Stance Press', modifier: 'SA' },
-  'SPLIT STANCE SA PRESS':                  { name: 'Split-Stance Press', modifier: 'SA' },
-  'SPLIT STANCE SINGLE ARM PRESS (KB)':     { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
-  'SPLIT-STANCE SINGLE-ARM PRESS (KB)':     { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
-  'SPLIT STANCE SINGLE ARM PRESS (DB)':     { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
-  'SPLIT-STANCE SINGLE-ARM PRESS (DB)':     { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
-  'KB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
-  'DB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
-  'SPLIT STANCE SA KB PRESS':               { name: 'Split-Stance Press', implement: 'Kettlebell', modifier: 'SA' },
-  'SPLIT STANCE SA DB PRESS':               { name: 'Split-Stance Press', implement: 'Dumbbell', modifier: 'SA' },
+  // ── Split-Stance Press → base move is just "Press"; "Split-Stance" is a modifier,
+  // single-arm is the structured singleArm field, not text baked into name/modifier ──
+  'SPLIT STANCE SINGLE ARM PRESS':          { name: 'Press', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT-STANCE SINGLE-ARM PRESS':          { name: 'Press', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT STANCE SA PRESS':                  { name: 'Press', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT STANCE SINGLE ARM PRESS (KB)':     { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (KB)':     { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT STANCE SINGLE ARM PRESS (DB)':     { name: 'Press', implement: 'Dumbbell', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT-STANCE SINGLE-ARM PRESS (DB)':     { name: 'Press', implement: 'Dumbbell', singleArm: true, modifier: 'Split-Stance' },
+  'KB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Split-Stance' },
+  'DB SPLIT STANCE SINGLE ARM PRESS':       { name: 'Press', implement: 'Dumbbell', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT STANCE SA KB PRESS':               { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Split-Stance' },
+  'SPLIT STANCE SA DB PRESS':               { name: 'Press', implement: 'Dumbbell', singleArm: true, modifier: 'Split-Stance' },
 
   // ── DB Front Squat ────────────────────────────────────────────────────────
   'DB FRONT SQUAT': { name: 'Front Squat', implement: 'Dumbbell' },
@@ -237,10 +246,10 @@ const ALIAS_MAP = {
 
   // ── Hang Clean & Jerk ─────────────────────────────────────────────────────
   'HANG C&J':              { name: 'Hang Clean & Jerk' },
-  'SA DB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Dumbbell', modifier: 'SA' },
-  'SA DB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Dumbbell', modifier: 'SA' },
-  'SA KB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Kettlebell', modifier: 'SA' },
-  'SA KB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Kettlebell', modifier: 'SA' },
+  'SA DB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Dumbbell', singleArm: true },
+  'SA DB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Dumbbell', singleArm: true },
+  'SA KB HANG CLEAN & JERK': { name: 'Hang Clean & Jerk', implement: 'Kettlebell', singleArm: true },
+  'SA KB HANG C&J':        { name: 'Hang Clean & Jerk', implement: 'Kettlebell', singleArm: true },
 
   // ── Weightlifting abbreviations ───────────────────────────────────────────
   'DL':             { name: 'Deadlift' },
@@ -290,15 +299,15 @@ const ALIAS_MAP = {
   // ── DB Floor Press ────────────────────────────────────────────────────────
   'DB FLOOR PRESS': { name: 'Floor Press', implement: 'Dumbbell' },
 
-  // ── SA KB Press ───────────────────────────────────────────────────────────
-  'SA HK KB PRESS': { name: 'Strict Press', implement: 'Kettlebell', modifier: 'SA' },
-  'SA HK SH.P.':    { name: 'Strict Press', implement: 'Kettlebell', modifier: 'SA' },
+  // ── SA Half-Kneeling KB Press → base move "Press", Strict as modifier, SA structured ──
+  'SA HK KB PRESS': { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Strict' },
+  'SA HK SH.P.':    { name: 'Press', implement: 'Kettlebell', singleArm: true, modifier: 'Strict' },
 
   // ── Med Ball movements ────────────────────────────────────────────────────
   'WALL BALL':       { name: 'Wall Ball' },
   'WALL BALLS':      { name: 'Wall Ball' },
   'SLAM BALL':       { name: 'Slam Ball' },
-  'MB OBLIQUE TOSS': { name: 'MB Oblique Toss' },
+  'MB OBLIQUE TOSS': { name: 'Oblique Toss', implement: 'Med Ball' },
 
   // ── Carries ───────────────────────────────────────────────────────────────
   'FARMER CARRIES':   { name: 'Farmer Carry' },
@@ -312,13 +321,36 @@ const ALIAS_MAP = {
   'ECHO BIKE':    { name: 'Assault Bike' },
 }
 
-// Implement prefix patterns — tried in order after ALIAS_MAP miss
-// Longer/more specific prefixes first
-const IMPLEMENT_PREFIXES = [
-  { match: /^BB /i,  implement: 'Barbell' },
-  { match: /^DB /i,  implement: 'Dumbbell' },
-  { match: /^KB /i,  implement: 'Kettlebell' },
-  { match: /^MB /i,  implement: 'Med Ball' },
+// Generic fallback for raw names NOT covered by an explicit ALIAS_MAP entry — strips a
+// leading implement word (abbreviation OR full word) and/or a leading modifier word,
+// in any order, so a new whiteboard combination we haven't hand-aliased yet (e.g. "Alt
+// DB Step Up", "Barbell Row") still splits into {name, implement, modifier} instead of
+// creating a brand-new baked-in movement name. This is the scalable alternative to
+// enumerating every modifier×implement×movement combination by hand.
+const IMPLEMENT_WORDS = [
+  { match: /^(BARBELL|BB)\b\.?\s*/i,               implement: 'Barbell' },
+  { match: /^(DUMBBELL|DB)\b\.?\s*/i,               implement: 'Dumbbell' },
+  { match: /^(KETTLEBELL|KB)\b\.?\s*/i,             implement: 'Kettlebell' },
+  { match: /^(MEDICINE\s*BALL|MED\s*BALL|MB)\b\.?\s*/i, implement: 'Med Ball' },
+  { match: /^PLATE\b\.?\s*/i,                       implement: 'Plate' },
+]
+
+// Single-arm is structured (singleArm boolean), not a display modifier string.
+const SA_WORD_RE = /^(SINGLE[\s-]?ARM|SA)\b\.?\s*/i
+
+// Modifier words recognized generically wherever they lead a raw name. Deliberately
+// excludes 'Sumo' and 'Single-Leg' — those name genuinely distinct movements (different
+// biomechanics), not a variation of a shared base movement. Don't add words like that
+// here without checking first; this list is for true "how it's done" descriptors.
+const MODIFIER_WORDS = [
+  { match: /^ALT(?:ERNATING)?\b\.?\s*/i,   modifier: 'Alt' },
+  { match: /^STRICT\b\.?\s*/i,             modifier: 'Strict' },
+  { match: /^WEIGHTED\b\.?\s*/i,           modifier: 'Weighted' },
+  { match: /^DEFICIT\b\.?\s*/i,            modifier: 'Deficit' },
+  { match: /^BANDED\b\.?\s*/i,             modifier: 'Banded' },
+  { match: /^SPLIT[\s-]?STANCE\b\.?\s*/i,  modifier: 'Split-Stance' },
+  { match: /^PRISONER\b\.?\s*/i,           modifier: 'Prisoner' },
+  { match: /^KNEELING\b\.?\s*/i,           modifier: 'Kneeling' },
 ]
 
 // Session-view abbreviations for long movement names
@@ -360,8 +392,11 @@ const LIBRARY_ABBREV = {
 // genuinely distinct movement that happens to end the same way.
 const PLAIN_PUSH_PULL_RE = /^(.+\s)?(push[\s-]?ups?|pull[\s-]?ups?|chin[\s-]?ups?)$/i
 
-// Returns {name, implement?, modifier?} for a raw movement name string.
-// Falls back to stripping known implement prefixes, then returns the name as-is.
+// Returns {name, implement?, modifier?, singleArm?} for a raw movement name string.
+// Falls back to generically stripping known implement/modifier words, then returns the
+// name as-is. Must be idempotent — safe to call again on its own already-canonical
+// output (e.g. toWorkoutDisplay re-normalizes move.name on every render), so a name with
+// no leading implement/modifier word simply passes through unchanged.
 export function normalizeMovement(rawName) {
   if (!rawName) return { name: '' }
   const trimmed = rawName.trim()
@@ -380,10 +415,45 @@ export function normalizeMovement(rawName) {
   const alias = ALIAS_MAP[upper]
   if (alias) return { ...alias }
 
-  for (const { match, implement } of IMPLEMENT_PREFIXES) {
-    if (match.test(trimmed)) {
-      return { name: trimmed.replace(match, ''), implement }
+  // Repeatedly strip a leading implement word and/or modifier word (in any order —
+  // "Alt DB Step Up" and "DB Alt Step Up" both resolve the same way) until nothing more
+  // matches. Bounded: each iteration must consume text via replace() to continue.
+  let rest = trimmed
+  let implement = null
+  let modifier = null
+  let singleArm = false
+  let strippedAny = true
+  while (strippedAny) {
+    strippedAny = false
+    if (SA_WORD_RE.test(rest)) {
+      rest = rest.replace(SA_WORD_RE, '')
+      singleArm = true
+      strippedAny = true
     }
+    for (const { match, implement: imp } of IMPLEMENT_WORDS) {
+      if (match.test(rest)) {
+        rest = rest.replace(match, '')
+        if (!implement) implement = imp
+        strippedAny = true
+        break
+      }
+    }
+    for (const { match, modifier: mod } of MODIFIER_WORDS) {
+      if (match.test(rest)) {
+        rest = rest.replace(match, '')
+        if (!modifier) modifier = mod
+        strippedAny = true
+        break
+      }
+    }
+  }
+
+  if (implement || modifier || singleArm) {
+    const result = { name: rest.trim() || trimmed }
+    if (implement) result.implement = implement
+    if (modifier) result.modifier = modifier
+    if (singleArm) result.singleArm = true
+    return result
   }
 
   return { name: trimmed }
@@ -446,14 +516,19 @@ export function toWorkoutDisplay(move, { abbreviate = true } = {}) {
     }
   }
 
-  // Single-arm — explicit field (new) or 'SA' modifier from alias (old data)
-  const isSA = move.singleArm != null ? move.singleArm : modifier === 'SA'
+  // Single-arm — explicit persisted field takes precedence; falls back to re-deriving
+  // from the raw name (normalized.singleArm, or the legacy 'SA' modifier) only for old
+  // data saved before this field existed.
+  const isSA = move.singleArm != null ? move.singleArm : (normalized.singleArm || modifier === 'SA')
   if (isSA) display = `SA ${display}`
   if (move.side) display = `${display} (${move.side})`
   else if (rawSide) display = `${display} (${rawSide})`
 
-  // Non-SA modifiers (Deficit, Strict…) prepended
-  if (modifier && modifier !== 'SA') display = `${modifier} ${display}`
+  // Modifiers (Deficit, Strict, Alt…) — explicit persisted field takes precedence
+  // (current data); falls back to re-deriving from the raw name for old data whose
+  // name/notes still bake it in.
+  const displayModifier = move.modifier ?? (modifier && modifier !== 'SA' ? modifier : null)
+  if (displayModifier) display = `${displayModifier} ${display}`
 
   return display
 }

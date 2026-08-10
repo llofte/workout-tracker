@@ -22,8 +22,8 @@ function formatDate(dateStr) {
 
 function newWorkingSet(num) { return { num, reps: '', weight: '', isWarmup: false, isCompleted: false } }
 function newWarmupSet(num) { return { num: `W${num}`, reps: '', weight: '', isWarmup: true, isCompleted: false } }
-function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null } }
-function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, cardioUnit: 'cal' } }
+function newStrengthMove() { return { name: '', sets: [newWorkingSet(1)], notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, modifier: null } }
+function newMetconMove() { return { name: '', reps: '', weight: '', minuteAssignment: '', minuteSpan: '', isRest: false, restMin: '', restSec: '', notes: '', implement: null, singleArm: false, side: null, dumbbellCount: null, modifier: null, cardioUnit: 'cal' } }
 
 const CARDIO_RE = /\brow\b|rowing|\bbike\b|cycling|ski\s*erg|assault|\brun\b|running|\bcarry\b|\bfarm/i
 function isCardioName(name) { return CARDIO_RE.test(name ?? '') }
@@ -88,30 +88,34 @@ function parseStrengthStructure(structure) {
   return { type: 'Traditional', duration: '', interval: '1' }
 }
 
-// Extracts {name, implement, singleArm, side} from a raw movement name — e.g. "KB Front
-// Rack Hold" -> name "Front Rack Hold" + implement 'KB', "OH Plate Sit-Up" -> name "Sit-Up"
-// + implement 'Plate' (via ALIAS_MAP, since "OH ...Plate..." doesn't fit a simple prefix
-// strip). Shared by the DB-restore path (editing a saved session) and the fresh
-// photo-parse path (Claude has no separate "implement" field for metcon/accessory moves,
-// so it bakes the implement into the name string — this is what pulls it back out).
+// Extracts {name, implement, singleArm, side, modifier} from a raw movement name — e.g.
+// "KB Front Rack Hold" -> name "Front Rack Hold" + implement 'KB', "Alt DB Step Up" ->
+// name "Step Up" + implement 'DB' + modifier 'Alt' (via normalizeMovement's ALIAS_MAP or
+// generic implement/modifier-word fallback). Shared by the DB-restore path (editing a
+// saved session) and the fresh photo-parse path (Claude has no separate "implement"/
+// "modifier" field for metcon/accessory moves, so it bakes them into the name string —
+// this is what pulls them back out, so the same variation doesn't keep re-appearing as a
+// brand-new movement name).
 function normalizeMoveIdentity(m) {
   let implement = m.implement ?? null
   let singleArm = m.singleArm ?? false
   let side = m.side ?? null
+  let modifier = m.modifier ?? null
   const norm = m.name ? normalizeMovement(m.name) : null
   const canonName = norm?.name || m.name || ''
   if (implement == null && norm?.implement) implement = IMPL_SHORT[norm.implement] ?? null
-  if (!singleArm && norm?.modifier === 'SA') singleArm = true
+  if (!singleArm && (norm?.modifier === 'SA' || norm?.singleArm)) singleArm = true
+  if (!modifier && norm?.modifier && norm.modifier !== 'SA') modifier = norm.modifier
   if (!side && m.name) {
     if (m.name.trim().endsWith('(L)')) side = 'L'
     else if (m.name.trim().endsWith('(R)')) side = 'R'
   }
-  return { name: canonName, implement, singleArm, side }
+  return { name: canonName, implement, singleArm, side, modifier }
 }
 
 function restoreStrengthMove(m) {
   let wn = 0, wkn = 0
-  const { name: canonName, implement, singleArm, side } = normalizeMoveIdentity(m)
+  const { name: canonName, implement, singleArm, side, modifier } = normalizeMoveIdentity(m)
   return {
     name: canonName,
     sets: m.sets?.map(s => (s.notation === 'warmup' || s.isWarmup === true)
@@ -123,6 +127,7 @@ function restoreStrengthMove(m) {
     singleArm,
     side,
     dumbbellCount: m.dumbbellCount ?? null,
+    modifier,
   }
 }
 
@@ -132,9 +137,9 @@ function restoreMetconMove(m) {
     return { name: '', reps: '', weight: '', minuteAssignment: '', isRest: true,
       restMin: t >= 60 ? String(Math.floor(t / 60)) : '',
       restSec: t % 60 ? String(t % 60) : '', notes: '',
-      implement: null, singleArm: false, side: null }
+      implement: null, singleArm: false, side: null, modifier: null }
   }
-  const { name: canonName, implement, singleArm, side } = normalizeMoveIdentity(m)
+  const { name: canonName, implement, singleArm, side, modifier } = normalizeMoveIdentity(m)
   const parsed = parseCardioReps(m.reps)
   return {
     name: canonName, reps: parsed.reps,
@@ -144,6 +149,7 @@ function restoreMetconMove(m) {
     isRest: false, restMin: '', restSec: '', notes: m.notes || '',
     implement, singleArm, side,
     dumbbellCount: m.dumbbellCount ?? null,
+    modifier,
     cardioUnit: m.cardioUnit ?? parsed.cardioUnit,
   }
 }
@@ -589,6 +595,31 @@ function ImplementSelector({ implement, singleArm, side, dumbbellCount, onChange
   )
 }
 
+// ─── Modifier Selector ───────────────────────────────────────────────
+// A "how it's done" tag (Deficit, Strict, Alt…) — orthogonal to implement/SA, since a
+// modifier can apply to bodyweight movements too (e.g. "Prisoner Step-Up"). Single-select:
+// tapping the active pill clears it, tapping another replaces it (modifier is one string,
+// not a set — matches how it's stored and displayed).
+const MODIFIERS = ['Alt', 'Strict', 'Deficit', 'Weighted', 'Banded', 'Split-Stance', 'Prisoner', 'Kneeling', 'Russian']
+function ModifierSelector({ modifier, onChange }) {
+  const pill = (active) => ({
+    backgroundColor: active ? 'rgba(15,247,197,0.14)' : 'rgba(255,255,255,0.07)',
+    color: active ? '#0ff7c5' : 'rgba(245,240,232,0.45)',
+    border: 'none', borderRadius: 8, padding: '5px 11px',
+    fontSize: 12, fontWeight: active ? 700 : 500, letterSpacing: 0.2,
+    fontFamily: 'inherit', cursor: 'pointer',
+  })
+  return (
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      {MODIFIERS.map(mod => (
+        <button key={mod} onClick={() => onChange(modifier === mod ? null : mod)} style={pill(modifier === mod)}>
+          {mod}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // Full movement names are tried first — only abbreviated when the full name actually
 // wouldn't fit the real rendered column width. Mirrors SessionDetailScreen.jsx's
 // multiTableHeaders(), computed against this table's own (different) padding/gap chrome.
@@ -693,6 +724,10 @@ function MultiSetStrengthInput({
               dumbbellCount={move.dumbbellCount}
               name={move.name}
               onChange={patch => onImplementChange(mi, patch)}
+            />
+            <ModifierSelector
+              modifier={move.modifier}
+              onChange={mod => onImplementChange(mi, { modifier: mod })}
             />
           </div>
         </div>
@@ -1584,6 +1619,7 @@ Rules:
             singleArm: m.singleArm ?? false,
             side: m.side ?? null,
             dumbbellCount: m.dumbbellCount ?? null,
+            modifier: m.modifier ?? null,
             sets: m.sets.map((s, idx) => ({
               setNumber: idx + 1,
               reps: s.reps !== '' ? Number(s.reps) : null,
@@ -1638,6 +1674,7 @@ Rules:
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
               dumbbellCount: m.dumbbellCount ?? null,
+              modifier: m.modifier ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
@@ -1670,6 +1707,7 @@ Rules:
               singleArm: m.singleArm ?? false,
               side: m.side ?? null,
               dumbbellCount: m.dumbbellCount ?? null,
+              modifier: m.modifier ?? null,
               minuteAssignment: m.minuteAssignment !== '' ? Number(m.minuteAssignment) : null,
               minuteSpan: m.minuteSpan !== '' ? Number(m.minuteSpan) : null,
               notes: m.notes || null,
@@ -2025,6 +2063,10 @@ Rules:
                     setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, implement, singleArm, side, dumbbellCount } : m))
                   }
                 />
+                <ModifierSelector
+                  modifier={move.modifier}
+                  onChange={mod => setStrengthMoves(prev => prev.map((m, i) => i === mi ? { ...m, modifier: mod } : m))}
+                />
                 <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
                   <span style={{ width: 28, flexShrink: 0 }} />
                   <span style={{ flex: 1, textAlign: 'center', fontSize: 11, color: 'rgba(245,240,232,0.3)', fontFamily: 'inherit', letterSpacing: 0.3 }}>REPS</span>
@@ -2276,6 +2318,17 @@ Rules:
                               } : sg
                             ))
                           }
+                        />
+                      )}
+                      {!move.isRest && (
+                        <ModifierSelector
+                          modifier={move.modifier}
+                          onChange={mod => setMetconSegments(prev => prev.map((sg, sgi) =>
+                            sgi === si ? {
+                              ...sg,
+                              moves: sg.moves.map((m, mii) => mii === mi ? { ...m, modifier: mod } : m)
+                            } : sg
+                          ))}
                         />
                       )}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -2591,6 +2644,17 @@ Rules:
                             } : sg
                           ))
                         }
+                      />
+                    )}
+                    {!move.isRest && (
+                      <ModifierSelector
+                        modifier={move.modifier}
+                        onChange={mod => setAccessorySegments(prev => prev.map((sg, sgi) =>
+                          sgi === si ? {
+                            ...sg,
+                            moves: sg.moves.map((m, mii) => mii === mi ? { ...m, modifier: mod } : m)
+                          } : sg
+                        ))}
                       />
                     )}
                     <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
