@@ -1340,6 +1340,8 @@ export default function LogScreen({ onSave, onClose, initialSession, onMinimize,
   function buildPhotoPrompt() {
     return `You are parsing a CrossFit/BB WOD whiteboard photo for a workout tracker. Extract the workout exactly as written on the board.
 
+Transcribe movement names literally as written — never substitute a different, more common, or contextually-expected movement, even if the handwriting is imperfect or the combination seems unusual (e.g. don't swap in "Thruster" just because a squat-and-cal-bike pairing looks like a typical partner WOD). If a word is genuinely hard to read, give your best literal letter-by-letter reading rather than guessing a different well-known movement that seems to fit the context.
+
 Return ONLY a valid JSON object — no markdown fences, no explanation. Use this exact structure:
 
 {
@@ -1394,6 +1396,8 @@ Section classification — the board may have 2 or 3 distinct sections. Route ea
 - Accessory sections follow the exact same rules as Metcon below (weight, bodyweight exceptions, OTM patterns A/B/C, minuteAssignment, minuteSpan) — just fill in "accessoryFormat"/"accessorySegments" instead of "metconFormat"/"metconSegments".
 - When a movement offers a choice of implement ("KB or DB Overhead Hold"), do not guess one — write the plain movement name with no implement prefix ("Overhead Hold") and let the athlete select which one she actually used after logging.
 
+Common abbreviations (apply in ANY section — Strength, Metcon, or Accessory — not just the section where an abbreviation happens to be listed here): BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch, RDL=Romanian Deadlift, TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed
+
 Strength rules:
 - If no strength, set "strengthBlock" to null
 - type: "Traditional" for regular sets, "OTM" for every-minute-on-the-minute
@@ -1405,7 +1409,6 @@ Strength rules:
 - Leave weight as empty string ""; num must be an integer (1, 2, 3…); reps must be a string
 - Movement name cleanup: strip trailing progression notation like "Build" or "build" from the movement name — it's coaching shorthand for "add weight each set", not part of the name. "RDL Build" → "RDL". "Back Squat Build (BB)" → "Back Squat".
 - Do NOT include a "(BB)" or barbell marker in the movement name — barbell is the assumed default implement for barbell lifts, so it's redundant. Only note an implement when it's non-default (DB, KB, etc.), and even then put it in the name as the app expects (e.g. "DB RDL"), never as a parenthetical "(BB)".
-- Common abbreviations (expand to full canonical name): BS=Back Squat, FS=Front Squat, PS/P.SN=Power Snatch, DL=Deadlift, PC=Power Clean, C&J=Clean & Jerk, SN=Snatch, PP=Push Press, PJ=Push Jerk, HPC=Hang Power Clean, HPS=Hang Power Snatch, RDL=Romanian Deadlift
 
 Metcon rules:
 - Weight fields: leave as empty string "" for ALL barbell/dumbbell/kettlebell movements — do NOT guess weights.
@@ -1417,7 +1420,6 @@ Metcon rules:
 - For Tabata: set "rounds" (default "8"), tabataWork (sec), tabataRest (sec)
 - Multi-segment: add extra segments with restBeforeMin/restBeforeSec set
 - Buy-in/buy-out: movements done once before/after the main piece
-- Common abbreviations: TTB/T2B=Toes to Bar, KBS=KB Swing, DU=Double Under, BJ=Box Jump, WB=Wall Ball, HSPU=Handstand Push-Up, MU=Muscle-Up, C2B=Chest to Bar, RFT=Rounds for Time, AMRAP=As Many Rounds As Possible, RX=as prescribed
 - "metconScoreType" — a bare score number is ambiguous ("25" could mean calories, rounds, or reps), so infer how the board says THIS workout is scored (independent of metconFormat): "time" (a clock/elapsed-time score, e.g. "for time"), "cal" (total calories, e.g. "score is total cal"), "rounds" (a count of rounds completed, optionally "+reps"), "reps" (total reps completed), or "" if the board doesn't state a scoring method or it's genuinely unclear. Not needed for AMRAP — that format always scores rounds+reps implicitly.
 
 OTM/EMOM metcon — THREE distinct patterns, handle carefully:
